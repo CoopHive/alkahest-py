@@ -36,6 +36,7 @@ version = "0.1.0"
 dependencies = [
  "alkahest-rs",
  "alloy",
+ "eyre",
  "pyo3",
 ]
 
@@ -2398,6 +2399,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57fe09249128b3173d092de9523eaa75136bf7ba85e0d69eca241c7939c933cc"
 dependencies = [
  "cfg-if",
+ "eyre",
  "indoc",
  "libc",
  "memoffset",
