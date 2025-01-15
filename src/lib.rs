@@ -1,7 +1,9 @@
-use pyo3::{
-    exceptions::{PyRuntimeError, PyValueError},
-    prelude::*,
+use alkahest_rs::{
+    clients::{attestation, erc1155, erc20, erc721, token_bundle},
+    sol_types::EscrowClaimed,
 };
+use alloy::primitives::{Address, FixedBytes, Log};
+use pyo3::{exceptions::PyValueError, prelude::*};
 
 /// Formats the sum of two numbers as string.
 #[pyfunction]
@@ -10,8 +12,44 @@ fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 }
 
 #[pyclass]
+#[derive(Clone)]
 struct AlkahestClient {
     inner: alkahest_rs::AlkahestClient,
+    erc_20: Erc20Client,
+    erc_721: Erc721Client,
+    erc_1155: Erc1155Client,
+    token_bundle: TokenBundleClient,
+    attestation: AttestationClient,
+}
+
+#[pyclass]
+#[derive(Clone)]
+struct Erc20Client {
+    inner: erc20::Erc20Client,
+}
+
+#[pyclass]
+#[derive(Clone)]
+struct Erc721Client {
+    inner: erc721::Erc721Client,
+}
+
+#[pyclass]
+#[derive(Clone)]
+struct Erc1155Client {
+    inner: erc1155::Erc1155Client,
+}
+
+#[pyclass]
+#[derive(Clone)]
+struct TokenBundleClient {
+    inner: token_bundle::TokenBundleClient,
+}
+
+#[pyclass]
+#[derive(Clone)]
+struct AttestationClient {
+    inner: attestation::AttestationClient,
 }
 
 macro_rules! client_address_config {
@@ -129,24 +167,67 @@ impl TryFrom<AddressConfig> for alkahest_rs::AddressConfig {
 #[pymethods]
 impl AlkahestClient {
     #[new]
-    fn new(
+    #[pyo3(signature = (private_key, rpc_url, address_config=None))]
+    pub fn new(
         private_key: String,
         rpc_url: String,
         address_config: Option<AddressConfig>,
     ) -> PyResult<Self> {
         let address_config = address_config.map(|x| x.try_into()).transpose()?;
+        let client = alkahest_rs::AlkahestClient::new(private_key, rpc_url, address_config)?;
+
         let client = Self {
-            inner: alkahest_rs::AlkahestClient::new(private_key, rpc_url, address_config)
-                .map_err(|_| PyRuntimeError::new_err("error creating client"))?,
+            inner: client.clone(),
+            erc_20: Erc20Client {
+                inner: client.erc20,
+            },
+            erc_721: Erc721Client {
+                inner: client.erc721,
+            },
+            erc_1155: Erc1155Client {
+                inner: client.erc1155,
+            },
+            token_bundle: TokenBundleClient {
+                inner: client.token_bundle,
+            },
+            attestation: AttestationClient {
+                inner: client.attestation,
+            },
         };
 
         Ok(client)
     }
+
+    #[pyo3(signature = (contract_address, buy_attestation, from_block=None))]
+    pub async fn wait_for_fulfillment(
+        &self,
+        contract_address: String,
+        buy_attestation: String,
+        from_block: Option<u64>,
+    ) -> eyre::Result<EscowClaimedLog> {
+        let contract_address: Address = contract_address.parse()?;
+        let buy_attestation: FixedBytes<32> = buy_attestation.parse()?;
+        let res = self
+            .inner
+            .wait_for_fulfillment(contract_address, buy_attestation, from_block)
+            .await?;
+        Ok(res.data.into())
+    }
 }
 
-/// A Python module implemented in Rust.
-#[pymodule]
-fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
-    Ok(())
+#[derive(IntoPyObject)]
+struct EscowClaimedLog {
+    pub payment: String,
+    pub fulfillment: String,
+    pub fulfiller: String,
+}
+
+impl From<EscrowClaimed> for EscowClaimedLog {
+    fn from(value: EscrowClaimed) -> Self {
+        Self {
+            payment: value.payment.to_string(),
+            fulfillment: value.fulfillment.to_string(),
+            fulfiller: value.fulfiller.to_string(),
+        }
+    }
 }
