@@ -1,0 +1,152 @@
+use pyo3::{
+    exceptions::{PyRuntimeError, PyValueError},
+    prelude::*,
+};
+
+/// Formats the sum of two numbers as string.
+#[pyfunction]
+fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
+    Ok((a + b).to_string())
+}
+
+#[pyclass]
+struct AlkahestClient {
+    inner: alkahest_rs::AlkahestClient,
+}
+
+macro_rules! client_address_config {
+    ($name:ident) => {
+        #[derive(FromPyObject)]
+        pub struct $name {
+            pub eas: String,
+            pub barter_utils: String,
+            pub escrow_obligation: String,
+            pub payment_obligation: String,
+        }
+    };
+}
+
+client_address_config!(Erc20Addresses);
+client_address_config!(Erc721Addresses);
+client_address_config!(Erc1155Addresses);
+client_address_config!(TokenBundleAddresses);
+
+#[derive(FromPyObject)]
+pub struct AttestationAddresses {
+    pub eas: String,
+    pub eas_schema_registry: String,
+    pub barter_utils: String,
+    pub escrow_obligation: String,
+    pub escrow_obligation_2: String,
+}
+
+#[derive(FromPyObject)]
+struct AddressConfig {
+    pub erc20_addresses: Option<Erc20Addresses>,
+    pub erc721_addresses: Option<Erc721Addresses>,
+    pub erc1155_addresses: Option<Erc1155Addresses>,
+    pub token_bundle_addresses: Option<TokenBundleAddresses>,
+    pub attestation_addresses: Option<AttestationAddresses>,
+}
+
+macro_rules! try_from_address_config {
+    ( $from:path, $to:path) => {
+        impl TryFrom<$from> for $to {
+            type Error = PyErr;
+
+            fn try_from(value: $from) -> PyResult<Self> {
+                macro_rules! parse_address {
+                    ($name:ident) => {
+                        value
+                            .$name
+                            .parse()
+                            .map_err(|_| PyValueError::new_err("invalid address"))?
+                    };
+                }
+
+                Ok(Self {
+                    eas: parse_address!(eas),
+                    barter_utils: parse_address!(barter_utils),
+                    escrow_obligation: parse_address!(escrow_obligation),
+                    payment_obligation: parse_address!(payment_obligation),
+                })
+            }
+        }
+    };
+}
+
+try_from_address_config!(Erc20Addresses, alkahest_rs::clients::erc20::Erc20Addresses);
+try_from_address_config!(
+    Erc721Addresses,
+    alkahest_rs::clients::erc721::Erc721Addresses
+);
+try_from_address_config!(
+    Erc1155Addresses,
+    alkahest_rs::clients::erc1155::Erc1155Addresses
+);
+try_from_address_config!(
+    TokenBundleAddresses,
+    alkahest_rs::clients::token_bundle::TokenBundleAddresses
+);
+
+impl TryFrom<AttestationAddresses> for alkahest_rs::clients::attestation::AttestationAddresses {
+    type Error = PyErr;
+
+    fn try_from(value: AttestationAddresses) -> PyResult<Self> {
+        macro_rules! parse_address {
+            ($name:ident) => {
+                value
+                    .$name
+                    .parse()
+                    .map_err(|_| PyValueError::new_err("invalid address"))?
+            };
+        }
+
+        Ok(Self {
+            eas: parse_address!(eas),
+            eas_schema_registry: parse_address!(eas_schema_registry),
+            barter_utils: parse_address!(barter_utils),
+            escrow_obligation: parse_address!(escrow_obligation),
+            escrow_obligation_2: parse_address!(escrow_obligation_2),
+        })
+    }
+}
+
+impl TryFrom<AddressConfig> for alkahest_rs::AddressConfig {
+    type Error = PyErr;
+
+    fn try_from(value: AddressConfig) -> PyResult<Self> {
+        Ok(Self {
+            erc20_addresses: value.erc20_addresses.and_then(|x| x.try_into().ok()),
+            erc721_addresses: value.erc721_addresses.and_then(|x| x.try_into().ok()),
+            erc1155_addresses: value.erc1155_addresses.and_then(|x| x.try_into().ok()),
+            token_bundle_addresses: value.token_bundle_addresses.and_then(|x| x.try_into().ok()),
+            attestation_addresses: value.attestation_addresses.and_then(|x| x.try_into().ok()),
+        })
+    }
+}
+
+#[pymethods]
+impl AlkahestClient {
+    #[new]
+    fn new(
+        private_key: String,
+        rpc_url: String,
+        address_config: Option<AddressConfig>,
+    ) -> PyResult<Self> {
+        let address_config = address_config.map(|x| x.try_into()).transpose()?;
+        let client = Self {
+            inner: alkahest_rs::AlkahestClient::new(private_key, rpc_url, address_config)
+                .map_err(|_| PyRuntimeError::new_err("error creating client"))?,
+        };
+
+        Ok(client)
+    }
+}
+
+/// A Python module implemented in Rust.
+#[pymodule]
+fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    Ok(())
+}
