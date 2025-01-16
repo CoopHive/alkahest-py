@@ -296,6 +296,41 @@ impl TryFrom<Erc1155Data> for alkahest_rs::types::Erc1155Data {
     }
 }
 
+#[derive(FromPyObject)]
+pub struct TokenBundleData {
+    erc20s: Vec<Erc20Data>,
+    erc721s: Vec<Erc721Data>,
+    erc1155s: Vec<Erc1155Data>,
+}
+
+impl TryFrom<TokenBundleData> for alkahest_rs::types::TokenBundleData {
+    type Error = eyre::Error;
+
+    fn try_from(value: TokenBundleData) -> eyre::Result<Self> {
+        let erc20s = value
+            .erc20s
+            .into_iter()
+            .map(|x| x.try_into())
+            .collect::<eyre::Result<Vec<_>>>()?;
+        let erc721s = value
+            .erc721s
+            .into_iter()
+            .map(|x| x.try_into())
+            .collect::<eyre::Result<Vec<_>>>()?;
+        let erc1155s = value
+            .erc1155s
+            .into_iter()
+            .map(|x| x.try_into())
+            .collect::<eyre::Result<Vec<_>>>()?;
+
+        Ok(Self {
+            erc20s,
+            erc721s,
+            erc1155s,
+        })
+    }
+}
+
 #[pymethods]
 impl Erc20Client {
     pub async fn approve(&self, spender: String, token: Erc20Data) -> eyre::Result<String> {
@@ -476,6 +511,19 @@ impl Erc20Client {
         let receipt = self
             .inner
             .permit_and_buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn buy_bundle_for_erc20(
+        &self,
+        bid: Erc20Data,
+        ask: TokenBundleData,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
             .await?;
         Ok(receipt.transaction_hash.to_string())
     }
