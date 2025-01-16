@@ -2,53 +2,47 @@ use alkahest_rs::{
     clients::{attestation, erc1155, erc20, erc721, token_bundle},
     sol_types::EscrowClaimed,
 };
-use alloy::primitives::{Address, FixedBytes, Log};
+use alloy::primitives::{Address, FixedBytes};
 use pyo3::{exceptions::PyValueError, prelude::*};
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
-}
-
 #[pyclass]
 #[derive(Clone)]
-struct AlkahestClient {
+pub struct AlkahestClient {
     inner: alkahest_rs::AlkahestClient,
-    erc_20: Erc20Client,
-    erc_721: Erc721Client,
-    erc_1155: Erc1155Client,
-    token_bundle: TokenBundleClient,
-    attestation: AttestationClient,
+    pub erc_20: Erc20Client,
+    pub erc_721: Erc721Client,
+    pub erc_1155: Erc1155Client,
+    pub token_bundle: TokenBundleClient,
+    pub attestation: AttestationClient,
 }
 
 #[pyclass]
 #[derive(Clone)]
-struct Erc20Client {
+pub struct Erc20Client {
     inner: erc20::Erc20Client,
 }
 
 #[pyclass]
 #[derive(Clone)]
-struct Erc721Client {
+pub struct Erc721Client {
     inner: erc721::Erc721Client,
 }
 
 #[pyclass]
 #[derive(Clone)]
-struct Erc1155Client {
+pub struct Erc1155Client {
     inner: erc1155::Erc1155Client,
 }
 
 #[pyclass]
 #[derive(Clone)]
-struct TokenBundleClient {
+pub struct TokenBundleClient {
     inner: token_bundle::TokenBundleClient,
 }
 
 #[pyclass]
 #[derive(Clone)]
-struct AttestationClient {
+pub struct AttestationClient {
     inner: attestation::AttestationClient,
 }
 
@@ -79,7 +73,7 @@ pub struct AttestationAddresses {
 }
 
 #[derive(FromPyObject)]
-struct AddressConfig {
+pub struct AddressConfig {
     pub erc20_addresses: Option<Erc20Addresses>,
     pub erc721_addresses: Option<Erc721Addresses>,
     pub erc1155_addresses: Option<Erc1155Addresses>,
@@ -216,7 +210,7 @@ impl AlkahestClient {
 }
 
 #[derive(IntoPyObject)]
-struct EscowClaimedLog {
+pub struct EscowClaimedLog {
     pub payment: String,
     pub fulfillment: String,
     pub fulfiller: String,
@@ -229,5 +223,260 @@ impl From<EscrowClaimed> for EscowClaimedLog {
             fulfillment: value.fulfillment.to_string(),
             fulfiller: value.fulfiller.to_string(),
         }
+    }
+}
+
+#[derive(FromPyObject)]
+pub struct ArbiterData {
+    arbiter: String,
+    demand: Vec<u8>,
+}
+
+impl TryFrom<ArbiterData> for alkahest_rs::types::ArbiterData {
+    type Error = eyre::Error;
+
+    fn try_from(value: ArbiterData) -> eyre::Result<Self> {
+        Ok(Self {
+            arbiter: value.arbiter.parse()?,
+            demand: value.demand.into(),
+        })
+    }
+}
+
+#[derive(FromPyObject)]
+pub struct Erc20Data {
+    address: String,
+    value: u128,
+}
+
+impl TryFrom<Erc20Data> for alkahest_rs::types::Erc20Data {
+    type Error = eyre::Error;
+
+    fn try_from(value: Erc20Data) -> eyre::Result<Self> {
+        Ok(Self {
+            address: value.address.parse()?,
+            value: value.value.try_into()?,
+        })
+    }
+}
+
+#[derive(FromPyObject)]
+pub struct Erc721Data {
+    address: String,
+    id: u128,
+}
+
+impl TryFrom<Erc721Data> for alkahest_rs::types::Erc721Data {
+    type Error = eyre::Error;
+
+    fn try_from(value: Erc721Data) -> eyre::Result<Self> {
+        Ok(Self {
+            address: value.address.parse()?,
+            id: value.id.try_into()?,
+        })
+    }
+}
+
+#[derive(FromPyObject)]
+pub struct Erc1155Data {
+    address: String,
+    id: u128,
+    value: u128,
+}
+
+impl TryFrom<Erc1155Data> for alkahest_rs::types::Erc1155Data {
+    type Error = eyre::Error;
+
+    fn try_from(value: Erc1155Data) -> eyre::Result<Self> {
+        Ok(Self {
+            address: value.address.parse()?,
+            id: value.id.try_into()?,
+            value: value.value.try_into()?,
+        })
+    }
+}
+
+#[pymethods]
+impl Erc20Client {
+    pub async fn approve(&self, spender: String, token: Erc20Data) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .approve(spender.parse()?, token.try_into()?)
+            .await?;
+
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn approve_if_less(
+        &self,
+        spender: String,
+        token: Erc20Data,
+    ) -> eyre::Result<Option<String>> {
+        let receipt = self
+            .inner
+            .approve_if_less(spender.parse()?, token.try_into()?)
+            .await?;
+
+        Ok(receipt.map(|x| x.transaction_hash.to_string()))
+    }
+
+    pub async fn collect_payment(
+        &self,
+        buy_attestation: String,
+        fulfillment: String,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
+        let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn buy_with_erc20(
+        &self,
+        price: Erc20Data,
+        item: ArbiterData,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn permit_and_buy_with_erc20(
+        &self,
+        price: Erc20Data,
+        item: ArbiterData,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .permit_and_buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn pay_with_erc20(&self, price: Erc20Data, payee: String) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .pay_with_erc20(price.try_into()?, payee.parse()?)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn permit_and_pay_with_erc20(
+        &self,
+        price: Erc20Data,
+        payee: String,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .permit_and_pay_with_erc20(price.try_into()?, payee.parse()?)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn buy_erc20_for_erc20(
+        &self,
+        bid: Erc20Data,
+        ask: Erc20Data,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn permit_and_buy_erc20_for_erc20(
+        &self,
+        bid: Erc20Data,
+        ask: Erc20Data,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .permit_and_buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn pay_erc20_for_erc20(&self, buy_attestation: String) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .pay_erc20_for_erc20(buy_attestation.parse()?)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn permit_and_pay_erc20_for_erc20(
+        &self,
+        buy_attestation: String,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .permit_and_pay_erc20_for_erc20(buy_attestation.parse()?)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn buy_erc721_for_erc20(
+        &self,
+        bid: Erc20Data,
+        ask: Erc721Data,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn permit_and_buy_erc721_for_erc20(
+        &self,
+        bid: Erc20Data,
+        ask: Erc721Data,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .permit_and_buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn buy_erc1155_for_erc20(
+        &self,
+        bid: Erc20Data,
+        ask: Erc1155Data,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn permit_and_buy_erc1155_for_erc20(
+        &self,
+        bid: Erc20Data,
+        ask: Erc1155Data,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .permit_and_buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
     }
 }
