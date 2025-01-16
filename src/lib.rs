@@ -541,3 +541,20 @@ impl Erc20Client {
         Ok(receipt.transaction_hash.to_string())
     }
 }
+
+#[pymethods]
+impl Erc721Client {
+    pub async fn approve(
+        &self,
+        spender: String,
+        token: Erc721Data,
+        approval_purpose: ApprovalPurpose,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .approve(spender.parse()?, token.try_into()?)
+            .await?;
+
+        Ok(receipt.transaction_hash.to_string())
+    }
+}
