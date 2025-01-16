@@ -527,4 +527,17 @@ impl Erc20Client {
             .await?;
         Ok(receipt.transaction_hash.to_string())
     }
+
+    pub async fn permit_and_buy_bundle_for_erc20(
+        &self,
+        bid: Erc20Data,
+        ask: TokenBundleData,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .permit_and_buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
 }
