@@ -1023,3 +1023,15 @@ impl AttestationClient {
         Ok(receipt.transaction_hash.to_string())
     }
 }
+
+#[pymodule]
+fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<AlkahestClient>()?;
+    m.add_class::<Erc20Client>()?;
+    m.add_class::<Erc721Client>()?;
+    m.add_class::<Erc1155Client>()?;
+    m.add_class::<TokenBundleClient>()?;
+    m.add_class::<AttestationClient>()?;
+
+    Ok(())
+}
