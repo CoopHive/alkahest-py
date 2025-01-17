@@ -894,3 +894,132 @@ impl TokenBundleClient {
         Ok(receipt.transaction_hash.to_string())
     }
 }
+
+#[derive(FromPyObject)]
+pub struct AttestationRequestData {
+    pub recipient: String,
+    pub expiration_time: u64,
+    pub revocable: bool,
+    pub ref_uid: String,
+    pub data: Vec<u8>,
+    pub value: u128,
+}
+
+#[derive(FromPyObject)]
+pub struct AttestationRequest {
+    pub schema: String,
+    pub data: AttestationRequestData,
+}
+
+impl TryFrom<AttestationRequestData> for alkahest_rs::contracts::IEAS::AttestationRequestData {
+    type Error = eyre::Error;
+
+    fn try_from(value: AttestationRequestData) -> eyre::Result<Self> {
+        Ok(Self {
+            recipient: value.recipient.parse()?,
+            expirationTime: value.expiration_time,
+            revocable: value.revocable,
+            refUID: value.ref_uid.parse()?,
+            data: value.data.into(),
+            value: value.value.try_into()?,
+        })
+    }
+}
+
+impl TryFrom<AttestationRequest> for alkahest_rs::contracts::IEAS::AttestationRequest {
+    type Error = eyre::Error;
+
+    fn try_from(value: AttestationRequest) -> eyre::Result<Self> {
+        let schema: FixedBytes<32> = value.schema.parse()?;
+        Ok(Self {
+            schema,
+            data: value.data.try_into()?,
+        })
+    }
+}
+
+#[pymethods]
+impl AttestationClient {
+    pub async fn register_schema(
+        &self,
+        schema: String,
+        resolver: String,
+        revocable: bool,
+    ) -> eyre::Result<String> {
+        let schema: FixedBytes<32> = schema.parse()?;
+        let resolver: Address = resolver.parse()?;
+        let receipt = self
+            .inner
+            .register_schema(schema.to_string(), resolver, revocable)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn attest(&self, attestation: AttestationRequest) -> eyre::Result<String> {
+        let receipt = self.inner.attest(attestation.try_into()?).await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn collect_payment(
+        &self,
+        buy_attestation: String,
+        fulfillment: String,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn collect_payment_2(
+        &self,
+        buy_attestation: String,
+        fulfillment: String,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .collect_payment_2(buy_attestation.parse()?, fulfillment.parse()?)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn create_escrow(
+        &self,
+        attestation: AttestationRequest,
+        demand: ArbiterData,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn create_escrow_2(
+        &self,
+        attestation: String,
+        demand: ArbiterData,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .create_escrow_2(attestation.parse()?, demand.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+
+    pub async fn attest_and_create_escrow(
+        &self,
+        attestation: AttestationRequest,
+        demand: ArbiterData,
+        expiration: u64,
+    ) -> eyre::Result<String> {
+        let receipt = self
+            .inner
+            .attest_and_create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
+            .await?;
+        Ok(receipt.transaction_hash.to_string())
+    }
+}
