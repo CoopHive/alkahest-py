@@ -9,9 +9,9 @@ use pyo3::{exceptions::PyValueError, prelude::*};
 #[derive(Clone)]
 pub struct AlkahestClient {
     inner: alkahest_rs::AlkahestClient,
-    pub erc_20: Erc20Client,
-    pub erc_721: Erc721Client,
-    pub erc_1155: Erc1155Client,
+    pub erc20: Erc20Client,
+    pub erc721: Erc721Client,
+    pub erc1155: Erc1155Client,
     pub token_bundle: TokenBundleClient,
     pub attestation: AttestationClient,
 }
@@ -172,13 +172,13 @@ impl AlkahestClient {
 
         let client = Self {
             inner: client.clone(),
-            erc_20: Erc20Client {
+            erc20: Erc20Client {
                 inner: client.erc20,
             },
-            erc_721: Erc721Client {
+            erc721: Erc721Client {
                 inner: client.erc721,
             },
-            erc_1155: Erc1155Client {
+            erc1155: Erc1155Client {
                 inner: client.erc1155,
             },
             token_bundle: TokenBundleClient {
@@ -190,6 +190,31 @@ impl AlkahestClient {
         };
 
         Ok(client)
+    }
+
+    #[getter]
+    pub fn erc20(&self) -> Erc20Client {
+        self.erc20.clone()
+    }
+
+    #[getter]
+    pub fn erc721(&self) -> Erc721Client {
+        self.erc721.clone()
+    }
+
+    #[getter]
+    pub fn erc1155(&self) -> Erc1155Client {
+        self.erc1155.clone()
+    }
+
+    #[getter]
+    pub fn token_bundle(&self) -> TokenBundleClient {
+        self.token_bundle.clone()
+    }
+
+    #[getter]
+    pub fn attestation(&self) -> AttestationClient {
+        self.attestation.clone()
     }
 
     #[pyo3(signature = (contract_address, buy_attestation, from_block=None))]
@@ -227,6 +252,7 @@ impl From<EscrowClaimed> for EscowClaimedLog {
 }
 
 #[derive(FromPyObject)]
+#[pyo3(from_item_all)]
 pub struct ArbiterData {
     arbiter: String,
     demand: Vec<u8>,
@@ -244,6 +270,7 @@ impl TryFrom<ArbiterData> for alkahest_rs::types::ArbiterData {
 }
 
 #[derive(FromPyObject)]
+#[pyo3(from_item_all)]
 pub struct Erc20Data {
     address: String,
     value: u128,
@@ -261,9 +288,10 @@ impl TryFrom<Erc20Data> for alkahest_rs::types::Erc20Data {
 }
 
 #[derive(FromPyObject)]
+#[pyo3(from_item_all)]
 pub struct Erc721Data {
-    address: String,
-    id: u128,
+    pub address: String,
+    pub id: u128,
 }
 
 impl TryFrom<Erc721Data> for alkahest_rs::types::Erc721Data {
@@ -278,6 +306,7 @@ impl TryFrom<Erc721Data> for alkahest_rs::types::Erc721Data {
 }
 
 #[derive(FromPyObject)]
+#[pyo3(from_item_all)]
 pub struct Erc1155Data {
     address: String,
     id: u128,
@@ -297,6 +326,7 @@ impl TryFrom<Erc1155Data> for alkahest_rs::types::Erc1155Data {
 }
 
 #[derive(FromPyObject)]
+#[pyo3(from_item_all)]
 pub struct TokenBundleData {
     erc20s: Vec<Erc20Data>,
     erc721s: Vec<Erc721Data>,
