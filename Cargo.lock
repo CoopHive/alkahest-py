@@ -38,6 +38,7 @@ dependencies = [
  "alloy",
  "eyre",
  "pyo3",
+ "tokio",
 ]
 
 [[package]]
