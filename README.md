@@ -7,7 +7,7 @@
 1. clone this repo and https://github.com/coophive/alkahest-rs into parallel directories
 
 ```bash
-mkdit alkahest-sdks && cd alkahest-sdks
+mkdir alkahest-sdks && cd alkahest-sdks
 git clone https://github.com/coophive/alkahest-rs
 git clone https://github.com/coophive/alkahest-py
 ```
