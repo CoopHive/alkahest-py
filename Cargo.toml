@@ -13,3 +13,4 @@ alkahest-rs = { version = "0.1.0", path = "../alkahest-rs" }
 alloy = "0.9.2"
 eyre = "0.6.12"
 pyo3 = { version ="0.23.3", features = ["experimental-async", "eyre"] }
+tokio = "1.43.0"
