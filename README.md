@@ -22,7 +22,7 @@ uv run maturin build
 
 ## usage
 
-1. install into any python project via the wheel, e.g. `pip install path-to-alkahest-py/target/wheels/alkahest_py-0.1.0-cp313-cp313-macosx_11_0_arm64.whl` (or `uv pip install...`). your exact file might be different by system, but should be in the same directory.
+1. install into any python project via the wheel, e.g. `pip install path-to-alkahest-py/target/wheels/alkahest_py-0.1.0-cp313-cp313-macosx_11_0_arm64.whl` (or `uv pip install ...`). your exact file might be different by system, but should be in the same directory.
 
 2. import the module and create an AlkahestClient instance
 
@@ -50,4 +50,4 @@ if __name__ == "__main__":
 
 note that ArbiterData ({"arbiter": "0x...", "demand": b"..."}) expects demand as abi encoded bytes. for arbiters that aren't explicitly supported, you'll have to manually encode the Solidity struct, e.g. with (eth_abi)[https://eth-abi.readthedocs.io/en/latest/encoding.html]. passing a dictionary matching the solidity struct's format isn't supported.
 
-see alkahest-py/test.py for a usage example.
+see alkahest_py/test.py for a usage example.
