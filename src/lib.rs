@@ -4,6 +4,7 @@ use alkahest_rs::{
 };
 use alloy::primitives::{Address, FixedBytes};
 use pyo3::{exceptions::PyValueError, prelude::*};
+use tokio::runtime::Runtime;
 
 #[pyclass]
 #[derive(Clone)]
@@ -162,7 +163,7 @@ impl TryFrom<AddressConfig> for alkahest_rs::AddressConfig {
 impl AlkahestClient {
     #[new]
     #[pyo3(signature = (private_key, rpc_url, address_config=None))]
-    pub fn new(
+    pub fn __new__(
         private_key: String,
         rpc_url: String,
         address_config: Option<AddressConfig>,
@@ -224,13 +225,15 @@ impl AlkahestClient {
         buy_attestation: String,
         from_block: Option<u64>,
     ) -> eyre::Result<EscowClaimedLog> {
-        let contract_address: Address = contract_address.parse()?;
-        let buy_attestation: FixedBytes<32> = buy_attestation.parse()?;
-        let res = self
-            .inner
-            .wait_for_fulfillment(contract_address, buy_attestation, from_block)
-            .await?;
-        Ok(res.data.into())
+        Runtime::new()?.block_on(async {
+            let contract_address: Address = contract_address.parse()?;
+            let buy_attestation: FixedBytes<32> = buy_attestation.parse()?;
+            let res = self
+                .inner
+                .wait_for_fulfillment(contract_address, buy_attestation, from_block)
+                .await?;
+            Ok(res.data.into())
+        })
     }
 }
 
@@ -364,14 +367,16 @@ impl TryFrom<TokenBundleData> for alkahest_rs::types::TokenBundleData {
 #[pymethods]
 impl Erc20Client {
     pub async fn approve(&self, token: Erc20Data, purpose: String) -> eyre::Result<String> {
-        let purpose = match purpose.as_str() {
-            "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
-            "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
-            _ => return Err(eyre::eyre!("Invalid purpose")),
-        };
-        let receipt = self.inner.approve(token.try_into()?, purpose).await?;
+        Runtime::new()?.block_on(async {
+            let purpose = match purpose.as_str() {
+                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
+                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
+                _ => return Err(eyre::eyre!("Invalid purpose")),
+            };
+            let receipt = self.inner.approve(token.try_into()?, purpose).await?;
 
-        Ok(receipt.transaction_hash.to_string())
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn approve_if_less(
@@ -379,17 +384,19 @@ impl Erc20Client {
         token: Erc20Data,
         purpose: String,
     ) -> eyre::Result<Option<String>> {
-        let purpose = match purpose.as_str() {
-            "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
-            "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
-            _ => return Err(eyre::eyre!("Invalid purpose")),
-        };
-        let receipt = self
-            .inner
-            .approve_if_less(token.try_into()?, purpose)
-            .await?;
+        Runtime::new()?.block_on(async {
+            let purpose = match purpose.as_str() {
+                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
+                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
+                _ => return Err(eyre::eyre!("Invalid purpose")),
+            };
+            let receipt = self
+                .inner
+                .approve_if_less(token.try_into()?, purpose)
+                .await?;
 
-        Ok(receipt.map(|x| x.transaction_hash.to_string()))
+            Ok(receipt.map(|x| x.transaction_hash.to_string()))
+        })
     }
 
     pub async fn collect_payment(
@@ -397,16 +404,20 @@ impl Erc20Client {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
-        let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_with_erc20(
@@ -415,11 +426,13 @@ impl Erc20Client {
         item: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn permit_and_buy_with_erc20(
@@ -428,19 +441,23 @@ impl Erc20Client {
         item: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .permit_and_buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .permit_and_buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn pay_with_erc20(&self, price: Erc20Data, payee: String) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .pay_with_erc20(price.try_into()?, payee.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_with_erc20(price.try_into()?, payee.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn permit_and_pay_with_erc20(
@@ -448,11 +465,13 @@ impl Erc20Client {
         price: Erc20Data,
         payee: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .permit_and_pay_with_erc20(price.try_into()?, payee.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .permit_and_pay_with_erc20(price.try_into()?, payee.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc20_for_erc20(
@@ -461,11 +480,13 @@ impl Erc20Client {
         ask: Erc20Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn permit_and_buy_erc20_for_erc20(
@@ -474,30 +495,36 @@ impl Erc20Client {
         ask: Erc20Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .permit_and_buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .permit_and_buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn pay_erc20_for_erc20(&self, buy_attestation: String) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .pay_erc20_for_erc20(buy_attestation.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_erc20_for_erc20(buy_attestation.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn permit_and_pay_erc20_for_erc20(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .permit_and_pay_erc20_for_erc20(buy_attestation.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .permit_and_pay_erc20_for_erc20(buy_attestation.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc721_for_erc20(
@@ -506,11 +533,13 @@ impl Erc20Client {
         ask: Erc721Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn permit_and_buy_erc721_for_erc20(
@@ -519,11 +548,13 @@ impl Erc20Client {
         ask: Erc721Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .permit_and_buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .permit_and_buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc1155_for_erc20(
@@ -532,11 +563,13 @@ impl Erc20Client {
         ask: Erc1155Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn permit_and_buy_erc1155_for_erc20(
@@ -545,11 +578,13 @@ impl Erc20Client {
         ask: Erc1155Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .permit_and_buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .permit_and_buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_bundle_for_erc20(
@@ -558,11 +593,13 @@ impl Erc20Client {
         ask: TokenBundleData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn permit_and_buy_bundle_for_erc20(
@@ -571,25 +608,29 @@ impl Erc20Client {
         ask: TokenBundleData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .permit_and_buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .permit_and_buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 }
 
 #[pymethods]
 impl Erc721Client {
     pub async fn approve(&self, token: Erc721Data, purpose: String) -> eyre::Result<String> {
-        let purpose = match purpose.as_str() {
-            "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
-            "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
-            _ => return Err(eyre::eyre!("Invalid purpose")),
-        };
-        let receipt = self.inner.approve(token.try_into()?, purpose).await?;
+        Runtime::new()?.block_on(async {
+            let purpose = match purpose.as_str() {
+                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
+                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
+                _ => return Err(eyre::eyre!("Invalid purpose")),
+            };
+            let receipt = self.inner.approve(token.try_into()?, purpose).await?;
 
-        Ok(receipt.transaction_hash.to_string())
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn approve_all(
@@ -597,15 +638,17 @@ impl Erc721Client {
         token_contract: String,
         purpose: String,
     ) -> eyre::Result<String> {
-        let token_contract: Address = token_contract.parse()?;
-        let purpose = match purpose.as_str() {
-            "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
-            "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
-            _ => return Err(eyre::eyre!("Invalid purpose")),
-        };
-        let receipt = self.inner.approve_all(token_contract, purpose).await?;
+        Runtime::new()?.block_on(async {
+            let token_contract: Address = token_contract.parse()?;
+            let purpose = match purpose.as_str() {
+                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
+                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
+                _ => return Err(eyre::eyre!("Invalid purpose")),
+            };
+            let receipt = self.inner.approve_all(token_contract, purpose).await?;
 
-        Ok(receipt.transaction_hash.to_string())
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn revoke_all(
@@ -613,15 +656,17 @@ impl Erc721Client {
         token_contract: String,
         purpose: String,
     ) -> eyre::Result<String> {
-        let token_contract: Address = token_contract.parse()?;
-        let purpose = match purpose.as_str() {
-            "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
-            "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
-            _ => return Err(eyre::eyre!("Invalid purpose")),
-        };
-        let receipt = self.inner.revoke_all(token_contract, purpose).await?;
+        Runtime::new()?.block_on(async {
+            let token_contract: Address = token_contract.parse()?;
+            let purpose = match purpose.as_str() {
+                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
+                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
+                _ => return Err(eyre::eyre!("Invalid purpose")),
+            };
+            let receipt = self.inner.revoke_all(token_contract, purpose).await?;
 
-        Ok(receipt.transaction_hash.to_string())
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn collect_payment(
@@ -629,16 +674,20 @@ impl Erc721Client {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
-        let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_with_erc721(
@@ -647,19 +696,23 @@ impl Erc721Client {
         item: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_with_erc721(price.try_into()?, item.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_with_erc721(price.try_into()?, item.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn pay_with_erc721(&self, price: Erc721Data, payee: String) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .pay_with_erc721(price.try_into()?, payee.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_with_erc721(price.try_into()?, payee.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc_721_for_erc_721(
@@ -668,19 +721,23 @@ impl Erc721Client {
         ask: Erc721Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc_721_for_erc_721(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc_721_for_erc_721(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn pay_erc_721_for_erc_721(&self, buy_attestation: String) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .pay_erc_721_for_erc_721(buy_attestation.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_erc_721_for_erc_721(buy_attestation.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc20_with_erc721(
@@ -689,11 +746,13 @@ impl Erc721Client {
         ask: Erc20Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc20_with_erc721(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc20_with_erc721(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc1155_with_erc721(
@@ -702,11 +761,13 @@ impl Erc721Client {
         ask: Erc1155Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc1155_with_erc721(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc1155_with_erc721(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_bundle_with_erc721(
@@ -715,11 +776,13 @@ impl Erc721Client {
         ask: TokenBundleData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_bundle_with_erc721(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_bundle_with_erc721(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 }
 
@@ -730,14 +793,16 @@ impl Erc1155Client {
         token_contract: String,
         purpose: String,
     ) -> eyre::Result<String> {
-        let token_contract: Address = token_contract.parse()?;
-        let purpose = match purpose.as_str() {
-            "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
-            "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
-            _ => return Err(eyre::eyre!("Invalid purpose")),
-        };
-        let receipt = self.inner.approve_all(token_contract, purpose).await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let token_contract: Address = token_contract.parse()?;
+            let purpose = match purpose.as_str() {
+                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
+                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
+                _ => return Err(eyre::eyre!("Invalid purpose")),
+            };
+            let receipt = self.inner.approve_all(token_contract, purpose).await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn revoke_all(
@@ -745,14 +810,16 @@ impl Erc1155Client {
         token_contract: String,
         purpose: String,
     ) -> eyre::Result<String> {
-        let token_contract: Address = token_contract.parse()?;
-        let purpose = match purpose.as_str() {
-            "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
-            "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
-            _ => return Err(eyre::eyre!("Invalid purpose")),
-        };
-        let receipt = self.inner.revoke_all(token_contract, purpose).await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let token_contract: Address = token_contract.parse()?;
+            let purpose = match purpose.as_str() {
+                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
+                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
+                _ => return Err(eyre::eyre!("Invalid purpose")),
+            };
+            let receipt = self.inner.revoke_all(token_contract, purpose).await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn collect_payment(
@@ -760,16 +827,20 @@ impl Erc1155Client {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
-        let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_with_erc1155(
@@ -778,11 +849,13 @@ impl Erc1155Client {
         item: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_with_erc1155(price.try_into()?, item.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_with_erc1155(price.try_into()?, item.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn pay_with_erc_1155(
@@ -790,12 +863,14 @@ impl Erc1155Client {
         price: Erc1155Data,
         payee: String,
     ) -> eyre::Result<String> {
-        let payee: Address = payee.parse()?;
-        let receipt = self
-            .inner
-            .pay_with_erc1155(price.try_into()?, payee)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let payee: Address = payee.parse()?;
+            let receipt = self
+                .inner
+                .pay_with_erc1155(price.try_into()?, payee)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc1155_for_erc1155(
@@ -804,19 +879,23 @@ impl Erc1155Client {
         ask: Erc1155Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc1155_for_erc1155(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc1155_for_erc1155(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn pay_erc1155_for_erc1155(&self, buy_attestation: String) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .pay_erc1155_for_erc1155(buy_attestation.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_erc1155_for_erc1155(buy_attestation.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc20_with_erc1155(
@@ -825,11 +904,13 @@ impl Erc1155Client {
         ask: Erc20Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc20_with_erc1155(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc20_with_erc1155(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_erc721_with_erc1155(
@@ -838,11 +919,13 @@ impl Erc1155Client {
         ask: Erc721Data,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_erc721_with_erc1155(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_erc721_with_erc1155(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_bundle_with_erc1155(
@@ -851,11 +934,13 @@ impl Erc1155Client {
         ask: TokenBundleData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_bundle_with_erc1155(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_bundle_with_erc1155(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 }
 
@@ -866,16 +951,20 @@ impl TokenBundleClient {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
-        let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_with_bundle(
@@ -884,11 +973,13 @@ impl TokenBundleClient {
         item: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_with_bundle(price.try_into()?, item.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_with_bundle(price.try_into()?, item.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn pay_with_bundle(
@@ -896,11 +987,13 @@ impl TokenBundleClient {
         price: TokenBundleData,
         payee: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .pay_with_bundle(price.try_into()?, payee.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_with_bundle(price.try_into()?, payee.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn buy_bundle_for_bundle(
@@ -909,19 +1002,23 @@ impl TokenBundleClient {
         ask: TokenBundleData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .buy_bundle_for_bundle(bid.try_into()?, ask.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .buy_bundle_for_bundle(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn pay_bundle_for_bundle(&self, buy_attestation: String) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .pay_bundle_for_bundle(buy_attestation.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_bundle_for_bundle(buy_attestation.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 }
 
@@ -976,18 +1073,22 @@ impl AttestationClient {
         resolver: String,
         revocable: bool,
     ) -> eyre::Result<String> {
-        let schema: FixedBytes<32> = schema.parse()?;
-        let resolver: Address = resolver.parse()?;
-        let receipt = self
-            .inner
-            .register_schema(schema.to_string(), resolver, revocable)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let schema: FixedBytes<32> = schema.parse()?;
+            let resolver: Address = resolver.parse()?;
+            let receipt = self
+                .inner
+                .register_schema(schema.to_string(), resolver, revocable)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn attest(&self, attestation: AttestationRequest) -> eyre::Result<String> {
-        let receipt = self.inner.attest(attestation.try_into()?).await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self.inner.attest(attestation.try_into()?).await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn collect_payment(
@@ -995,11 +1096,13 @@ impl AttestationClient {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn collect_payment_2(
@@ -1007,11 +1110,13 @@ impl AttestationClient {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .collect_payment_2(buy_attestation.parse()?, fulfillment.parse()?)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .collect_payment_2(buy_attestation.parse()?, fulfillment.parse()?)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn create_escrow(
@@ -1020,11 +1125,13 @@ impl AttestationClient {
         demand: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn create_escrow_2(
@@ -1033,11 +1140,13 @@ impl AttestationClient {
         demand: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .create_escrow_2(attestation.parse()?, demand.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .create_escrow_2(attestation.parse()?, demand.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 
     pub async fn attest_and_create_escrow(
@@ -1046,11 +1155,13 @@ impl AttestationClient {
         demand: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<String> {
-        let receipt = self
-            .inner
-            .attest_and_create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
-            .await?;
-        Ok(receipt.transaction_hash.to_string())
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .attest_and_create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
+                .await?;
+            Ok(receipt.transaction_hash.to_string())
+        })
     }
 }
 
