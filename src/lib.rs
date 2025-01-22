@@ -1,4 +1,9 @@
-use alloy::primitives::{Address, FixedBytes};
+use alkahest_rs::contracts::IEAS::Attested;
+use alloy::{
+    primitives::{Address, FixedBytes, Log},
+    rpc::types::TransactionReceipt,
+    sol_types::SolEvent,
+};
 use clients::{
     attestation::AttestationClient, erc1155::Erc1155Client, erc20::Erc20Client,
     erc721::Erc721Client, token_bundle::TokenBundleClient,
@@ -91,6 +96,20 @@ impl AlkahestClient {
             Ok(res.data.into())
         })
     }
+}
+
+pub fn get_attested_event(receipt: TransactionReceipt) -> eyre::Result<Log<Attested>> {
+    let attested_event = receipt
+        .inner
+        .logs()
+        .iter()
+        .filter(|log| log.topic0() == Some(&Attested::SIGNATURE_HASH))
+        .collect::<Vec<_>>()
+        .first()
+        .map(|log| log.log_decode::<Attested>())
+        .ok_or_else(|| eyre::eyre!("No Attested event found"))??;
+
+    Ok(attested_event.inner)
 }
 
 #[pymodule]

@@ -2,7 +2,12 @@ use alkahest_rs::clients::erc20;
 use pyo3::{pyclass, pymethods};
 use tokio::runtime::Runtime;
 
-use crate::types::{ArbiterData, Erc1155Data, Erc20Data, Erc721Data, TokenBundleData};
+use crate::{
+    get_attested_event,
+    types::{
+        ArbiterData, AttestedLog, Erc1155Data, Erc20Data, Erc721Data, LogWithHash, TokenBundleData,
+    },
+};
 
 #[pyclass]
 #[derive(Clone)]
@@ -77,13 +82,16 @@ impl Erc20Client {
         price: Erc20Data,
         item: ArbiterData,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -92,23 +100,33 @@ impl Erc20Client {
         price: Erc20Data,
         item: ArbiterData,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
-    pub async fn pay_with_erc20(&self, price: Erc20Data, payee: String) -> eyre::Result<String> {
+    pub async fn pay_with_erc20(
+        &self,
+        price: Erc20Data,
+        payee: String,
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .pay_with_erc20(price.try_into()?, payee.parse()?)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -116,13 +134,16 @@ impl Erc20Client {
         &self,
         price: Erc20Data,
         payee: String,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_pay_with_erc20(price.try_into()?, payee.parse()?)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -131,13 +152,16 @@ impl Erc20Client {
         bid: Erc20Data,
         ask: Erc20Data,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -146,36 +170,48 @@ impl Erc20Client {
         bid: Erc20Data,
         ask: Erc20Data,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
-    pub async fn pay_erc20_for_erc20(&self, buy_attestation: String) -> eyre::Result<String> {
+    pub async fn pay_erc20_for_erc20(
+        &self,
+        buy_attestation: String,
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .pay_erc20_for_erc20(buy_attestation.parse()?)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
     pub async fn permit_and_pay_erc20_for_erc20(
         &self,
         buy_attestation: String,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_pay_erc20_for_erc20(buy_attestation.parse()?)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -184,13 +220,16 @@ impl Erc20Client {
         bid: Erc20Data,
         ask: Erc721Data,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -199,13 +238,16 @@ impl Erc20Client {
         bid: Erc20Data,
         ask: Erc721Data,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -214,13 +256,16 @@ impl Erc20Client {
         bid: Erc20Data,
         ask: Erc1155Data,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -229,13 +274,17 @@ impl Erc20Client {
         bid: Erc20Data,
         ask: Erc1155Data,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -244,13 +293,17 @@ impl Erc20Client {
         bid: Erc20Data,
         ask: TokenBundleData,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -259,13 +312,16 @@ impl Erc20Client {
         bid: Erc20Data,
         ask: TokenBundleData,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 }

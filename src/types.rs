@@ -1,4 +1,4 @@
-use alkahest_rs::sol_types::EscrowClaimed;
+use alkahest_rs::{contracts::IEAS::Attested, sol_types::EscrowClaimed};
 use alloy::primitives::FixedBytes;
 use pyo3::{exceptions::PyValueError, FromPyObject, IntoPyObject, PyErr, PyResult};
 
@@ -241,6 +241,25 @@ impl From<EscrowClaimed> for EscowClaimedLog {
     }
 }
 
+#[derive(IntoPyObject)]
+pub struct AttestedLog {
+    pub recipient: String,
+    pub attester: String,
+    pub uid: String,
+    pub schema_uid: String,
+}
+
+impl From<Attested> for AttestedLog {
+    fn from(value: Attested) -> Self {
+        Self {
+            recipient: value.recipient.to_string(),
+            attester: value.attester.to_string(),
+            uid: value.uid.to_string(),
+            schema_uid: value.schemaUID.to_string(),
+        }
+    }
+}
+
 #[derive(FromPyObject)]
 pub struct AttestationRequestData {
     pub recipient: String,
@@ -282,4 +301,10 @@ impl TryFrom<AttestationRequest> for alkahest_rs::contracts::IEAS::AttestationRe
             data: value.data.try_into()?,
         })
     }
+}
+
+#[derive(IntoPyObject)]
+pub struct LogWithHash<T> {
+    pub log: T,
+    pub transaction_hash: String,
 }
