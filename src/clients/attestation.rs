@@ -3,7 +3,10 @@ use alloy::primitives::{Address, FixedBytes};
 use pyo3::{pyclass, pymethods};
 use tokio::runtime::Runtime;
 
-use crate::types::{ArbiterData, AttestationRequest};
+use crate::{
+    get_attested_event,
+    types::{ArbiterData, AttestationRequest, AttestedLog, LogWithHash},
+};
 
 #[pyclass]
 #[derive(Clone)]
@@ -36,10 +39,16 @@ impl AttestationClient {
         })
     }
 
-    pub async fn attest(&self, attestation: AttestationRequest) -> eyre::Result<String> {
+    pub async fn attest(
+        &self,
+        attestation: AttestationRequest,
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self.inner.attest(attestation.try_into()?).await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -76,13 +85,16 @@ impl AttestationClient {
         attestation: AttestationRequest,
         demand: ArbiterData,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -91,13 +103,16 @@ impl AttestationClient {
         attestation: String,
         demand: ArbiterData,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .create_escrow_2(attestation.parse()?, demand.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 
@@ -106,13 +121,17 @@ impl AttestationClient {
         attestation: AttestationRequest,
         demand: ArbiterData,
         expiration: u64,
-    ) -> eyre::Result<String> {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        // TODO: might be bugged; return value could be Attested from the created attestation rather than the escrow obligation
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
                 .attest_and_create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
                 .await?;
-            Ok(receipt.transaction_hash.to_string())
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
         })
     }
 }
