@@ -18,11 +18,11 @@ pub mod types;
 #[derive(Clone)]
 pub struct AlkahestClient {
     inner: alkahest_rs::AlkahestClient,
-    pub erc20: Erc20Client,
-    pub erc721: Erc721Client,
-    pub erc1155: Erc1155Client,
-    pub token_bundle: TokenBundleClient,
-    pub attestation: AttestationClient,
+    erc20: Erc20Client,
+    erc721: Erc721Client,
+    erc1155: Erc1155Client,
+    token_bundle: TokenBundleClient,
+    attestation: AttestationClient,
 }
 
 #[pymethods]
