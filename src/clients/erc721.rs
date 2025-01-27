@@ -181,6 +181,22 @@ impl Erc721Client {
         })
     }
 
+    pub async fn pay_erc721_for_erc20(
+        &self,
+        buy_attestation: String,
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_erc721_for_erc20(buy_attestation.parse()?)
+                .await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
+        })
+    }
+
     pub async fn buy_erc1155_with_erc721(
         &self,
         bid: Erc721Data,
@@ -199,6 +215,22 @@ impl Erc721Client {
         })
     }
 
+    pub async fn pay_erc721_for_erc1155(
+        &self,
+        buy_attestation: String,
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_erc721_for_erc1155(buy_attestation.parse()?)
+                .await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
+        })
+    }
+
     pub async fn buy_bundle_with_erc721(
         &self,
         bid: Erc721Data,
@@ -209,6 +241,22 @@ impl Erc721Client {
             let receipt = self
                 .inner
                 .buy_bundle_with_erc721(bid.try_into()?, ask.try_into()?, expiration)
+                .await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
+        })
+    }
+
+    pub async fn pay_erc721_for_bundle(
+        &self,
+        buy_attestation: String,
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .pay_erc721_for_bundle(buy_attestation.parse()?)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
