@@ -1,10 +1,8 @@
 from alkahest_py import AlkahestClient
 import asyncio
+import os
 
-client = AlkahestClient(
-    "0x...",
-    "https://base-sepolia.infura.io/v3/...",
-)
+client = AlkahestClient(os.environ["PRIVATE_KEY"], os.environ["RPC_URL"])
 
 
 async def main():
