@@ -43,7 +43,9 @@ dependencies = [
 
 [[package]]
 name = "alkahest-rs"
-version = "0.1.0"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d06716f1c9ef6e4611f8bffa2009ac23af175dc8b581d1a601f79bd427df30a4"
 dependencies = [
  "alloy",
  "eyre",
