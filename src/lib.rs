@@ -1,7 +1,10 @@
+use std::str::FromStr;
+
 use alkahest_rs::contracts::IEAS::Attested;
 use alloy::{
     primitives::{Address, FixedBytes, Log},
     rpc::types::TransactionReceipt,
+    signers::local::PrivateKeySigner,
     sol_types::SolEvent,
 };
 use clients::{
@@ -40,7 +43,14 @@ impl AlkahestClient {
         address_config: Option<AddressConfig>,
     ) -> PyResult<Self> {
         let address_config = address_config.map(|x| x.try_into()).transpose()?;
-        let client = alkahest_rs::AlkahestClient::new(private_key, rpc_url, address_config)?;
+
+        // Convert private_key String to LocalSigner
+        let signer = PrivateKeySigner::from_str(&private_key)
+            .map_err(|e| eyre::eyre!("Failed to parse private key: {}", e))?;
+        // Since new is async, we must block_on it
+        let client = Runtime::new()?.block_on(async {
+            alkahest_rs::AlkahestClient::new(signer, rpc_url, address_config).await
+        })?;
 
         let client = Self {
             inner: client.clone(),

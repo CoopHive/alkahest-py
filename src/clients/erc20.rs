@@ -30,7 +30,7 @@ impl Erc20Client {
                 "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
                 _ => return Err(eyre::eyre!("Invalid purpose")),
             };
-            let receipt = self.inner.approve(token.try_into()?, purpose).await?;
+            let receipt = self.inner.approve(&token.try_into()?, purpose).await?;
 
             Ok(receipt.transaction_hash.to_string())
         })
@@ -49,7 +49,7 @@ impl Erc20Client {
             };
             let receipt = self
                 .inner
-                .approve_if_less(token.try_into()?, purpose)
+                .approve_if_less(&token.try_into()?, purpose)
                 .await?;
 
             Ok(receipt.map(|x| x.transaction_hash.to_string()))
@@ -86,7 +86,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
+                .buy_with_erc20(&price.try_into()?, &item.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -104,7 +104,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .permit_and_buy_with_erc20(price.try_into()?, item.try_into()?, expiration)
+                .permit_and_buy_with_erc20(&price.try_into()?, &item.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -121,7 +121,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .pay_with_erc20(price.try_into()?, payee.parse()?)
+                .pay_with_erc20(&price.try_into()?, payee.parse()?)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -138,7 +138,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .permit_and_pay_with_erc20(price.try_into()?, payee.parse()?)
+                .permit_and_pay_with_erc20(&price.try_into()?, payee.parse()?)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -156,7 +156,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .buy_erc20_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -174,7 +174,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .permit_and_buy_erc20_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .permit_and_buy_erc20_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -224,7 +224,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .buy_erc721_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -242,7 +242,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .permit_and_buy_erc721_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .permit_and_buy_erc721_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -292,7 +292,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .buy_erc1155_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -310,7 +310,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .permit_and_buy_erc1155_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .permit_and_buy_erc1155_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
 
             Ok(LogWithHash {
@@ -361,7 +361,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .buy_bundle_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
 
             Ok(LogWithHash {
@@ -380,7 +380,7 @@ impl Erc20Client {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .permit_and_buy_bundle_for_erc20(bid.try_into()?, ask.try_into()?, expiration)
+                .permit_and_buy_bundle_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),

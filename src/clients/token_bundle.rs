@@ -51,7 +51,7 @@ impl TokenBundleClient {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .buy_with_bundle(price.try_into()?, item.try_into()?, expiration)
+                .buy_with_bundle(&price.try_into()?, &item.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -68,7 +68,7 @@ impl TokenBundleClient {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .pay_with_bundle(price.try_into()?, payee.parse()?)
+                .pay_with_bundle(&price.try_into()?, payee.parse()?)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -86,7 +86,7 @@ impl TokenBundleClient {
         Runtime::new()?.block_on(async {
             let receipt = self
                 .inner
-                .buy_bundle_for_bundle(bid.try_into()?, ask.try_into()?, expiration)
+                .buy_bundle_for_bundle(&bid.try_into()?, &ask.try_into()?, expiration)
                 .await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),

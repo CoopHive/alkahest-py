@@ -1,5 +1,5 @@
 use alkahest_rs::{contracts::IEAS::Attested, sol_types::EscrowClaimed};
-use alloy::primitives::FixedBytes;
+use alloy::primitives::{FixedBytes, U256};
 use pyo3::{exceptions::PyValueError, FromPyObject, IntoPyObject, PyErr, PyResult};
 
 macro_rules! client_address_config {
@@ -29,12 +29,47 @@ pub struct AttestationAddresses {
 }
 
 #[derive(FromPyObject)]
+pub struct ArbitersAddresses {
+    pub eas: String,
+    pub trusted_party_arbiter: String,
+    pub trivial_arbiter: String,
+    pub specific_attestation_arbiter: String,
+    pub trusted_oracle_arbiter: String,
+    pub intrinsics_arbiter: String,
+    pub intrinsics_arbiter_2: String,
+    pub any_arbiter: String,
+    pub all_arbiter: String,
+    pub uid_arbiter: String,
+    pub recipient_arbiter: String,
+}
+
+#[derive(FromPyObject)]
+pub struct StringObligationAddresses {
+    pub eas: String,
+    pub obligation: String,
+}
+
+// Implement TryFrom for StringObligationAddresses
+impl TryFrom<StringObligationAddresses> for alkahest_rs::clients::string_obligation::StringObligationAddresses {
+    type Error = PyErr;
+
+    fn try_from(value: StringObligationAddresses) -> PyResult<Self> {
+        Ok(Self {
+            eas: value.eas.parse().map_err(|_| PyValueError::new_err("invalid address"))?,
+            obligation: value.obligation.parse().map_err(|_| PyValueError::new_err("invalid address"))?,
+        })
+    }
+}
+
+#[derive(FromPyObject)]
 pub struct AddressConfig {
     pub erc20_addresses: Option<Erc20Addresses>,
     pub erc721_addresses: Option<Erc721Addresses>,
     pub erc1155_addresses: Option<Erc1155Addresses>,
     pub token_bundle_addresses: Option<TokenBundleAddresses>,
     pub attestation_addresses: Option<AttestationAddresses>,
+    pub arbiters_addresses: Option<ArbitersAddresses>,
+    pub string_obligation_addresses: Option<StringObligationAddresses>,
 }
 
 macro_rules! try_from_address_config {
@@ -110,6 +145,40 @@ impl TryFrom<AddressConfig> for alkahest_rs::AddressConfig {
             erc1155_addresses: value.erc1155_addresses.and_then(|x| x.try_into().ok()),
             token_bundle_addresses: value.token_bundle_addresses.and_then(|x| x.try_into().ok()),
             attestation_addresses: value.attestation_addresses.and_then(|x| x.try_into().ok()),
+            arbiters_addresses: value.arbiters_addresses.and_then(|x| x.try_into().ok()),
+            string_obligation_addresses: value
+                .string_obligation_addresses
+                .and_then(|x| x.try_into().ok()),
+        })
+    }
+}
+
+// Implement TryFrom for ArbitersAddresses
+impl TryFrom<ArbitersAddresses> for alkahest_rs::clients::arbiters::ArbitersAddresses {
+    type Error = PyErr;
+
+    fn try_from(value: ArbitersAddresses) -> PyResult<Self> {
+        macro_rules! parse_address {
+            ($name:ident) => {
+                value
+                    .$name
+                    .parse()
+                    .map_err(|_| PyValueError::new_err("invalid address"))?
+            };
+        }
+
+        Ok(Self {
+            eas: parse_address!(eas),
+            trusted_party_arbiter: parse_address!(trusted_party_arbiter),
+            trivial_arbiter: parse_address!(trivial_arbiter),
+            specific_attestation_arbiter: parse_address!(specific_attestation_arbiter),
+            trusted_oracle_arbiter: parse_address!(trusted_oracle_arbiter),
+            intrinsics_arbiter: parse_address!(intrinsics_arbiter),
+            intrinsics_arbiter_2: parse_address!(intrinsics_arbiter_2),
+            any_arbiter: parse_address!(any_arbiter),
+            all_arbiter: parse_address!(all_arbiter),
+            uid_arbiter: parse_address!(uid_arbiter),
+            recipient_arbiter: parse_address!(recipient_arbiter),
         })
     }
 }
@@ -135,8 +204,8 @@ impl TryFrom<ArbiterData> for alkahest_rs::types::ArbiterData {
 #[derive(FromPyObject)]
 #[pyo3(from_item_all)]
 pub struct Erc20Data {
-    address: String,
-    value: u128,
+    pub address: String,
+    pub value: u64,
 }
 
 impl TryFrom<Erc20Data> for alkahest_rs::types::Erc20Data {
@@ -145,7 +214,7 @@ impl TryFrom<Erc20Data> for alkahest_rs::types::Erc20Data {
     fn try_from(value: Erc20Data) -> eyre::Result<Self> {
         Ok(Self {
             address: value.address.parse()?,
-            value: value.value.try_into()?,
+            value: U256::from(value.value),
         })
     }
 }
