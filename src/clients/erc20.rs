@@ -1,5 +1,5 @@
 use alkahest_rs::clients::erc20;
-use pyo3::{pyclass, pymethods};
+use pyo3::{pyclass, pymethods, PyResult};
 use tokio::runtime::Runtime;
 
 use crate::{
@@ -77,22 +77,26 @@ impl Erc20Client {
         })
     }
 
-    pub async fn buy_with_erc20(
+    pub fn buy_with_erc20(
         &self,
         price: Erc20Data,
         item: ArbiterData,
         expiration: u64,
-    ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+    ) -> PyResult<LogWithHash<AttestedLog>> {
+        println!("buy_with_erc20 called",);
+        let rt = Runtime::new().map_err(|e| eyre::eyre!(e.to_string()))?;
+        let result = rt.block_on(async {
             let receipt = self
                 .inner
                 .buy_with_erc20(&price.try_into()?, &item.try_into()?, expiration)
                 .await?;
-            Ok(LogWithHash {
+            Ok::<_, eyre::Report>(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
-        })
+        })?;
+
+        Ok(result.into()) // You may need to convert `LogWithHash` to a PyO3-compatible struct
     }
 
     pub async fn permit_and_buy_with_erc20(
