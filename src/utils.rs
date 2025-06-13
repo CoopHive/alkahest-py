@@ -1,7 +1,7 @@
 use crate::{
     fixtures::{MockERC1155, MockERC20Permit, MockERC721, SchemaRegistry, EAS},
-    types::AddressConfig,
-    AlkahestClient,
+    types::{AddressConfig, PyAddressConfig},
+    PyAlkahestClient,
 };
 use alkahest_rs::{
     types::WalletProvider,
@@ -16,6 +16,8 @@ use alloy::{
 use pyo3::{pyclass, pymethods, PyResult};
 
 #[pyclass]
+#[derive(Clone)]
+
 pub struct PyWalletProvider {
     pub inner: WalletProvider,
 }
@@ -51,8 +53,9 @@ impl From<&MockAddresses> for PyMockAddresses {
 
 #[pyclass]
 pub struct PyTestEnvManager {
-    inner: TestContext, // keep TestContext in Rust
+    inner: TestContext, // Optional: keep TestContext for internal Rust usage
     runtime: tokio::runtime::Runtime,
+
     #[pyo3(get)]
     pub rpc_url: String,
     #[pyo3(get)]
@@ -61,6 +64,16 @@ pub struct PyTestEnvManager {
     pub alice: String,
     #[pyo3(get)]
     pub bob: String,
+    #[pyo3(get)]
+    pub addresses: PyAddressConfig,
+    #[pyo3(get)]
+    pub mock_addresses: PyMockAddresses,
+    #[pyo3(get)]
+    pub alice_client: PyAlkahestClient,
+    #[pyo3(get)]
+    pub bob_client: PyAlkahestClient,
+    #[pyo3(get)]
+    pub god_wallet_provider: PyWalletProvider,
 }
 
 #[pymethods]
@@ -78,20 +91,15 @@ impl PyTestEnvManager {
             god: ctx.god.address().to_string(),
             alice: ctx.alice.address().to_string(),
             bob: ctx.bob.address().to_string(),
+            addresses: PyAddressConfig::from(&ctx.addresses),
+            mock_addresses: PyMockAddresses::from(&ctx.mock_addresses),
+            alice_client: PyAlkahestClient::from_client(ctx.alice_client.clone()),
+            bob_client: PyAlkahestClient::from_client(ctx.bob_client.clone()),
+            god_wallet_provider: PyWalletProvider {
+                inner: ctx.god_provider.clone(),
+            },
             inner: ctx,
         })
-    }
-
-    #[getter]
-    pub fn god_wallet_provider(&self) -> PyWalletProvider {
-        PyWalletProvider {
-            inner: self.inner.god_provider.clone(),
-        }
-    }
-
-    #[getter]
-    pub fn mock_addresses(&self) -> PyMockAddresses {
-        PyMockAddresses::from(&self.inner.mock_addresses)
     }
 }
 
@@ -99,7 +107,7 @@ impl PyTestEnvManager {
 pub struct PyMockERC20 {
     inner: MockERC20Permit::MockERC20PermitInstance<WalletProvider>,
 }
-impl AlkahestClient {
+impl PyAlkahestClient {
     pub fn inner_provider(&self) -> &WalletProvider {
         &self.inner.wallet_provider
     }
@@ -151,6 +159,7 @@ impl PyMockERC20 {
     }
 
     pub fn balance_of(&self, address: String) -> PyResult<u128> {
+        println!("Getting balance for address: {}", address);
         let addr = address
             .parse::<Address>()
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;

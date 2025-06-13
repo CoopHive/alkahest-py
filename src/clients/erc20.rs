@@ -5,7 +5,8 @@ use tokio::runtime::Runtime;
 use crate::{
     get_attested_event,
     types::{
-        ArbiterData, AttestedLog, Erc1155Data, Erc20Data, Erc721Data, LogWithHash, TokenBundleData,
+        ArbiterData, AttestedLog, Erc1155Data, Erc20Data, Erc721Data, LogWithHash, PyErc20Data,
+        TokenBundleData,
     },
 };
 
@@ -105,15 +106,36 @@ impl Erc20Client {
         item: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        println!("permit_and_buy_with_erc20 called");
+        println!("Price address: {:?}", price.address);
+        println!("Price value: {:?}", price.value);
+        println!("Item arbiter: {:?}", item.arbiter);
+        println!("Item demand: {:?}", item.demand);
+        println!("Expiration: {}", expiration);
+        let price: alkahest_rs::types::Erc20Data = price
+            .try_into()
+            .map_err(|e: eyre::Error| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+        let item: alkahest_rs::types::ArbiterData = item
+            .try_into()
+            .map_err(|e: eyre::Error| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+        println!("Converted price: {:?}", price);
+        println!("Converted item: {:?}", item);
         Runtime::new()?.block_on(async {
-            let receipt = self
+            match self
                 .inner
-                .permit_and_buy_with_erc20(&price.try_into()?, &item.try_into()?, expiration)
-                .await?;
-            Ok(LogWithHash {
-                log: get_attested_event(receipt.clone())?.data.into(),
-                transaction_hash: receipt.transaction_hash.to_string(),
-            })
+                .permit_and_buy_with_erc20(&price, &item, expiration)
+                .await
+            {
+                Ok(receipt) => Ok(LogWithHash {
+                    log: get_attested_event(receipt.clone())?.data.into(),
+                    transaction_hash: receipt.transaction_hash.to_string(),
+                }),
+                Err(e) => {
+                    eprintln!("inner.permit_and_buy_with_erc20 failed: {:?}", e);
+                    Err(e)
+                }
+            }
         })
     }
 

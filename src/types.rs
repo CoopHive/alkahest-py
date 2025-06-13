@@ -1,6 +1,6 @@
 use alkahest_rs::{contracts::IEAS::Attested, sol_types::EscrowClaimed};
 use alloy::primitives::{FixedBytes, U256};
-use pyo3::{exceptions::PyValueError, FromPyObject, IntoPyObject, PyErr, PyResult};
+use pyo3::{exceptions::PyValueError, pyclass, FromPyObject, IntoPyObject, PyErr, PyResult};
 
 macro_rules! client_address_config {
     ($name:ident) => {
@@ -50,13 +50,21 @@ pub struct StringObligationAddresses {
 }
 
 // Implement TryFrom for StringObligationAddresses
-impl TryFrom<StringObligationAddresses> for alkahest_rs::clients::string_obligation::StringObligationAddresses {
+impl TryFrom<StringObligationAddresses>
+    for alkahest_rs::clients::string_obligation::StringObligationAddresses
+{
     type Error = PyErr;
 
     fn try_from(value: StringObligationAddresses) -> PyResult<Self> {
         Ok(Self {
-            eas: value.eas.parse().map_err(|_| PyValueError::new_err("invalid address"))?,
-            obligation: value.obligation.parse().map_err(|_| PyValueError::new_err("invalid address"))?,
+            eas: value
+                .eas
+                .parse()
+                .map_err(|_| PyValueError::new_err("invalid address"))?,
+            obligation: value
+                .obligation
+                .parse()
+                .map_err(|_| PyValueError::new_err("invalid address"))?,
         })
     }
 }
@@ -186,8 +194,8 @@ impl TryFrom<ArbitersAddresses> for alkahest_rs::clients::arbiters::ArbitersAddr
 #[derive(FromPyObject)]
 #[pyo3(from_item_all)]
 pub struct ArbiterData {
-    arbiter: String,
-    demand: Vec<u8>,
+    pub arbiter: String,
+    pub demand: Vec<u8>,
 }
 
 impl TryFrom<ArbiterData> for alkahest_rs::types::ArbiterData {
@@ -212,6 +220,37 @@ impl TryFrom<Erc20Data> for alkahest_rs::types::Erc20Data {
     type Error = eyre::Error;
 
     fn try_from(value: Erc20Data) -> eyre::Result<Self> {
+        Ok(Self {
+            address: value.address.parse()?,
+            value: U256::from(value.value),
+        })
+    }
+}
+
+use pyo3::prelude::*;
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyErc20Data {
+    #[pyo3(get)]
+    pub address: String,
+
+    #[pyo3(get)]
+    pub value: u64,
+}
+
+#[pymethods]
+impl PyErc20Data {
+    #[new]
+    pub fn new(address: String, value: u64) -> Self {
+        Self { address, value }
+    }
+}
+
+impl TryFrom<PyErc20Data> for alkahest_rs::types::Erc20Data {
+    type Error = eyre::Error;
+
+    fn try_from(value: PyErc20Data) -> eyre::Result<Self> {
         Ok(Self {
             address: value.address.parse()?,
             value: U256::from(value.value),
@@ -376,4 +415,186 @@ impl TryFrom<AttestationRequest> for alkahest_rs::contracts::IEAS::AttestationRe
 pub struct LogWithHash<T> {
     pub log: T,
     pub transaction_hash: String,
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyAddressConfig {
+    #[pyo3(get)]
+    pub erc20_addresses: Option<PyErc20Addresses>,
+    #[pyo3(get)]
+    pub erc721_addresses: Option<PyErc721Addresses>,
+    #[pyo3(get)]
+    pub erc1155_addresses: Option<PyErc1155Addresses>,
+    #[pyo3(get)]
+    pub token_bundle_addresses: Option<PyTokenBundleAddresses>,
+    #[pyo3(get)]
+    pub attestation_addresses: Option<PyAttestationAddresses>,
+    #[pyo3(get)]
+    pub arbiters_addresses: Option<PyArbitersAddresses>,
+    #[pyo3(get)]
+    pub string_obligation_addresses: Option<PyStringObligationAddresses>,
+}
+
+impl From<&alkahest_rs::AddressConfig> for PyAddressConfig {
+    fn from(data: &alkahest_rs::AddressConfig) -> Self {
+        Self {
+            erc20_addresses: data.erc20_addresses.as_ref().map(PyErc20Addresses::from),
+            erc721_addresses: data.erc721_addresses.as_ref().map(PyErc721Addresses::from),
+            erc1155_addresses: data
+                .erc1155_addresses
+                .as_ref()
+                .map(PyErc1155Addresses::from),
+            token_bundle_addresses: data
+                .token_bundle_addresses
+                .as_ref()
+                .map(PyTokenBundleAddresses::from),
+            attestation_addresses: data
+                .attestation_addresses
+                .as_ref()
+                .map(PyAttestationAddresses::from),
+            arbiters_addresses: data
+                .arbiters_addresses
+                .as_ref()
+                .map(PyArbitersAddresses::from),
+            string_obligation_addresses: data
+                .string_obligation_addresses
+                .as_ref()
+                .map(PyStringObligationAddresses::from),
+        }
+    }
+}
+
+macro_rules! py_address_struct {
+    ($name:ident, $src:path) => {
+        #[pyclass]
+        #[derive(Clone)]
+        pub struct $name {
+            #[pyo3(get)]
+            pub eas: String,
+            #[pyo3(get)]
+            pub barter_utils: String,
+            #[pyo3(get)]
+            pub escrow_obligation: String,
+            #[pyo3(get)]
+            pub payment_obligation: String,
+        }
+
+        impl From<&$src> for $name {
+            fn from(data: &$src) -> Self {
+                Self {
+                    eas: format!("{:?}", data.eas),
+                    barter_utils: format!("{:?}", data.barter_utils),
+                    escrow_obligation: format!("{:?}", data.escrow_obligation),
+                    payment_obligation: format!("{:?}", data.payment_obligation),
+                }
+            }
+        }
+    };
+}
+
+py_address_struct!(
+    PyErc20Addresses,
+    alkahest_rs::clients::erc20::Erc20Addresses
+);
+py_address_struct!(
+    PyErc721Addresses,
+    alkahest_rs::clients::erc721::Erc721Addresses
+);
+py_address_struct!(
+    PyErc1155Addresses,
+    alkahest_rs::clients::erc1155::Erc1155Addresses
+);
+py_address_struct!(
+    PyTokenBundleAddresses,
+    alkahest_rs::clients::token_bundle::TokenBundleAddresses
+);
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyAttestationAddresses {
+    #[pyo3(get)]
+    pub eas: String,
+    #[pyo3(get)]
+    pub eas_schema_registry: String,
+    #[pyo3(get)]
+    pub barter_utils: String,
+    #[pyo3(get)]
+    pub escrow_obligation: String,
+    #[pyo3(get)]
+    pub escrow_obligation_2: String,
+}
+impl From<&alkahest_rs::clients::attestation::AttestationAddresses> for PyAttestationAddresses {
+    fn from(data: &alkahest_rs::clients::attestation::AttestationAddresses) -> Self {
+        Self {
+            eas: format!("{:?}", data.eas),
+            eas_schema_registry: format!("{:?}", data.eas_schema_registry),
+            barter_utils: format!("{:?}", data.barter_utils),
+            escrow_obligation: format!("{:?}", data.escrow_obligation),
+            escrow_obligation_2: format!("{:?}", data.escrow_obligation_2),
+        }
+    }
+}
+#[pyclass]
+#[derive(Clone)]
+pub struct PyArbitersAddresses {
+    #[pyo3(get)]
+    pub eas: String,
+    #[pyo3(get)]
+    pub specific_attestation_arbiter: String,
+    #[pyo3(get)]
+    pub trivial_arbiter: String,
+    #[pyo3(get)]
+    pub trusted_oracle_arbiter: String,
+    #[pyo3(get)]
+    pub trusted_party_arbiter: String,
+    #[pyo3(get)]
+    pub intrinsics_arbiter: String,
+    #[pyo3(get)]
+    pub intrinsics_arbiter_2: String,
+    #[pyo3(get)]
+    pub any_arbiter: String,
+    #[pyo3(get)]
+    pub all_arbiter: String,
+    #[pyo3(get)]
+    pub uid_arbiter: String,
+    #[pyo3(get)]
+    pub recipient_arbiter: String,
+}
+
+impl From<&alkahest_rs::clients::arbiters::ArbitersAddresses> for PyArbitersAddresses {
+    fn from(data: &alkahest_rs::clients::arbiters::ArbitersAddresses) -> Self {
+        Self {
+            eas: format!("{:?}", data.eas),
+            specific_attestation_arbiter: format!("{:?}", data.specific_attestation_arbiter),
+            trivial_arbiter: format!("{:?}", data.trivial_arbiter),
+            trusted_oracle_arbiter: format!("{:?}", data.trusted_oracle_arbiter),
+            trusted_party_arbiter: format!("{:?}", data.trusted_party_arbiter),
+            intrinsics_arbiter: format!("{:?}", data.intrinsics_arbiter),
+            intrinsics_arbiter_2: format!("{:?}", data.intrinsics_arbiter_2),
+            any_arbiter: format!("{:?}", data.any_arbiter),
+            all_arbiter: format!("{:?}", data.all_arbiter),
+            uid_arbiter: format!("{:?}", data.uid_arbiter),
+            recipient_arbiter: format!("{:?}", data.recipient_arbiter),
+        }
+    }
+}
+#[pyclass]
+#[derive(Clone)]
+pub struct PyStringObligationAddresses {
+    #[pyo3(get)]
+    pub eas: String,
+    #[pyo3(get)]
+    pub obligation: String,
+}
+
+impl From<&alkahest_rs::clients::string_obligation::StringObligationAddresses>
+    for PyStringObligationAddresses
+{
+    fn from(data: &alkahest_rs::clients::string_obligation::StringObligationAddresses) -> Self {
+        Self {
+            eas: format!("{:?}", data.eas),
+            obligation: format!("{:?}", data.obligation),
+        }
+    }
 }

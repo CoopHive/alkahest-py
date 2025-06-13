@@ -27,7 +27,7 @@
 #     asyncio.run(main())
 
 from alkahest_py import PyTestEnvManager, PyMockERC20 
-
+import asyncio
 env = PyTestEnvManager()
 print("RPC:", env.rpc_url)
 print("God:", env.god)
@@ -47,3 +47,28 @@ print("God wallet balance:", balance)
 
 alice_balance = mock.balance_of(env.alice)
 print("Alice wallet balance:", alice_balance)
+
+# Erc20Data as dict
+price = {
+    "address": env.mock_addresses.erc20_a,
+    "value": 100
+}
+
+# ArbiterData as dict
+item = {
+    "arbiter": env.addresses.erc20_addresses.payment_obligation,
+    "demand": b"custom demand data"
+}
+async def main():
+    result = await env.alice_client.erc20.permit_and_buy_with_erc20(price, item, 1749839992)
+    print("Buy result:", result)
+
+asyncio.run(main())
+
+
+# Check god balance
+balance2 = mock.balance_of(env.god)
+print("God wallet balance:", balance2)
+
+alice_balance2 = mock.balance_of(env.alice)
+print("Alice wallet balance:", alice_balance2)

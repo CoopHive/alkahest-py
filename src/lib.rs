@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use alkahest_rs::contracts::IEAS::Attested;
+use alkahest_rs::{contracts::IEAS::Attested, AlkahestClient};
 use alloy::{
     primitives::{Address, FixedBytes, Log},
     rpc::types::TransactionReceipt,
@@ -28,8 +28,8 @@ pub mod utils;
 
 #[pyclass]
 #[derive(Clone)]
-pub struct AlkahestClient {
-    inner: alkahest_rs::AlkahestClient,
+pub struct PyAlkahestClient {
+    inner: AlkahestClient,
     erc20: Erc20Client,
     erc721: Erc721Client,
     erc1155: Erc1155Client,
@@ -37,8 +37,21 @@ pub struct AlkahestClient {
     attestation: AttestationClient,
 }
 
+impl PyAlkahestClient {
+    pub fn from_client(client: AlkahestClient) -> Self {
+        Self {
+            erc20: Erc20Client::new(client.erc20.clone()),
+            erc721: Erc721Client::new(client.erc721.clone()),
+            erc1155: Erc1155Client::new(client.erc1155.clone()),
+            token_bundle: TokenBundleClient::new(client.token_bundle.clone()),
+            attestation: AttestationClient::new(client.attestation.clone()),
+            inner: client,
+        }
+    }
+}
+
 #[pymethods]
-impl AlkahestClient {
+impl PyAlkahestClient {
     #[new]
     #[pyo3(signature = (private_key, rpc_url, address_config=None))]
     pub fn __new__(
@@ -128,7 +141,7 @@ pub fn get_attested_event(receipt: TransactionReceipt) -> eyre::Result<Log<Attes
 
 #[pymodule]
 fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<AlkahestClient>()?;
+    m.add_class::<PyAlkahestClient>()?;
     m.add_class::<PyTestEnvManager>()?;
 
     m.add_class::<PyWalletProvider>()?;

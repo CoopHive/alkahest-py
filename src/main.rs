@@ -23,29 +23,32 @@ async fn main() -> eyre::Result<()> {
         .await?;
     let god_wallet = mock_erc20_a.balanceOf(test.god.address()).call().await?;
     println!("God wallet balance: {}", god_wallet);
-    // let price = Erc20Data {
-    //     address: test.mock_addresses.erc20_a,
-    //     value: 100.try_into()?,
-    // };
+    let price = Erc20Data {
+        address: test.mock_addresses.erc20_a,
+        value: 100.try_into()?,
+    };
+    println!("Price: {:?}", price);
 
-    // // Create custom arbiter data
-    // let arbiter = test
-    //     .addresses
-    //     .erc20_addresses
-    //     .clone()
-    //     .ok_or(eyre::eyre!("no erc20-related addresses"))?
-    //     .payment_obligation;
-    // let demand = Bytes::from(b"custom demand data");
-    // let item = ArbiterData { arbiter, demand };
+    // Create custom arbiter data
+    let arbiter: Address = test
+        .addresses
+        .erc20_addresses
+        .clone()
+        .ok_or(eyre::eyre!("no erc20-related addresses"))?
+        .payment_obligation;
 
-    // let expiration = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() + 3600; // 1 hour
-
-    // // alice deposits tokens to escrow,
-    // let receipt = test
-    //     .alice_client
-    //     .erc20
-    //     .permit_and_buy_with_erc20(&price, &item, expiration)
-    //     .await?;
+    let demand = Bytes::from(b"custom demand data");
+    let item = ArbiterData { arbiter, demand };
+    println!("Arbiter address: {:?}", arbiter);
+    println!("Demand data: {:?}", item.demand);
+    let expiration = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() + 3600; // 1 hour
+    println!("Expiration: {}", expiration);
+    // alice deposits tokens to escrow,
+    let receipt = test
+        .alice_client
+        .erc20
+        .permit_and_buy_with_erc20(&price, &item, expiration)
+        .await?;
 
     // // Verify escrow happened
     // let alice_balance = mock_erc20_a.balanceOf(test.alice.address()).call().await?;
