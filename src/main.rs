@@ -1,5 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use alkahest_rs::clients::erc20::Erc20Client;
+use alkahest_rs::contracts::ERC20EscrowObligation;
 use alkahest_rs::fixtures::MockERC20Permit;
 use alkahest_rs::types::{ArbiterData, Erc20Data};
 use alkahest_rs::utils::setup_test_environment;
@@ -13,62 +15,37 @@ async fn main() -> eyre::Result<()> {
     // test setup
     let test = setup_test_environment().await?;
 
-    // give alice some erc20 tokens
-    let mock_erc20_a = MockERC20Permit::new(test.mock_addresses.erc20_a, &test.god_provider);
-    mock_erc20_a
-        .transfer(test.alice.address(), 100.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-    let god_wallet = mock_erc20_a.balanceOf(test.god.address()).call().await?;
-    println!("God wallet balance: {}", god_wallet);
-    let price = Erc20Data {
-        address: test.mock_addresses.erc20_a,
-        value: 100.try_into()?,
-    };
-    println!("Price: {:?}", price);
-
-    // Create custom arbiter data
-    let arbiter: Address = test
+    // Create sample statement data
+    let token_address = test.mock_addresses.erc20_a;
+    let amount: U256 = 100.try_into()?;
+    let arbiter = test
         .addresses
         .erc20_addresses
-        .clone()
         .ok_or(eyre::eyre!("no erc20-related addresses"))?
         .payment_obligation;
+    let demand = Bytes::from(vec![1, 2, 3, 4]); // sample demand data
 
-    let demand = Bytes::from(b"custom demand data");
-    let item = ArbiterData { arbiter, demand };
-    println!("Arbiter address: {:?}", arbiter);
-    println!("Demand data: {:?}", item.demand);
-    let expiration = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() + 3600; // 1 hour
-    println!("Expiration: {}", expiration);
-    // alice deposits tokens to escrow,
-    let receipt = test
-        .alice_client
-        .erc20
-        .permit_and_buy_with_erc20(&price, &item, expiration)
-        .await?;
+    let escrow_data = ERC20EscrowObligation::StatementData {
+        token: token_address,
+        amount,
+        arbiter,
+        demand: demand.clone(),
+    };
 
-    // // Verify escrow happened
-    // let alice_balance = mock_erc20_a.balanceOf(test.alice.address()).call().await?;
+    // Encode the data
+    let encoded = escrow_data.abi_encode();
 
-    // let escrow_balance = mock_erc20_a
-    //     .balanceOf(
-    //         test.addresses
-    //             .erc20_addresses
-    //             .ok_or(eyre::eyre!("no erc20-related addresses"))?
-    //             .escrow_obligation,
-    //     )
-    //     .call()
-    //     .await?;
+    // Decode the data
+    let decoded = Erc20Client::decode_escrow_statement(&encoded.into())?;
+    println!("token address: {:?}", token_address);
+    println!("amount: {:?}", amount);
+    println!("arbiter: {:?}", arbiter);
+    println!("demand: {:?}", demand);
 
-    // // all tokens in escrow
-    // println!("Alice balance: {}", alice_balance);
-    // println!("Escrow balance: {}", escrow_balance);
-    // // escrow statement made
-    // let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    // assert_ne!(attested_event.uid, FixedBytes::<32>::default());
+    println!("decoded token: {:?}", decoded.token);
+    println!("decoded amount: {:?}", decoded.amount);
+    println!("decoded arbiter: {:?}", decoded.arbiter);
+    println!("decoded demand: {:?}", decoded.demand);
 
     Ok(())
 }

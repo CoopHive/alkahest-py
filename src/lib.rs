@@ -19,9 +19,12 @@ use pyo3::{
 use tokio::runtime::Runtime;
 use types::{AddressConfig, EscowClaimedLog};
 
-use crate::utils::{PyMockERC20, PyTestEnvManager, PyWalletProvider};
+use crate::{
+    fixtures::PyMockERC20, utils::{PyTestEnvManager, PyWalletProvider}
+};
 
 pub mod clients;
+pub mod contract;
 pub mod fixtures;
 pub mod types;
 pub mod utils;
