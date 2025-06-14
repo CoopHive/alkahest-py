@@ -5,7 +5,7 @@ use tokio::runtime::Runtime;
 use crate::{
     get_attested_event,
     types::{
-        ArbiterData, AttestedLog, Erc1155Data, Erc20Data, Erc721Data, LogWithHash, PyErc20Data,
+        ArbiterData, AttestedLog, Erc1155Data, Erc20Data, Erc721Data, LogWithHash,
         TokenBundleData,
     },
 };

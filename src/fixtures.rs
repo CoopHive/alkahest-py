@@ -41,20 +41,9 @@ sol!(
     "src/fixtures/MockERC1155.json"
 );
 
-use crate::{
-    types::{AddressConfig, PyAddressConfig},
-    utils::PyWalletProvider,
-    PyAlkahestClient,
-};
-use alkahest_rs::{
-    types::WalletProvider,
-    utils::{setup_test_environment, MockAddresses, TestContext},
-};
-use alloy::{
-    node_bindings::AnvilInstance,
-    primitives::{Address, U256},
-    providers::Provider,
-};
+use crate::{utils::PyWalletProvider, PyAlkahestClient};
+use alkahest_rs::types::WalletProvider;
+use alloy::primitives::{Address, U256};
 use pyo3::{pyclass, pymethods, PyResult};
 
 #[pyclass]

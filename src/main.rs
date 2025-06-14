@@ -1,13 +1,9 @@
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use alkahest_rs::clients::erc20::Erc20Client;
 use alkahest_rs::contracts::ERC20EscrowObligation;
-use alkahest_rs::fixtures::MockERC20Permit;
-use alkahest_rs::types::{ArbiterData, Erc20Data};
 use alkahest_rs::utils::setup_test_environment;
-use alkahest_rs::AlkahestClient;
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, U256},
+    primitives::{Bytes, U256},
     sol_types::SolValue,
 };
 #[tokio::main]

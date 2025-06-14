@@ -1,17 +1,10 @@
 use crate::{
-    fixtures::{MockERC1155, MockERC20Permit, MockERC721, SchemaRegistry, EAS},
-    types::{AddressConfig, PyAddressConfig},
+    types::PyAddressConfig,
     PyAlkahestClient,
 };
 use alkahest_rs::{
     types::WalletProvider,
     utils::{setup_test_environment, MockAddresses, TestContext},
-};
-use alloy::{
-    node_bindings::AnvilInstance,
-    primitives::{Address, U256},
-    providers::Provider,
-    sol_types::sol,
 };
 use pyo3::{pyclass, pymethods, PyResult};
 
