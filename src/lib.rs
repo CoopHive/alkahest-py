@@ -17,10 +17,11 @@ use pyo3::{
     Bound, PyResult,
 };
 use tokio::runtime::Runtime;
-use types::{AddressConfig, EscowClaimedLog};
+use types::{AddressConfig, EscowClaimedLog, PyERC20EscrowObligation};
 
 use crate::{
-    fixtures::PyMockERC20, utils::{PyTestEnvManager, PyWalletProvider}
+    fixtures::PyMockERC20,
+    utils::{PyTestEnvManager, PyWalletProvider},
 };
 
 pub mod clients;
@@ -146,8 +147,8 @@ pub fn get_attested_event(receipt: TransactionReceipt) -> eyre::Result<Log<Attes
 fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAlkahestClient>()?;
     m.add_class::<PyTestEnvManager>()?;
-
     m.add_class::<PyWalletProvider>()?;
     m.add_class::<PyMockERC20>()?;
+    m.add_class::<PyERC20EscrowObligation>()?;
     Ok(())
 }

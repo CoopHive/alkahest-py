@@ -5,8 +5,7 @@ use tokio::runtime::Runtime;
 use crate::{
     get_attested_event,
     types::{
-        ArbiterData, AttestedLog, Erc1155Data, Erc20Data, Erc721Data, LogWithHash,
-        TokenBundleData,
+        ArbiterData, AttestedLog, Erc1155Data, Erc20Data, Erc721Data, LogWithHash, TokenBundleData,
     },
 };
 
@@ -405,5 +404,40 @@ impl Erc20Client {
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
+    }
+
+    pub fn decode_escrow_statement(
+        &self,
+        statement_data: Vec<u8>,
+    ) -> eyre::Result<crate::types::PyERC20EscrowObligation> {
+        use alloy::primitives::Bytes;
+        let bytes = Bytes::from(statement_data);
+        let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_escrow_statement(&bytes)?;
+        Ok(decoded.into())
+    }
+
+    pub fn encode_escrow_statement(
+        &self,
+        obligation: &crate::types::PyERC20EscrowObligation,
+    ) -> eyre::Result<Vec<u8>> {
+        use alkahest_rs::contracts::ERC20EscrowObligation;
+        use alloy::{
+            primitives::{Address, Bytes, U256},
+            sol_types::SolValue,
+        };
+
+        let token: Address = obligation.token.parse()?;
+        let amount: U256 = U256::from(obligation.amount);
+        let arbiter: Address = obligation.arbiter.parse()?;
+        let demand = Bytes::from(obligation.demand.clone());
+
+        let statement_data = ERC20EscrowObligation::StatementData {
+            token,
+            amount,
+            arbiter,
+            demand,
+        };
+
+        Ok(statement_data.abi_encode())
     }
 }
