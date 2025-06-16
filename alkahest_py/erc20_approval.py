@@ -43,9 +43,14 @@ async def test_erc20_approvals():
         token_data = {"address": env1.mock_addresses.erc20_a, "value": 100}
         receipt_hash = await env1.alice_client.erc20.approve(token_data, "payment")
         
+        # Check allowance after approval
+        payment_allowance = mock_erc20_1.allowance(env1.alice, env1.addresses.erc20_addresses.payment_obligation)
+        
         print(f"✅ Payment approval successful!")
         print(f"   Transaction: {receipt_hash}")
         print(f"   Approved 100 tokens for payment obligation")
+        print(f"   Payment allowance verified: {payment_allowance} tokens")
+        
         success_count += 1
         
     except Exception as e:
@@ -72,9 +77,13 @@ async def test_erc20_approvals():
         token_data = {"address": env2.mock_addresses.erc20_a, "value": 100}
         receipt_hash = await env2.alice_client.erc20.approve(token_data, "escrow")
         
+        # Check allowance after approval
+        escrow_allowance = mock_erc20_2.allowance(env2.alice, env2.addresses.erc20_addresses.escrow_obligation)
+        
         print(f"✅ Escrow approval successful!")
         print(f"   Transaction: {receipt_hash}")
         print(f"   Approved 100 tokens for escrow obligation")
+        print(f"   Escrow allowance verified: {escrow_allowance} tokens")
         success_count += 1
         
     except Exception as e:

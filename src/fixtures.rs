@@ -117,4 +117,24 @@ impl PyMockERC20 {
 
         Ok(balance_u128)
     }
+
+    pub fn allowance(&self, owner: String, spender: String) -> PyResult<u128> {
+        let owner_addr = owner
+            .parse::<Address>()
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+        let spender_addr = spender
+            .parse::<Address>()
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+        let rt = tokio::runtime::Runtime::new()?;
+        let allowance = rt
+            .block_on(async { self.inner.allowance(owner_addr, spender_addr).call().await })
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+
+        let allowance_u128 = allowance.try_into().map_err(|_| {
+            pyo3::exceptions::PyOverflowError::new_err("Allowance too large for u128")
+        })?;
+
+        Ok(allowance_u128)
+    }
 }
