@@ -21,7 +21,7 @@ use types::{AddressConfig, EscowClaimedLog};
 
 use crate::{
     clients::erc20::PyERC20EscrowObligationStatement,
-    fixtures::PyMockERC20,
+    fixtures::{PyMockERC20, PyMockERC721, PyMockERC1155},
     utils::{PyTestEnvManager, PyWalletProvider},
 };
 
@@ -158,6 +158,8 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTestEnvManager>()?;
     m.add_class::<PyWalletProvider>()?;
     m.add_class::<PyMockERC20>()?;
+    m.add_class::<PyMockERC721>()?;
+    m.add_class::<PyMockERC1155>()?;
     m.add_class::<PyERC20EscrowObligationStatement>()?;
     Ok(())
 }
