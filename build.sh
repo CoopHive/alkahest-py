@@ -17,4 +17,5 @@ python alkahest_py/test_buy_erc20_for_erc20.py
 python alkahest_py/test_permit_and_buy_erc20_for_erc20.py
 python alkahest_py/test_pay_erc20_for_erc20.py
 python alkahest_py/test_permit_and_pay_erc20_for_erc20.py
+python alkahest_py/test_buy_erc721_for_erc20.py
 python alkahest_py/test_erc20_escrow_obligation_statement.py
