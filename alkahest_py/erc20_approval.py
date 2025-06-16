@@ -1,27 +1,8 @@
-#!/usr/bin/env python3
-"""
-ERC20 Approval Flow - Final Working Version
-
-This demonstrates the ERC20 approval functionality for both payment and escrow purposes.
-Note: Due to transaction management limitations in the Python bindings, 
-we test each approval type separately to avoid conflicts.
-"""
-
 import asyncio
 from alkahest_py import PyTestEnvManager, PyMockERC20
 
 
 async def test_erc20_approvals():
-    """
-    Test ERC20 approvals for payment and escrow.
-    
-    This test demonstrates both approval types work correctly,
-    but tests them separately due to transaction management constraints
-    in the Python bindings when multiple transactions are submitted rapidly.
-    """
-    print("🚀 Testing ERC20 Approval Functionality...")
-    print("\n📝 Note: Testing approvals separately to avoid transaction conflicts")
-    
     success_count = 0
     total_tests = 2
     
@@ -56,10 +37,8 @@ async def test_erc20_approvals():
     except Exception as e:
         print(f"❌ Payment approval failed: {e}")
     
-    # Small delay between tests
     await asyncio.sleep(1)
     
-    # Test 2: Escrow Approval
     print("\n" + "─" * 50)
     print("🔸 Testing Escrow Approval")
     print("─" * 50)
