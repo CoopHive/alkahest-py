@@ -1,47 +1,72 @@
-
-use alkahest_rs::clients::erc20::Erc20Client;
 use alkahest_rs::contracts::ERC20EscrowObligation;
+use alkahest_rs::fixtures::MockERC20Permit;
+use alkahest_rs::types::ApprovalPurpose;
 use alkahest_rs::utils::setup_test_environment;
+use alkahest_rs::{clients::erc20::Erc20Client, types::Erc20Data};
 use alloy::{
     primitives::{Bytes, U256},
     sol_types::SolValue,
 };
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    // test setup
     let test = setup_test_environment().await?;
 
-    // Create sample statement data
-    let token_address = test.mock_addresses.erc20_a;
-    let amount: U256 = 100.try_into()?;
-    let arbiter = test
-        .addresses
-        .erc20_addresses
-        .ok_or(eyre::eyre!("no erc20-related addresses"))?
-        .payment_obligation;
-    let demand = Bytes::from(vec![1, 2, 3, 4]); // sample demand data
+    // give alice some erc20 tokens
+    let mock_erc20_a = MockERC20Permit::new(test.mock_addresses.erc20_a, &test.god_provider);
+    mock_erc20_a
+        .transfer(test.alice.address(), 100.try_into()?)
+        .send()
+        .await?
+        .get_receipt()
+        .await?;
 
-    let escrow_data = ERC20EscrowObligation::StatementData {
-        token: token_address,
-        amount,
-        arbiter,
-        demand: demand.clone(),
+    let token = Erc20Data {
+        address: test.mock_addresses.erc20_a,
+        value: 100.try_into()?,
     };
 
-    // Encode the data
-    let encoded = escrow_data.abi_encode();
+    // Test approve for payment
+    let _receipt = test
+        .alice_client
+        .erc20
+        .approve(&token, ApprovalPurpose::Payment)
+        .await?;
 
-    // Decode the data
-    let decoded = Erc20Client::decode_escrow_statement(&encoded.into())?;
-    println!("token address: {:?}", token_address);
-    println!("amount: {:?}", amount);
-    println!("arbiter: {:?}", arbiter);
-    println!("demand: {:?}", demand);
+    // Verify approval for payment obligation
+    let payment_allowance = mock_erc20_a
+        .allowance(
+            test.alice.address(),
+            test.addresses
+                .erc20_addresses
+                .clone()
+                .ok_or(eyre::eyre!("no erc20-related addresses"))?
+                .payment_obligation,
+        )
+        .call()
+        .await?;
 
-    println!("decoded token: {:?}", decoded.token);
-    println!("decoded amount: {:?}", decoded.amount);
-    println!("decoded arbiter: {:?}", decoded.arbiter);
-    println!("decoded demand: {:?}", decoded.demand);
+    println!("Payment allowance: {}", payment_allowance.to_string());
+
+    // Test approve for escrow
+    let _receipt = test
+        .alice_client
+        .erc20
+        .approve(&token, ApprovalPurpose::Escrow)
+        .await?;
+
+    // Verify approval for escrow obligation
+    let escrow_allowance = mock_erc20_a
+        .allowance(
+            test.alice.address(),
+            test.addresses
+                .erc20_addresses
+                .ok_or(eyre::eyre!("no erc20-related addresses"))?
+                .escrow_obligation,
+        )
+        .call()
+        .await?;
+
+    println!("Escrow allowance: {}", escrow_allowance.to_string());
 
     Ok(())
 }
