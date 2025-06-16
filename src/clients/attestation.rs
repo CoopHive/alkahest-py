@@ -1,7 +1,6 @@
 use alkahest_rs::clients::attestation;
 use alloy::primitives::{Address, FixedBytes};
 use pyo3::{pyclass, pymethods};
-use tokio::runtime::Runtime;
 
 use crate::{
     get_attested_event,
@@ -12,11 +11,12 @@ use crate::{
 #[derive(Clone)]
 pub struct AttestationClient {
     inner: attestation::AttestationClient,
+    runtime: std::sync::Arc<tokio::runtime::Runtime>,
 }
 
 impl AttestationClient {
-    pub fn new(inner: attestation::AttestationClient) -> Self {
-        Self { inner }
+    pub fn new(inner: attestation::AttestationClient, runtime: std::sync::Arc<tokio::runtime::Runtime>) -> Self {
+        Self { inner, runtime }
     }
 }
 
@@ -28,7 +28,7 @@ impl AttestationClient {
         resolver: String,
         revocable: bool,
     ) -> eyre::Result<String> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let schema: FixedBytes<32> = schema.parse()?;
             let resolver: Address = resolver.parse()?;
             let receipt = self
@@ -43,7 +43,7 @@ impl AttestationClient {
         &self,
         attestation: AttestationRequest,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self.inner.attest(attestation.try_into()?).await?;
             Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
@@ -57,7 +57,7 @@ impl AttestationClient {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
@@ -71,7 +71,7 @@ impl AttestationClient {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .collect_payment_2(buy_attestation.parse()?, fulfillment.parse()?)
@@ -86,7 +86,7 @@ impl AttestationClient {
         demand: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
@@ -104,7 +104,7 @@ impl AttestationClient {
         demand: ArbiterData,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .create_escrow_2(attestation.parse()?, demand.try_into()?, expiration)
@@ -123,7 +123,7 @@ impl AttestationClient {
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
         // TODO: might be bugged; return value could be Attested from the created attestation rather than the escrow obligation
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .attest_and_create_escrow(attestation.try_into()?, demand.try_into()?, expiration)

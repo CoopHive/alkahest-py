@@ -20,7 +20,9 @@ use tokio::runtime::Runtime;
 use types::{AddressConfig, EscowClaimedLog};
 
 use crate::{
-    clients::erc20::PyERC20EscrowObligationStatement, fixtures::PyMockERC20, utils::{PyTestEnvManager, PyWalletProvider}
+    clients::erc20::PyERC20EscrowObligationStatement,
+    fixtures::PyMockERC20,
+    utils::{PyTestEnvManager, PyWalletProvider},
 };
 
 pub mod clients;
@@ -38,17 +40,20 @@ pub struct PyAlkahestClient {
     erc1155: Erc1155Client,
     token_bundle: TokenBundleClient,
     attestation: AttestationClient,
+    runtime: std::sync::Arc<tokio::runtime::Runtime>,
 }
 
 impl PyAlkahestClient {
     pub fn from_client(client: AlkahestClient) -> Self {
+        let runtime = std::sync::Arc::new(Runtime::new().expect("Failed to create runtime"));
         Self {
-            erc20: Erc20Client::new(client.erc20.clone()),
-            erc721: Erc721Client::new(client.erc721.clone()),
-            erc1155: Erc1155Client::new(client.erc1155.clone()),
-            token_bundle: TokenBundleClient::new(client.token_bundle.clone()),
-            attestation: AttestationClient::new(client.attestation.clone()),
+            erc20: Erc20Client::new(client.erc20.clone(), runtime.clone()),
+            erc721: Erc721Client::new(client.erc721.clone(), runtime.clone()),
+            erc1155: Erc1155Client::new(client.erc1155.clone(), runtime.clone()),
+            token_bundle: TokenBundleClient::new(client.token_bundle.clone(), runtime.clone()),
+            attestation: AttestationClient::new(client.attestation.clone(), runtime.clone()),
             inner: client,
+            runtime: runtime,
         }
     }
 }
@@ -67,18 +72,23 @@ impl PyAlkahestClient {
         // Convert private_key String to LocalSigner
         let signer = PrivateKeySigner::from_str(&private_key)
             .map_err(|e| eyre::eyre!("Failed to parse private key: {}", e))?;
+
+        // Create a shared runtime
+        let runtime = std::sync::Arc::new(Runtime::new()?);
+
         // Since new is async, we must block_on it
-        let client = Runtime::new()?.block_on(async {
+        let client = runtime.clone().block_on(async {
             alkahest_rs::AlkahestClient::new(signer, rpc_url, address_config).await
         })?;
 
         let client = Self {
             inner: client.clone(),
-            erc20: Erc20Client::new(client.erc20),
-            erc721: Erc721Client::new(client.erc721),
-            erc1155: Erc1155Client::new(client.erc1155),
-            token_bundle: TokenBundleClient::new(client.token_bundle),
-            attestation: AttestationClient::new(client.attestation),
+            erc20: Erc20Client::new(client.erc20, runtime.clone()),
+            erc721: Erc721Client::new(client.erc721, runtime.clone()),
+            erc1155: Erc1155Client::new(client.erc1155, runtime.clone()),
+            token_bundle: TokenBundleClient::new(client.token_bundle, runtime.clone()),
+            attestation: AttestationClient::new(client.attestation, runtime.clone()),
+            runtime: runtime,
         };
 
         Ok(client)
@@ -116,7 +126,7 @@ impl PyAlkahestClient {
         buy_attestation: String,
         from_block: Option<u64>,
     ) -> eyre::Result<EscowClaimedLog> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let contract_address: Address = contract_address.parse()?;
             let buy_attestation: FixedBytes<32> = buy_attestation.parse()?;
             let res = self

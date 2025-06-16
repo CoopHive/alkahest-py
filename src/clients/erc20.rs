@@ -1,6 +1,5 @@
 use alkahest_rs::clients::erc20;
-use pyo3::{pyclass, pymethods, PyResult};
-use tokio::runtime::Runtime;
+use pyo3::{pyclass, pymethods};
 
 use crate::{
     get_attested_event,
@@ -13,18 +12,22 @@ use crate::{
 #[derive(Clone)]
 pub struct Erc20Client {
     inner: erc20::Erc20Client,
+    runtime: std::sync::Arc<tokio::runtime::Runtime>,
 }
 
 impl Erc20Client {
-    pub fn new(inner: erc20::Erc20Client) -> Self {
-        Self { inner }
+    pub fn new(
+        inner: erc20::Erc20Client,
+        runtime: std::sync::Arc<tokio::runtime::Runtime>,
+    ) -> Self {
+        Self { inner, runtime }
     }
 }
 
 #[pymethods]
 impl Erc20Client {
     pub async fn approve(&self, token: Erc20Data, purpose: String) -> eyre::Result<String> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let purpose = match purpose.as_str() {
                 "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
                 "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
@@ -41,7 +44,7 @@ impl Erc20Client {
         token: Erc20Data,
         purpose: String,
     ) -> eyre::Result<Option<String>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let purpose = match purpose.as_str() {
                 "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
                 "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
@@ -61,7 +64,7 @@ impl Erc20Client {
         buy_attestation: String,
         fulfillment: String,
     ) -> eyre::Result<String> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
@@ -71,32 +74,28 @@ impl Erc20Client {
     }
 
     pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub fn buy_with_erc20(
+    pub async fn buy_with_erc20(
         &self,
         price: Erc20Data,
         item: ArbiterData,
         expiration: u64,
-    ) -> PyResult<LogWithHash<AttestedLog>> {
-        println!("buy_with_erc20 called",);
-        let rt = Runtime::new().map_err(|e| eyre::eyre!(e.to_string()))?;
-        let result = rt.block_on(async {
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .buy_with_erc20(&price.try_into()?, &item.try_into()?, expiration)
                 .await?;
-            Ok::<_, eyre::Report>(LogWithHash {
+            Ok(LogWithHash {
                 log: get_attested_event(receipt.clone())?.data.into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
-        })?;
-
-        Ok(result.into()) // You may need to convert `LogWithHash` to a PyO3-compatible struct
+        })
     }
 
     pub async fn permit_and_buy_with_erc20(
@@ -112,7 +111,7 @@ impl Erc20Client {
         let item: alkahest_rs::types::ArbiterData = item
             .try_into()
             .map_err(|e: eyre::Error| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             match self
                 .inner
                 .permit_and_buy_with_erc20(&price, &item, expiration)
@@ -135,7 +134,7 @@ impl Erc20Client {
         price: Erc20Data,
         payee: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .pay_with_erc20(&price.try_into()?, payee.parse()?)
@@ -152,7 +151,7 @@ impl Erc20Client {
         price: Erc20Data,
         payee: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_pay_with_erc20(&price.try_into()?, payee.parse()?)
@@ -170,7 +169,7 @@ impl Erc20Client {
         ask: Erc20Data,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .buy_erc20_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
@@ -188,7 +187,7 @@ impl Erc20Client {
         ask: Erc20Data,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_erc20_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
@@ -204,7 +203,7 @@ impl Erc20Client {
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .pay_erc20_for_erc20(buy_attestation.parse()?)
@@ -220,7 +219,7 @@ impl Erc20Client {
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_pay_erc20_for_erc20(buy_attestation.parse()?)
@@ -238,7 +237,7 @@ impl Erc20Client {
         ask: Erc721Data,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .buy_erc721_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
@@ -256,7 +255,7 @@ impl Erc20Client {
         ask: Erc721Data,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_erc721_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
@@ -272,7 +271,7 @@ impl Erc20Client {
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .pay_erc20_for_erc721(buy_attestation.parse()?)
@@ -288,7 +287,7 @@ impl Erc20Client {
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_pay_erc20_for_erc721(buy_attestation.parse()?)
@@ -306,7 +305,7 @@ impl Erc20Client {
         ask: Erc1155Data,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .buy_erc1155_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
@@ -324,7 +323,7 @@ impl Erc20Client {
         ask: Erc1155Data,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_erc1155_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
@@ -341,7 +340,7 @@ impl Erc20Client {
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .pay_erc20_for_erc1155(buy_attestation.parse()?)
@@ -357,7 +356,7 @@ impl Erc20Client {
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_pay_erc20_for_erc1155(buy_attestation.parse()?)
@@ -375,7 +374,7 @@ impl Erc20Client {
         ask: TokenBundleData,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .buy_bundle_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
@@ -394,7 +393,7 @@ impl Erc20Client {
         ask: TokenBundleData,
         expiration: u64,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
-        Runtime::new()?.block_on(async {
+        self.runtime.block_on(async {
             let receipt = self
                 .inner
                 .permit_and_buy_bundle_for_erc20(&bid.try_into()?, &ask.try_into()?, expiration)
