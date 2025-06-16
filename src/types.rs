@@ -599,48 +599,4 @@ impl From<&alkahest_rs::clients::string_obligation::StringObligationAddresses>
     }
 }
 
-#[pyclass]
-#[derive(Clone)]
-pub struct PyERC20EscrowObligation {
-    #[pyo3(get)]
-    pub token: String,
-    #[pyo3(get)]
-    pub amount: u64,
-    #[pyo3(get)]
-    pub arbiter: String,
-    #[pyo3(get)]
-    pub demand: Vec<u8>,
-}
 
-#[pymethods]
-impl PyERC20EscrowObligation {
-    #[new]
-    pub fn new(token: String, amount: u64, arbiter: String, demand: Vec<u8>) -> Self {
-        Self {
-            token,
-            amount,
-            arbiter,
-            demand,
-        }
-    }
-
-    fn __repr__(&self) -> String {
-        format!(
-            "PyERC20EscrowObligation(token='{}', amount={}, arbiter='{}', demand={:?})",
-            self.token, self.amount, self.arbiter, self.demand
-        )
-    }
-}
-
-impl From<alkahest_rs::contracts::ERC20EscrowObligation::StatementData>
-    for PyERC20EscrowObligation
-{
-    fn from(data: alkahest_rs::contracts::ERC20EscrowObligation::StatementData) -> Self {
-        Self {
-            token: format!("{:?}", data.token),
-            amount: data.amount.try_into().unwrap_or(0), // Handle potential overflow
-            arbiter: format!("{:?}", data.arbiter),
-            demand: data.demand.to_vec(),
-        }
-    }
-}

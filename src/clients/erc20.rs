@@ -405,21 +405,49 @@ impl Erc20Client {
             })
         })
     }
+}
 
-    pub fn decode_escrow_statement(
-        &self,
-        statement_data: Vec<u8>,
-    ) -> eyre::Result<crate::types::PyERC20EscrowObligation> {
+#[pyclass]
+#[derive(Clone)]
+pub struct PyERC20EscrowObligationStatement {
+    #[pyo3(get)]
+    pub token: String,
+    #[pyo3(get)]
+    pub amount: u64,
+    #[pyo3(get)]
+    pub arbiter: String,
+    #[pyo3(get)]
+    pub demand: Vec<u8>,
+}
+
+#[pymethods]
+impl PyERC20EscrowObligationStatement {
+    #[new]
+    pub fn new(token: String, amount: u64, arbiter: String, demand: Vec<u8>) -> Self {
+        Self {
+            token,
+            amount,
+            arbiter,
+            demand,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "PyERC20EscrowObligationStatement(token='{}', amount={}, arbiter='{}', demand={:?})",
+            self.token, self.amount, self.arbiter, self.demand
+        )
+    }
+    #[staticmethod]
+    pub fn decode(statement_data: Vec<u8>) -> eyre::Result<PyERC20EscrowObligationStatement> {
         use alloy::primitives::Bytes;
         let bytes = Bytes::from(statement_data);
         let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_escrow_statement(&bytes)?;
         Ok(decoded.into())
     }
 
-    pub fn encode_escrow_statement(
-        &self,
-        obligation: &crate::types::PyERC20EscrowObligation,
-    ) -> eyre::Result<Vec<u8>> {
+    #[staticmethod]
+    pub fn encode(obligation: &PyERC20EscrowObligationStatement) -> eyre::Result<Vec<u8>> {
         use alkahest_rs::contracts::ERC20EscrowObligation;
         use alloy::{
             primitives::{Address, Bytes, U256},
@@ -439,5 +467,22 @@ impl Erc20Client {
         };
 
         Ok(statement_data.abi_encode())
+    }
+
+    pub fn encode_self(&self) -> eyre::Result<Vec<u8>> {
+        PyERC20EscrowObligationStatement::encode(self)
+    }
+}
+
+impl From<alkahest_rs::contracts::ERC20EscrowObligation::StatementData>
+    for PyERC20EscrowObligationStatement
+{
+    fn from(data: alkahest_rs::contracts::ERC20EscrowObligation::StatementData) -> Self {
+        Self {
+            token: format!("{:?}", data.token),
+            amount: data.amount.try_into().unwrap_or(0), // Handle potential overflow
+            arbiter: format!("{:?}", data.arbiter),
+            demand: data.demand.to_vec(),
+        }
     }
 }
