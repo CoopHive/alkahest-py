@@ -42,6 +42,7 @@ async def test_pay_with_erc20():
         if not payment_result['log']['uid'] or payment_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000":
             raise Exception("Invalid attestation UID")
         
+        print("✅ test_pay_with_erc20 PASSED")
         return True
         
     except Exception as e:

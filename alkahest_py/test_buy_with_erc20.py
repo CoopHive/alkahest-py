@@ -38,6 +38,7 @@ async def test_buy_with_erc20():
         escrow_balance = mock_erc20.balance_of(env.addresses.erc20_addresses.escrow_obligation)
         
         if alice_final_balance == 0 and escrow_balance == 100:
+            print("✅ test_buy_with_erc20 PASSED")
             return True
         else:
             print(f"Token balances incorrect. Alice: {alice_final_balance}, Escrow: {escrow_balance}")

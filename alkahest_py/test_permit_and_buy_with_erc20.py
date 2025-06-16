@@ -33,6 +33,7 @@ async def test_permit_and_buy_with_erc20():
         )
         
         alice_final = mock_erc20.balance_of(env.alice)
+        print("✅ test_permit_and_buy_with_erc20 PASSED")
         return True
         
     except Exception as e:

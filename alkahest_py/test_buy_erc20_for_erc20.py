@@ -42,10 +42,11 @@ async def test_buy_erc20_for_erc20():
         if not escrow_result['log']['uid'] or escrow_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000":
             raise Exception("Invalid attestation UID")
         
+        print("✅ test_buy_erc20_for_erc20 PASSED")
         return True
         
     except Exception as e:
-        print(f"\n❌ FAIL: Test failed - {e}")
+        print(f"Test failed: {e}")
         return False
 
 

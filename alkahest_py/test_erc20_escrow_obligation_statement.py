@@ -22,6 +22,7 @@ async def test_basic_encode_decode():
         assert obligation.arbiter.lower() == decoded_obligation.arbiter.lower(), "Arbiter mismatch"
         assert obligation.demand == decoded_obligation.demand, "Demand mismatch"
         
+        print("✅ test_basic_encode_decode PASSED")
         return True
         
     except Exception as e:

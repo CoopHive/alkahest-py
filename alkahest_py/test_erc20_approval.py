@@ -39,6 +39,7 @@ async def test_erc20_approvals():
         print(f"Escrow approval failed: {e}")
 
     if success_count == total_tests:
+        print("✅ test_erc20_approvals PASSED")
         return True
     else:
         print(f"{total_tests - success_count} test(s) failed.")

@@ -50,6 +50,7 @@ async def test_approve_if_less():
         except Exception as e:
             print(f"Third approval failed: {e}")
         
+        print("✅ test_approve_if_less PASSED")
         return True
     except Exception as e:
         print(f"Test failed with error: {e}")
