@@ -44,7 +44,6 @@ async def test_approve_if_less():
     
     larger_token = {"address": test.mock_addresses.erc20_a, "value": 150}
     
-    await asyncio.sleep(5)
     
     print("\n📝 Third approval attempt with larger amount (insufficient allowance)...")
     

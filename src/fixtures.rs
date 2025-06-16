@@ -75,11 +75,9 @@ impl PyMockERC20 {
     }
 
     pub fn transfer(&self, to: String, value: u64) -> PyResult<()> {
-        println!("Transferring {} tokens to {}", value, to);
         let to_addr = to
             .parse::<Address>()
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-        println!("Parsed address: {:?}", to_addr);
         let rt = tokio::runtime::Runtime::new()?;
         rt.block_on(async {
             self.inner

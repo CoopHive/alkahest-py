@@ -25,7 +25,6 @@ async def test_erc20_approvals():
     except Exception as e:
         print(f"❌ Payment approval failed: {e}")
     
-    await asyncio.sleep(1)
     
     
     try:
