@@ -4,6 +4,7 @@ use alkahest_rs::types::{ApprovalPurpose, ArbiterData};
 use alkahest_rs::utils::setup_test_environment;
 use alkahest_rs::AlkahestClient;
 use alkahest_rs::{clients::erc20::Erc20Client, types::Erc20Data};
+use alloy::primitives::FixedBytes;
 use alloy::{
     primitives::{Bytes, U256},
     sol_types::SolValue,
@@ -27,17 +28,11 @@ async fn main() -> eyre::Result<()> {
         value: 100.try_into()?,
     };
 
-    // approve tokens for payment
-    test.alice_client
-        .erc20
-        .approve(&price, ApprovalPurpose::Payment)
-        .await?;
-
-    // alice makes direct payment to bob
+    // alice makes direct payment to bob using permit (no pre-approval needed)
     let receipt = test
         .alice_client
         .erc20
-        .pay_with_erc20(&price, test.bob.address())
+        .permit_and_pay_with_erc20(&price, test.bob.address())
         .await?;
 
     // Verify payment happened
@@ -45,15 +40,12 @@ async fn main() -> eyre::Result<()> {
 
     let bob_balance = mock_erc20_a.balanceOf(test.bob.address()).call().await?;
 
-    println!(
-        "Alice's balance after payment: {}",
-        alice_balance.to_string()
-    );
-    println!("Bob's balance after payment: {}", bob_balance.to_string());
+    // all tokens paid to bob
+    assert_eq!(alice_balance, 0.try_into()?);
+    assert_eq!(bob_balance, 100.try_into()?);
 
     // payment statement made
     let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    println!("Payment statement made: {:?}", attested_event);
-
+    assert_ne!(attested_event.uid, FixedBytes::<32>::default());
     Ok(())
 }
