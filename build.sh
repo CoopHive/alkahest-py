@@ -5,3 +5,4 @@ python alkahest_py/test_erc20_approval.py
 python alkahest_py/test_erc20_approve_if_less.py
 python alkahest_py/test_erc20_approve_if_less.py
 python alkahest_py/test_permit_and_buy_with_erc20.py
+python alkahest_py/test_pay_with_erc20.py

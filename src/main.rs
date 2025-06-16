@@ -27,47 +27,33 @@ async fn main() -> eyre::Result<()> {
         value: 100.try_into()?,
     };
 
-    // Create custom arbiter data
-    let arbiter = test
-        .addresses
-        .erc20_addresses
-        .clone()
-        .ok_or(eyre::eyre!("no erc20-related addresses"))?
-        .payment_obligation;
-    let demand = Bytes::from(b"custom demand data");
-    let item = ArbiterData { arbiter, demand };
-
-    // approve tokens for escrow
+    // approve tokens for payment
     test.alice_client
         .erc20
-        .approve(&price, ApprovalPurpose::Escrow)
+        .approve(&price, ApprovalPurpose::Payment)
         .await?;
 
-    // alice creates escrow with custom demand
+    // alice makes direct payment to bob
     let receipt = test
         .alice_client
         .erc20
-        .buy_with_erc20(&price, &item, 0)
+        .pay_with_erc20(&price, test.bob.address())
         .await?;
 
-    // Verify escrow happened
+    // Verify payment happened
     let alice_balance = mock_erc20_a.balanceOf(test.alice.address()).call().await?;
 
-    let escrow_balance = mock_erc20_a
-        .balanceOf(
-            test.addresses
-                .erc20_addresses
-                .ok_or(eyre::eyre!("no erc20-related addresses"))?
-                .escrow_obligation,
-        )
-        .call()
-        .await?;
+    let bob_balance = mock_erc20_a.balanceOf(test.bob.address()).call().await?;
 
-    println!("Alice's balance: {}", alice_balance);
-    println!("Escrow balance: {}", escrow_balance);
+    println!(
+        "Alice's balance after payment: {}",
+        alice_balance.to_string()
+    );
+    println!("Bob's balance after payment: {}", bob_balance.to_string());
 
-    // escrow statement made
+    // payment statement made
     let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    println!("Attested event: {:?}", attested_event);
+    println!("Payment statement made: {:?}", attested_event);
+
     Ok(())
 }
