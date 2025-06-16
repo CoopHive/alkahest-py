@@ -56,17 +56,11 @@ async fn main() -> eyre::Result<()> {
 
     let buy_attestation = AlkahestClient::get_attested_event(buy_receipt)?.uid;
 
-    // bob approves tokens for payment
-    test.bob_client
-        .erc20
-        .approve(&ask, ApprovalPurpose::Payment)
-        .await?;
-
-    // bob fulfills the buy attestation
+    // bob fulfills the buy attestation with permit
     let _sell_receipt = test
         .bob_client
         .erc20
-        .pay_erc20_for_erc20(buy_attestation)
+        .permit_and_pay_erc20_for_erc20(buy_attestation)
         .await?;
 
     // verify token transfers
