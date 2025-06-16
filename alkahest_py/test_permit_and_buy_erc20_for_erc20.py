@@ -1,16 +1,8 @@
-#!/usr/bin/env python3
-"""
-Test flow for permit_and_buy_erc20_for_erc20 functionality.
-This test demonstrates creating an escrow to trade ERC20 tokens using permit signature (no pre-approval needed).
-"""
-
 import asyncio
 from alkahest_py import PyTestEnvManager, PyMockERC20
 
 
 async def test_permit_and_buy_erc20_for_erc20():
-    """Test the complete permit_and_buy_erc20_for_erc20 flow."""
-    
     try:
         env = PyTestEnvManager()
         mock_erc20_a = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
@@ -46,20 +38,15 @@ async def test_permit_and_buy_erc20_for_erc20():
         return True
         
     except Exception as e:
-        print(f"\n❌ FAIL: Test failed - {e}")
+        print(f"Test failed: {e}")
         return False
 
 
 async def main():
     success = await test_permit_and_buy_erc20_for_erc20()
-    
-    if success:
-        print("🎉 SUCCESS! The permit_and_buy_erc20_for_erc20 test flow completed successfully!")
-        return True
-    else:
-        print("💥 Test failed. Please check the error messages above.")
-        return False
+    return 0 if success else 1
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    exit_code = asyncio.run(main())
+    exit(exit_code)
