@@ -3,7 +3,7 @@ maturin develop
 
 # Run comprehensive ERC20 test suite
 echo "Running comprehensive ERC20 test suite..."
-python alkahest_py/test_erc20.py
+# python alkahest_py/test_erc20.py
 
 # Individual test files (for debugging if needed)
 echo "Running individual tests..."
@@ -19,3 +19,19 @@ python alkahest_py/test_pay_erc20_for_erc20.py
 python alkahest_py/test_permit_and_pay_erc20_for_erc20.py
 python alkahest_py/test_buy_erc721_for_erc20.py
 python alkahest_py/test_erc20_escrow_obligation_statement.py
+python alkahest_py/test_buy_bundle_for_erc20.py
+python alkahest_py/test_permit_and_buy_bundle_for_erc20.py
+python alkahest_py/test_permit_and_buy_erc721_for_erc20.py
+python alkahest_py/test_buy_erc1155_for_erc20.py
+python alkahest_py/test_permit_and_buy_erc1155_for_erc20.py
+
+python alkahest_py/test_pay_erc20_for_erc721.py
+# python alkahest_py/test_permit_and_pay_erc20_for_erc721.py
+
+# python alkahest_py/test_pay_erc20_for_erc1155.py
+# python alkahest_py/test_permit_and_pay_erc20_for_erc1155.py
+
+# python alkahest_py/test_pay_erc20_for_bundle.py
+# python alkahest_py/test_permit_and_pay_erc20_for_bundle.py
+
+

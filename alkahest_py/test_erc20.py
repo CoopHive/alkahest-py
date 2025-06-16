@@ -23,6 +23,17 @@ async def main():
         from test_pay_erc20_for_erc20 import test_pay_erc20_for_erc20
         from test_permit_and_pay_erc20_for_erc20 import test_permit_and_pay_erc20_for_erc20
         from test_buy_erc721_for_erc20 import test_buy_erc721_for_erc20
+        from test_permit_and_buy_erc721_for_erc20 import test_permit_and_buy_erc721_for_erc20
+        from test_pay_erc20_for_erc721 import test_pay_erc20_for_erc721
+        from test_permit_and_pay_erc20_for_erc721 import test_permit_and_pay_erc20_for_erc721
+        from test_buy_erc1155_for_erc20 import test_buy_erc1155_for_erc20
+        from test_permit_and_buy_erc1155_for_erc20 import test_permit_and_buy_erc1155_for_erc20
+        from test_pay_erc20_for_erc1155 import test_pay_erc20_for_erc1155
+        from test_permit_and_pay_erc20_for_erc1155 import test_permit_and_pay_erc20_for_erc1155
+        from test_buy_bundle_for_erc20 import test_buy_bundle_for_erc20
+        from test_permit_and_buy_bundle_for_erc20 import test_permit_and_buy_bundle_for_erc20
+        from test_pay_erc20_for_bundle import test_pay_erc20_for_bundle
+        from test_permit_and_pay_erc20_for_bundle import test_permit_and_pay_erc20_for_bundle
     except ImportError as e:
         print(f"Failed to import test module: {e}")
         return 1
@@ -40,7 +51,18 @@ async def main():
         ("ERC20 Pay ERC20 for ERC20 - Order Fulfillment", test_pay_erc20_for_erc20),
         ("ERC20 Permit and Pay ERC20 for ERC20 - Signature-based Order Fulfillment", test_permit_and_pay_erc20_for_erc20),
         ("ERC20 Buy ERC721 for ERC20 - NFT Purchase Order", test_buy_erc721_for_erc20),
-    ]
+        ("ERC20 Permit and Buy ERC721 for ERC20 - Signature-based NFT Purchase", test_permit_and_buy_erc721_for_erc20),
+        ("ERC20 Buy ERC1155 for ERC20 - Multi-token Purchase Order", test_buy_erc1155_for_erc20),
+        ("ERC20 Permit and Buy ERC1155 for ERC20 - Signature-based Multi-token Purchase", test_permit_and_buy_erc1155_for_erc20),
+        ("ERC20 Buy Bundle for ERC20 - Token Bundle Purchase Order", test_buy_bundle_for_erc20),
+        ("ERC20 Permit and Buy Bundle for ERC20 - Signature-based Bundle Purchase", test_permit_and_buy_bundle_for_erc20),
+        ("ERC20 Pay ERC20 for ERC721 - NFT Order Fulfillment", test_pay_erc20_for_erc721),
+        ("ERC20 Permit and Pay ERC20 for ERC721 - Signature-based NFT Fulfillment", test_permit_and_pay_erc20_for_erc721),
+        ("ERC20 Pay ERC20 for ERC1155 - Multi-token Order Fulfillment", test_pay_erc20_for_erc1155),
+        ("ERC20 Permit and Pay ERC20 for ERC1155 - Signature-based Multi-token Fulfillment", test_permit_and_pay_erc20_for_erc1155),
+        ("ERC20 Pay ERC20 for Bundle - Bundle Order Fulfillment", test_pay_erc20_for_bundle),
+        ("ERC20 Permit and Pay ERC20 for Bundle - Signature-based Bundle Fulfillment", test_permit_and_pay_erc20_for_bundle),
+  ]
     
     passed = 0
     failed = 0
