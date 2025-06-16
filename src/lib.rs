@@ -21,7 +21,7 @@ use types::{AddressConfig, EscowClaimedLog};
 
 use crate::{
     clients::erc20::PyERC20EscrowObligationStatement,
-    fixtures::{PyMockERC20, PyMockERC721, PyMockERC1155},
+    fixtures::{PyMockERC1155, PyMockERC20, PyMockERC721},
     utils::{PyTestEnvManager, PyWalletProvider},
 };
 

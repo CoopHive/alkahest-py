@@ -154,7 +154,10 @@ impl PyMockERC721 {
         let contract = MockERC721::MockERC721Instance::new(addr, provider.inner.clone());
         let runtime = std::sync::Arc::new(tokio::runtime::Runtime::new()?);
 
-        Ok(Self { inner: contract, runtime })
+        Ok(Self {
+            inner: contract,
+            runtime,
+        })
     }
 
     #[getter]
@@ -167,7 +170,8 @@ impl PyMockERC721 {
             .parse::<Address>()
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
         self.runtime.block_on(async {
-            let _token_id = self.inner
+            let _token_id = self
+                .inner
                 .mint(to_addr)
                 .send()
                 .await
@@ -240,7 +244,11 @@ impl PyMockERC721 {
 
     pub fn owner_of(&self, token_id: u64) -> PyResult<String> {
         self.runtime.block_on(async {
-            let owner = self.inner.ownerOf(U256::from(token_id)).call().await
+            let owner = self
+                .inner
+                .ownerOf(U256::from(token_id))
+                .call()
+                .await
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
             Ok(format!("{:?}", owner))
@@ -253,7 +261,11 @@ impl PyMockERC721 {
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
         self.runtime.block_on(async {
-            let balance = self.inner.balanceOf(owner_addr).call().await
+            let balance = self
+                .inner
+                .balanceOf(owner_addr)
+                .call()
+                .await
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
             let balance_u128 = balance.try_into().map_err(|_| {
@@ -266,7 +278,11 @@ impl PyMockERC721 {
 
     pub fn get_approved(&self, token_id: u64) -> PyResult<String> {
         self.runtime.block_on(async {
-            let approved = self.inner.getApproved(U256::from(token_id)).call().await
+            let approved = self
+                .inner
+                .getApproved(U256::from(token_id))
+                .call()
+                .await
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
             Ok(format!("{:?}", approved))
@@ -291,7 +307,10 @@ impl PyMockERC1155 {
         let contract = MockERC1155::MockERC1155Instance::new(addr, provider.inner.clone());
         let runtime = std::sync::Arc::new(tokio::runtime::Runtime::new()?);
 
-        Ok(Self { inner: contract, runtime })
+        Ok(Self {
+            inner: contract,
+            runtime,
+        })
     }
 
     #[getter]
@@ -323,7 +342,14 @@ impl PyMockERC1155 {
         })
     }
 
-    pub fn safe_batch_transfer_from(&self, from: String, to: String, token_ids: Vec<u64>, amounts: Vec<u64>, data: Vec<u8>) -> PyResult<()> {
+    pub fn safe_batch_transfer_from(
+        &self,
+        from: String,
+        to: String,
+        token_ids: Vec<u64>,
+        amounts: Vec<u64>,
+        data: Vec<u8>,
+    ) -> PyResult<()> {
         let from_addr = from
             .parse::<Address>()
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
@@ -352,7 +378,14 @@ impl PyMockERC1155 {
         })
     }
 
-    pub fn safe_transfer_from(&self, from: String, to: String, token_id: u64, amount: u64, data: Vec<u8>) -> PyResult<()> {
+    pub fn safe_transfer_from(
+        &self,
+        from: String,
+        to: String,
+        token_id: u64,
+        amount: u64,
+        data: Vec<u8>,
+    ) -> PyResult<()> {
         let from_addr = from
             .parse::<Address>()
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
@@ -361,7 +394,13 @@ impl PyMockERC1155 {
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
         self.runtime.block_on(async {
             self.inner
-                .safeTransferFrom(from_addr, to_addr, U256::from(token_id), U256::from(amount), data.into())
+                .safeTransferFrom(
+                    from_addr,
+                    to_addr,
+                    U256::from(token_id),
+                    U256::from(amount),
+                    data.into(),
+                )
                 .send()
                 .await
                 .map_err(|e| {
@@ -385,7 +424,11 @@ impl PyMockERC1155 {
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
         self.runtime.block_on(async {
-            let balance = self.inner.balanceOf(account_addr, U256::from(token_id)).call().await
+            let balance = self
+                .inner
+                .balanceOf(account_addr, U256::from(token_id))
+                .call()
+                .await
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
             let balance_u128 = balance.try_into().map_err(|_| {
@@ -396,10 +439,14 @@ impl PyMockERC1155 {
         })
     }
 
-    pub fn balance_of_batch(&self, accounts: Vec<String>, token_ids: Vec<u64>) -> PyResult<Vec<u128>> {
+    pub fn balance_of_batch(
+        &self,
+        accounts: Vec<String>,
+        token_ids: Vec<u64>,
+    ) -> PyResult<Vec<u128>> {
         if accounts.len() != token_ids.len() {
             return Err(pyo3::exceptions::PyValueError::new_err(
-                "Accounts and token_ids arrays must have the same length"
+                "Accounts and token_ids arrays must have the same length",
             ));
         }
 
@@ -407,12 +454,16 @@ impl PyMockERC1155 {
             .into_iter()
             .map(|addr| addr.parse::<Address>())
             .collect();
-        let account_addrs = account_addrs
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+        let account_addrs =
+            account_addrs.map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
         let ids: Vec<U256> = token_ids.into_iter().map(U256::from).collect();
 
         self.runtime.block_on(async {
-            let balances = self.inner.balanceOfBatch(account_addrs, ids).call().await
+            let balances = self
+                .inner
+                .balanceOfBatch(account_addrs, ids)
+                .call()
+                .await
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
             let balances_u128: Result<Vec<u128>, _> = balances
@@ -460,7 +511,11 @@ impl PyMockERC1155 {
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
         self.runtime.block_on(async {
-            let approved = self.inner.isApprovedForAll(account_addr, operator_addr).call().await
+            let approved = self
+                .inner
+                .isApprovedForAll(account_addr, operator_addr)
+                .call()
+                .await
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
             Ok(approved)
