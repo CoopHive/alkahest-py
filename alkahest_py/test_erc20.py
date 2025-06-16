@@ -20,6 +20,7 @@ async def main():
         from test_buy_erc20_for_erc20 import test_buy_erc20_for_erc20
         from test_permit_and_buy_erc20_for_erc20 import test_permit_and_buy_erc20_for_erc20
         from test_permit_and_buy_with_erc20 import test_permit_and_buy_with_erc20
+        from test_pay_erc20_for_erc20 import test_pay_erc20_for_erc20
     except ImportError as e:
         print(f"Failed to import test module: {e}")
         return 1
@@ -34,6 +35,7 @@ async def main():
         ("ERC20 Buy ERC20 for ERC20 - Token Exchange Escrow", test_buy_erc20_for_erc20),
         ("ERC20 Permit and Buy ERC20 for ERC20 - Signature-based Exchange", test_permit_and_buy_erc20_for_erc20),
         ("ERC20 Permit and Buy with ERC20 - Signature-based Purchase", test_permit_and_buy_with_erc20),
+        ("ERC20 Pay ERC20 for ERC20 - Order Fulfillment", test_pay_erc20_for_erc20),
     ]
     
     passed = 0
