@@ -52,6 +52,21 @@ from test_pay_erc721_for_erc20 import test_pay_erc721_for_erc20
 from test_pay_erc721_for_erc1155 import test_pay_erc721_for_erc1155
 from test_pay_erc721_for_bundle import test_pay_erc721_for_bundle
 
+# ERC1155 Tests
+from test_erc1155_approve_all import test_erc1155_approve_all
+from test_erc1155_revoke_all import test_erc1155_revoke_all
+from test_buy_with_erc1155 import test_buy_with_erc1155
+from test_pay_with_erc1155 import test_pay_with_erc1155
+from test_buy_erc1155_for_erc1155 import test_buy_erc1155_for_erc1155
+from test_pay_erc1155_for_erc1155 import test_pay_erc1155_for_erc1155
+from test_buy_erc20_with_erc1155 import test_buy_erc20_with_erc1155
+from test_buy_erc721_with_erc1155 import test_buy_erc721_with_erc1155
+from test_buy_bundle_with_erc1155 import test_buy_bundle_with_erc1155
+from test_pay_erc1155_for_erc20 import test_pay_erc1155_for_erc20
+from test_pay_erc1155_for_erc721 import test_pay_erc1155_for_erc721
+from test_pay_erc1155_for_bundle import test_pay_erc1155_for_bundle
+from test_erc1155_collect_expired import test_erc1155_collect_expired
+
 
 async def run_test(test_func: Callable, test_name: str) -> bool:
     try:
@@ -103,6 +118,23 @@ async def main():
         (test_pay_erc721_for_erc20, "ERC721 Pay ERC721 for ERC20 - Use NFT to Fulfill Token Escrow"),
         (test_pay_erc721_for_erc1155, "ERC721 Pay ERC721 for ERC1155 - Use NFT to Fulfill Multi-token Escrow"),
         (test_pay_erc721_for_bundle, "ERC721 Pay ERC721 for Bundle - Use NFT to Fulfill Bundle Escrow"),
+        
+        # ERC1155 Core Tests
+        (test_erc1155_approve_all, "ERC1155 Approve All - Payment and Escrow Operator Approval"),
+        (test_erc1155_revoke_all, "ERC1155 Revoke All - Revoke Operator Approval"),
+        
+        # ERC1155 Transaction Tests
+        (test_buy_with_erc1155, "ERC1155 Buy with ERC1155 - Custom Arbiter Purchase"),
+        (test_pay_with_erc1155, "ERC1155 Pay with ERC1155 - Direct Multi-token Payment"),
+        (test_buy_erc1155_for_erc1155, "ERC1155 Buy ERC1155 for ERC1155 - Multi-token to Multi-token Exchange Escrow"),
+        (test_pay_erc1155_for_erc1155, "ERC1155 Pay ERC1155 for ERC1155 - Multi-token to Multi-token Exchange Fulfillment"),
+        (test_erc1155_collect_expired, "ERC1155 Collect Expired - Reclaim Expired Multi-token Escrow"),
+        (test_buy_erc20_with_erc1155, "ERC1155 Buy ERC20 with ERC1155 - Use Multi-tokens to Buy Tokens"),
+        (test_buy_erc721_with_erc1155, "ERC1155 Buy ERC721 with ERC1155 - Use Multi-tokens to Buy NFT"),
+        (test_buy_bundle_with_erc1155, "ERC1155 Buy Bundle with ERC1155 - Use Multi-tokens to Buy Token Bundle"),
+        (test_pay_erc1155_for_erc20, "ERC1155 Pay ERC1155 for ERC20 - Use Multi-tokens to Fulfill Token Escrow"),
+        (test_pay_erc1155_for_erc721, "ERC1155 Pay ERC1155 for ERC721 - Use Multi-tokens to Fulfill NFT Escrow"),
+        (test_pay_erc1155_for_bundle, "ERC1155 Pay ERC1155 for Bundle - Use Multi-tokens to Fulfill Bundle Escrow"),
         
         # Transaction Flow Tests
         (test_buy_with_erc20, "ERC20 Buy with ERC20 - Escrow Creation"),

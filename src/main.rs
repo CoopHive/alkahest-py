@@ -2,7 +2,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use alkahest_rs::clients::erc721::Erc721Client;
 use alkahest_rs::contracts::{
-    ERC1155PaymentObligation, ERC20EscrowObligation, ERC20PaymentObligation, ERC721EscrowObligation, ERC721PaymentObligation
+    ERC1155PaymentObligation, ERC20EscrowObligation, ERC20PaymentObligation,
+    ERC721EscrowObligation, ERC721PaymentObligation,
 };
 use alkahest_rs::fixtures::{MockERC1155, MockERC20Permit, MockERC721};
 use alkahest_rs::types::{ApprovalPurpose, ArbiterData, Erc1155Data, Erc721Data, TokenBundleData};
@@ -78,7 +79,7 @@ async fn main() -> eyre::Result<()> {
 }
 
 #[tokio::test]
-async fn test_approve_all() -> eyre::Result<()> {
+async fn test_erc1155_approve_all() -> eyre::Result<()> {
     // test setup
     let test = setup_test_environment().await?;
 
@@ -144,7 +145,7 @@ async fn test_approve_all() -> eyre::Result<()> {
 }
 
 #[tokio::test]
-async fn test_revoke_all() -> eyre::Result<()> {
+async fn test_erc1155_revoke_all() -> eyre::Result<()> {
     // test setup
     let test = setup_test_environment().await?;
 

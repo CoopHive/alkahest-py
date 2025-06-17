@@ -1,0 +1,82 @@
+import asyncio
+from alkahest_py import PyTestEnvManager, PyMockERC1155
+
+
+async def test_buy_bundle_with_erc1155():
+    """
+    Test using ERC1155 to buy token bundles.
+    This corresponds to test_buy_bundle_with_erc1155() in main.rs
+    
+    Flow: 
+    1. Mint ERC1155 tokens to Alice
+    2. Alice approves ERC1155 tokens for escrow
+    3. Alice creates purchase offer using ERC1155 to buy a token bundle
+    4. Verify ERC1155 tokens are in escrow and attestation is created
+    """
+    try:
+        env = PyTestEnvManager()
+        
+        # Setup mock ERC1155 token
+        mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
+        
+        # Mint ERC1155 tokens to Alice
+        mock_erc1155_a.mint(env.alice, 1, 10)
+        print(f"Minted 10 ERC1155 tokens (ID: 1) to Alice")
+        
+        # Create exchange information
+        bid_data = {
+            "address": env.mock_addresses.erc1155_a,
+            "id": 1,
+            "value": 5
+        }
+        
+        # Create bundle data that Alice wants to buy
+        bundle_data = {
+            "erc20s": [{"address": env.mock_addresses.erc20_b, "value": 20}],
+            "erc721s": [{"address": env.mock_addresses.erc721_b, "id": 2}],
+            "erc1155s": [{"address": env.mock_addresses.erc1155_b, "id": 3, "value": 4}]
+        }
+        
+        # Alice approves tokens for escrow
+        await env.alice_client.erc1155.approve_all(env.mock_addresses.erc1155_a, "escrow")
+        
+        # Alice creates purchase offer
+        buy_result = await env.alice_client.erc1155.buy_bundle_with_erc1155(bid_data, bundle_data, 0)
+        
+        if not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000":
+            raise Exception("Invalid buy attestation UID")
+        
+        # Verify escrow happened
+        escrow_balance = mock_erc1155_a.balance_of(env.addresses.erc1155_addresses.escrow_obligation, 1)
+        alice_balance_after = mock_erc1155_a.balance_of(env.alice, 1)
+        
+        if escrow_balance != 5:
+            raise Exception(f"5 tokens should be in escrow, got {escrow_balance}")
+        
+        if alice_balance_after != 5:
+            raise Exception(f"Alice should have 5 tokens remaining, got {alice_balance_after}")
+        
+        print("✅ ERC1155 to bundle purchase offer created")
+        print(f"ERC1155 tokens in escrow: {escrow_balance}")
+        print(f"Alice remaining balance: {alice_balance_after}")
+        
+        print("✅ test_buy_bundle_with_erc1155 PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"❌ test_buy_bundle_with_erc1155 FAILED: {e}")
+        raise
+
+
+async def main():
+    try:
+        success = await test_buy_bundle_with_erc1155()
+        return 0 if success else 1
+    except Exception as e:
+        print(f"Test execution failed: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    exit_code = asyncio.run(main())
+    exit(exit_code)
