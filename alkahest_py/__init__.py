@@ -11,6 +11,10 @@ from .alkahest_py import (
     PyWalletProvider,
     PyERC20EscrowObligationStatement,
     PyERC20PaymentObligationStatement,
+    PyERC721EscrowObligationStatement,
+    PyERC721PaymentObligationStatement,
+    PyERC1155EscrowObligationStatement,
+    PyERC1155PaymentObligationStatement,
 )
 
 __all__ = [
@@ -22,4 +26,8 @@ __all__ = [
     "PyWalletProvider",
     "PyERC20EscrowObligationStatement",
     "PyERC20PaymentObligationStatement",
+    "PyERC721EscrowObligationStatement",
+    "PyERC721PaymentObligationStatement",
+    "PyERC1155EscrowObligationStatement",
+    "PyERC1155PaymentObligationStatement",
 ]

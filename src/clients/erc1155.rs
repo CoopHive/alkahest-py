@@ -1,6 +1,6 @@
 use alkahest_rs::clients::erc1155;
 use alloy::primitives::Address;
-use pyo3::{pyclass, pymethods};
+use pyo3::{pyclass, pymethods, PyResult};
 
 use crate::{
     get_attested_event,
@@ -17,7 +17,10 @@ pub struct Erc1155Client {
 }
 
 impl Erc1155Client {
-    pub fn new(inner: erc1155::Erc1155Client, runtime: std::sync::Arc<tokio::runtime::Runtime>) -> Self {
+    pub fn new(
+        inner: erc1155::Erc1155Client,
+        runtime: std::sync::Arc<tokio::runtime::Runtime>,
+    ) -> Self {
         Self { inner, runtime }
     }
 }
@@ -249,5 +252,152 @@ impl Erc1155Client {
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyERC1155EscrowObligationStatement {
+    #[pyo3(get)]
+    pub token: String,
+    #[pyo3(get)]
+    pub token_id: String,
+    #[pyo3(get)]
+    pub amount: String,
+    #[pyo3(get)]
+    pub arbiter: String,
+    #[pyo3(get)]
+    pub demand: Vec<u8>,
+}
+
+#[pymethods]
+impl PyERC1155EscrowObligationStatement {
+    #[new]
+    pub fn new(
+        token: String,
+        token_id: String,
+        amount: String,
+        arbiter: String,
+        demand: Vec<u8>,
+    ) -> Self {
+        Self {
+            token,
+            token_id,
+            amount,
+            arbiter,
+            demand,
+        }
+    }
+
+    pub fn __repr__(&self) -> String {
+        format!(
+            "PyERC1155EscrowObligationStatement(token='{}', token_id='{}', amount='{}', arbiter='{}', demand={:?})",
+            self.token, self.token_id, self.amount, self.arbiter, self.demand
+        )
+    }
+
+    pub fn encode(&self) -> PyResult<String> {
+        use alkahest_rs::contracts::ERC1155EscrowObligation;
+        use alloy::{
+            primitives::{Address, Bytes, U256},
+            sol_types::SolValue,
+        };
+
+        let token: Address = self.token.parse().map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid token address: {}", e))
+        })?;
+        let token_id: U256 = self.token_id.parse().map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid token ID: {}", e))
+        })?;
+        let amount: U256 = self.amount.parse().map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid amount: {}", e))
+        })?;
+        let arbiter: Address = self.arbiter.parse().map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid arbiter address: {}", e))
+        })?;
+        let demand = Bytes::from(self.demand.clone());
+
+        let statement_data = ERC1155EscrowObligation::StatementData {
+            token,
+            tokenId: token_id,
+            amount,
+            arbiter,
+            demand,
+        };
+
+        let encoded = statement_data.abi_encode();
+        Ok(format!("0x{}", alloy::hex::encode(encoded)))
+    }
+
+    pub fn encode_self(&self) -> PyResult<String> {
+        self.encode()
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyERC1155PaymentObligationStatement {
+    #[pyo3(get)]
+    pub token: String,
+    #[pyo3(get)]
+    pub token_id: String,
+    #[pyo3(get)]
+    pub amount: String,
+    #[pyo3(get)]
+    pub payee: String,
+}
+
+#[pymethods]
+impl PyERC1155PaymentObligationStatement {
+    #[new]
+    pub fn new(token: String, token_id: String, amount: String, payee: String) -> Self {
+        Self {
+            token,
+            token_id,
+            amount,
+            payee,
+        }
+    }
+
+    pub fn __repr__(&self) -> String {
+        format!(
+            "PyERC1155PaymentObligationStatement(token='{}', token_id='{}', amount='{}', payee='{}')",
+            self.token, self.token_id, self.amount, self.payee
+        )
+    }
+
+    pub fn encode(&self) -> PyResult<String> {
+        use alkahest_rs::contracts::ERC1155PaymentObligation;
+        use alloy::{
+            primitives::{Address, U256},
+            sol_types::SolValue,
+        };
+
+        let token: Address = self.token.parse().map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid token address: {}", e))
+        })?;
+        let token_id: U256 = self.token_id.parse().map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid token ID: {}", e))
+        })?;
+        let amount: U256 = self.amount.parse().map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid amount: {}", e))
+        })?;
+        let payee: Address = self.payee.parse().map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid payee address: {}", e))
+        })?;
+
+        let statement_data = ERC1155PaymentObligation::StatementData {
+            token,
+            tokenId: token_id,
+            amount,
+            payee,
+        };
+
+        let encoded = statement_data.abi_encode();
+        Ok(format!("0x{}", alloy::hex::encode(encoded)))
+    }
+
+    pub fn encode_self(&self) -> PyResult<String> {
+        self.encode()
     }
 }

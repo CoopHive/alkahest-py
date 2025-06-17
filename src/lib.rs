@@ -20,7 +20,11 @@ use tokio::runtime::Runtime;
 use types::{AddressConfig, EscowClaimedLog};
 
 use crate::{
-    clients::erc20::{PyERC20EscrowObligationStatement, PyERC20PaymentObligationStatement},
+    clients::{
+        erc1155::{PyERC1155EscrowObligationStatement, PyERC1155PaymentObligationStatement},
+        erc20::{PyERC20EscrowObligationStatement, PyERC20PaymentObligationStatement},
+        erc721::{PyERC721EscrowObligationStatement, PyERC721PaymentObligationStatement},
+    },
     fixtures::{PyMockERC1155, PyMockERC20, PyMockERC721},
     utils::{PyTestEnvManager, PyWalletProvider},
 };
@@ -162,5 +166,9 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMockERC1155>()?;
     m.add_class::<PyERC20EscrowObligationStatement>()?;
     m.add_class::<PyERC20PaymentObligationStatement>()?;
+    m.add_class::<PyERC721EscrowObligationStatement>()?;
+    m.add_class::<PyERC721PaymentObligationStatement>()?;
+    m.add_class::<PyERC1155EscrowObligationStatement>()?;
+    m.add_class::<PyERC1155PaymentObligationStatement>()?;
     Ok(())
 }
