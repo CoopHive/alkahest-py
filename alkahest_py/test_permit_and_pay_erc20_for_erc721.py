@@ -86,6 +86,7 @@ async def test_permit_and_pay_erc20_for_erc721():
             raise Exception(f"Bob should have received {erc20_amount} ERC20 tokens, got {bob_erc20_balance}")
         
         print("✅ test_permit_and_pay_erc20_for_erc721 PASSED")
+        return True
         
     except Exception as e:
         print(f"❌ test_permit_and_pay_erc20_for_erc721 FAILED: {e}")

@@ -58,6 +58,7 @@ async def test_buy_bundle_for_erc20():
             raise Exception("Buy attestation UID should be valid")
         
         print("✅ test_buy_bundle_for_erc20 PASSED")
+        return True
         
     except Exception as e:
         print(f"❌ test_buy_bundle_for_erc20 FAILED: {e}")
