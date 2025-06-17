@@ -14,13 +14,33 @@ pub struct TokenBundleClient {
 }
 
 impl TokenBundleClient {
-    pub fn new(inner: token_bundle::TokenBundleClient, runtime: std::sync::Arc<tokio::runtime::Runtime>) -> Self {
+    pub fn new(
+        inner: token_bundle::TokenBundleClient,
+        runtime: std::sync::Arc<tokio::runtime::Runtime>,
+    ) -> Self {
         Self { inner, runtime }
     }
 }
 
 #[pymethods]
 impl TokenBundleClient {
+    pub async fn approve(&self, token: TokenBundleData, purpose: String) -> eyre::Result<String> {
+        self.runtime.block_on(async {
+            let purpose = match purpose.as_str() {
+                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
+                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
+                _ => return Err(eyre::eyre!("Invalid purpose")),
+            };
+            let receipts = self.inner.approve(&token.try_into()?, purpose).await?;
+
+            // Return the transaction hash of the last receipt, or empty string if no receipts
+            match receipts.last() {
+                Some(receipt) => Ok(receipt.transaction_hash.to_string()),
+                None => Ok("".to_string()),
+            }
+        })
+    }
+
     pub async fn collect_payment(
         &self,
         buy_attestation: String,

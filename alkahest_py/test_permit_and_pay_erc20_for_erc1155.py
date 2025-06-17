@@ -1,5 +1,5 @@
 import asyncio
-from alkahest_py import PyTestEnvManager, PyMockERC20
+from alkahest_py import PyTestEnvManager, PyMockERC20, PyMockERC1155
 
 
 async def test_permit_and_pay_erc20_for_erc1155():
@@ -8,13 +8,19 @@ async def test_permit_and_pay_erc20_for_erc1155():
     This corresponds to test_permit_and_pay_erc20_for_erc1155() in main.rs
     
     Flow: Bob escrows ERC1155, Alice pays ERC20 using permit to get the ERC1155
+    
+    ⚠️ KNOWN LIMITATION: This test currently fails because PyMockERC1155 is not yet 
+    available in the Python module. Bob cannot mint/own ERC1155 tokens before 
+    trying to approve them for escrow, causing a "not token owner" error.
+    
+    TO FIX: Export PyMockERC1155 in lib.rs and ensure it's available in the Python module.
     """
     try:
         env = PyTestEnvManager()
         
         # Setup mock tokens
         mock_erc20_a = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
-        # Note: PyMockERC1155 is not available yet, but this shows the intended flow
+        mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
         
         # Give Alice ERC20 tokens and Bob ERC1155 tokens
         alice_initial_erc20 = mock_erc20_a.balance_of(env.alice)
@@ -24,14 +30,25 @@ async def test_permit_and_pay_erc20_for_erc1155():
         if alice_after_transfer != alice_initial_erc20 + 100:
             raise Exception(f"Alice ERC20 transfer failed. Expected {alice_initial_erc20 + 100}, got {alice_after_transfer}")
         
-        # Bob would mint/own ERC1155 tokens (ID 1, amount 50)
-        # mock_erc1155_a.mint(env.bob, token_id=1, amount=50)  # When PyMockERC1155 is available
+        # Mint ERC1155 tokens to Bob (token ID 1, amount 50)
+        token_id = 1
+        token_amount = 50
+        mock_erc1155_a.mint(env.bob, token_id, token_amount)
+        print(f"Minted ERC1155 token {token_id} (amount {token_amount}) to Bob")
+        
+        # Verify Bob owns the tokens
+        bob_balance = mock_erc1155_a.balance_of(env.bob, token_id)
+        if bob_balance != token_amount:
+            raise Exception(f"Token balance verification failed. Expected {token_amount}, got {bob_balance}")
         
         # Create test data
         erc20_amount = 50
         token_id = 1
         token_amount = 50  # Amount of ERC1155 tokens Bob has
-        expiration = 3600  # 1 hour from now
+        
+        # Calculate expiration as absolute timestamp (current time + 1 hour)
+        import time
+        expiration = int(time.time()) + 3600  # 1 hour from now
         
         # Step 1: Bob approves his ERC1155 for escrow
         await env.bob_client.erc1155.approve_all(env.mock_addresses.erc1155_a, "escrow")

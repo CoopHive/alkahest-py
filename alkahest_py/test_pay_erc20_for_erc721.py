@@ -1,5 +1,5 @@
 import asyncio
-from alkahest_py import PyTestEnvManager, PyMockERC20
+from alkahest_py import PyTestEnvManager, PyMockERC20, PyMockERC721
 
 
 async def test_pay_erc20_for_erc721():
@@ -14,7 +14,7 @@ async def test_pay_erc20_for_erc721():
         
         # Setup mock tokens
         mock_erc20_a = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
-        # Note: PyMockERC721 is not available yet, but this shows the intended flow
+        mock_erc721 = PyMockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
         
         # Give Alice ERC20 tokens and Bob an ERC721 token
         alice_initial_erc20 = mock_erc20_a.balance_of(env.alice)
@@ -24,32 +24,40 @@ async def test_pay_erc20_for_erc721():
         if alice_after_transfer != alice_initial_erc20 + 100:
             raise Exception(f"Alice ERC20 transfer failed. Expected {alice_initial_erc20 + 100}, got {alice_after_transfer}")
         
-        # Bob would mint/own an ERC721 token (ID 1)
-        # mock_erc721_a.mint(env.bob)  # When PyMockERC721 is available
+        # Mint an ERC721 token to Bob (token ID 1)
+        token_id = mock_erc721.mint(env.bob)
+        print(f"Minted ERC721 token {token_id} to Bob")
         
-        # Create test data
+        # Verify Bob owns the token
+        token_owner = mock_erc721.owner_of(token_id)
+        if token_owner.lower() != env.bob.lower():
+            raise Exception(f"Token ownership verification failed. Expected {env.bob}, got {token_owner}")
+        
+        # Create test data  
         erc20_amount = 50
-        erc721_token_id = 1
-        expiration = 3600  # 1 hour from now
+        erc721_token_id = token_id  # Use the token ID we just minted
         
-        # Step 1: Bob approves his ERC721 for escrow  
+        # Calculate expiration as absolute timestamp (current time + 1 hour)
+        import time
+        expiration = int(time.time()) + 3600  # 1 hour from now
+        
+        # Step 1: Bob approves his ERC721 for escrow
         erc721_data = {"address": env.mock_addresses.erc721_a, "id": erc721_token_id}
         await env.bob_client.erc721.approve(erc721_data, "escrow")
         
         # Step 2: Bob creates ERC721 escrow requesting ERC20
         erc20_data = {"address": env.mock_addresses.erc20_a, "value": erc20_amount}
-        buy_result = await env.bob_client.erc721.buy_erc20_with_erc721(
-            erc721_data, erc20_data, expiration
-        )
+        buy_result = await env.bob_client.erc721.buy_erc20_with_erc721(erc721_data, erc20_data, expiration)
         
         if not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000":
             raise Exception("Invalid buy attestation UID")
         
         buy_attestation_uid = buy_result['log']['uid']
         
-        # Verify ERC721 is in escrow (would check with mock_erc721_a.owner_of when available)
-        # erc721_owner = mock_erc721_a.owner_of(erc721_token_id)
-        # assert erc721_owner == env.addresses.erc721_addresses.escrow_obligation
+        # Verify ERC721 is in escrow 
+        erc721_owner = mock_erc721.owner_of(erc721_token_id)
+        print(f"ERC721 token {erc721_token_id} now owned by: {erc721_owner}")
+        # Note: The token should now be owned by the escrow contract
         
         initial_alice_erc20_balance = mock_erc20_a.balance_of(env.alice)
         
@@ -63,9 +71,11 @@ async def test_pay_erc20_for_erc721():
             raise Exception("Invalid payment attestation UID")
         
         # Verify token transfers
-        # Alice should now own the ERC721 token (would check with mock_erc721_a.owner_of when available)
-        # final_erc721_owner = mock_erc721_a.owner_of(erc721_token_id)
-        # assert final_erc721_owner == env.alice
+        # Alice should now own the ERC721 token
+        final_erc721_owner = mock_erc721.owner_of(erc721_token_id)
+        print(f"ERC721 token {erc721_token_id} finally owned by: {final_erc721_owner}")
+        if final_erc721_owner.lower() != env.alice.lower():
+            raise Exception(f"Alice should own the ERC721 token, but it's owned by {final_erc721_owner}")
         
         # Alice spent erc20_amount tokens
         final_alice_erc20_balance = mock_erc20_a.balance_of(env.alice)

@@ -404,6 +404,38 @@ impl Erc20Client {
             })
         })
     }
+
+    pub async fn pay_erc20_for_bundle(
+        &self,
+        buy_attestation: String,
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        self.runtime.block_on(async {
+            let receipt = self
+                .inner
+                .pay_erc20_for_bundle(buy_attestation.parse()?)
+                .await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
+        })
+    }
+
+    pub async fn permit_and_pay_erc20_for_bundle(
+        &self,
+        buy_attestation: String,
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        self.runtime.block_on(async {
+            let receipt = self
+                .inner
+                .permit_and_pay_erc20_for_bundle(buy_attestation.parse()?)
+                .await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
+                transaction_hash: receipt.transaction_hash.to_string(),
+            })
+        })
+    }
 }
 
 #[pyclass]
@@ -483,5 +515,60 @@ impl From<alkahest_rs::contracts::ERC20EscrowObligation::StatementData>
             arbiter: format!("{:?}", data.arbiter),
             demand: data.demand.to_vec(),
         }
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyERC20PaymentObligationStatement {
+    #[pyo3(get)]
+    pub token: String,
+    #[pyo3(get)]
+    pub amount: u64,
+    #[pyo3(get)]
+    pub payee: String,
+}
+
+#[pymethods]
+impl PyERC20PaymentObligationStatement {
+    #[new]
+    pub fn new(token: String, amount: u64, payee: String) -> Self {
+        Self {
+            token,
+            amount,
+            payee,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "PyERC20PaymentObligationStatement(token='{}', amount={}, payee='{}')",
+            self.token, self.amount, self.payee
+        )
+    }
+
+    #[staticmethod]
+    pub fn encode(obligation: &PyERC20PaymentObligationStatement) -> eyre::Result<Vec<u8>> {
+        use alkahest_rs::contracts::ERC20PaymentObligation;
+        use alloy::{
+            primitives::{Address, U256},
+            sol_types::SolValue,
+        };
+
+        let token: Address = obligation.token.parse()?;
+        let amount: U256 = U256::from(obligation.amount);
+        let payee: Address = obligation.payee.parse()?;
+
+        let statement_data = ERC20PaymentObligation::StatementData {
+            token,
+            amount,
+            payee,
+        };
+
+        Ok(statement_data.abi_encode())
+    }
+
+    pub fn encode_self(&self) -> eyre::Result<Vec<u8>> {
+        PyERC20PaymentObligationStatement::encode(self)
     }
 }

@@ -1,5 +1,5 @@
 import asyncio
-from alkahest_py import PyTestEnvManager, PyMockERC20
+from alkahest_py import PyTestEnvManager, PyMockERC20, PyMockERC721, PyMockERC1155, PyERC20PaymentObligationStatement
 
 
 async def test_pay_erc20_for_bundle():
@@ -15,7 +15,8 @@ async def test_pay_erc20_for_bundle():
         # Setup mock tokens
         mock_erc20_a = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)  # Alice's payment token
         mock_erc20_b = PyMockERC20(env.mock_addresses.erc20_b, env.god_wallet_provider)  # Bob's bundle token
-        # Note: PyMockERC721 and PyMockERC1155 not available yet, but this shows the intended flow
+        mock_erc721_a = PyMockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
+        mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
         
         # Give Alice ERC20 tokens for payment
         alice_initial_erc20 = mock_erc20_a.balance_of(env.alice)
@@ -25,19 +26,21 @@ async def test_pay_erc20_for_bundle():
         if alice_after_transfer != alice_initial_erc20 + 100:
             raise Exception(f"Alice ERC20 transfer failed. Expected {alice_initial_erc20 + 100}, got {alice_after_transfer}")
         
-        # Give Bob bundle tokens
-        mock_erc20_b.transfer(env.bob, 50)  # Bob gets ERC20 tokens for the bundle
-        # Bob would also mint/own ERC721 and ERC1155 tokens
-        # mock_erc721_a.mint(env.bob)  # ERC721 token ID 1
-        # mock_erc1155_a.mint(env.bob, token_id=1, amount=20)  # ERC1155 tokens
-        
         # Create test data
         erc20_amount = 50  # Alice pays this much
         bob_erc20_amount = 25  # Half of Bob's ERC20 tokens go into bundle
         erc721_token_id = 1
         erc1155_token_id = 1
         erc1155_bundle_amount = 10  # Half of Bob's ERC1155 tokens go into bundle
-        expiration = 3600  # 1 hour from now
+
+        # Give Bob bundle tokens
+        mock_erc20_b.transfer(env.bob, 50)  # Bob gets ERC20 tokens for the bundle
+        mock_erc721_a.mint(env.bob)  # Bob gets ERC721 token ID 1
+        mock_erc1155_a.mint(env.bob, erc1155_token_id, 20)  # Bob gets ERC1155 tokens
+        
+        # Calculate expiration as absolute timestamp (current time + 1 hour)
+        import time
+        expiration = int(time.time()) + 3600  # 1 hour from now
         
         # Create token bundle
         bundle_data = {
@@ -50,16 +53,19 @@ async def test_pay_erc20_for_bundle():
         await env.bob_client.token_bundle.approve(bundle_data, "escrow")
         
         # Step 2: Bob creates bundle escrow demanding ERC20 from Alice
-        # First encode the payment statement data as the demand
-        payment_statement_data = {
-            "token": env.mock_addresses.erc20_a,
-            "amount": erc20_amount,
-            "payee": env.bob
-        }
+        # Create proper ABI-encoded payment statement data
+        payment_statement = PyERC20PaymentObligationStatement(
+            token=env.mock_addresses.erc20_a,
+            amount=erc20_amount,
+            payee=env.bob
+        )
+        
+        # Encode the payment statement for the demand field
+        demand_bytes = payment_statement.encode_self()
         
         arbiter_data = {
             "arbiter": env.addresses.erc20_addresses.payment_obligation,
-            "demand": payment_statement_data  # This would be ABI encoded in real implementation
+            "demand": demand_bytes
         }
         
         buy_result = await env.bob_client.token_bundle.buy_with_bundle(
