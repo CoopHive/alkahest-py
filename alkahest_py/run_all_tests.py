@@ -11,7 +11,9 @@ from typing import List, Callable
 
 from test_erc20_escrow_obligation_statement import test_basic_encode_decode as test_erc20_escrow_encode_decode
 from test_erc20_payment_obligation_statement import test_basic_encode_decode as test_erc20_payment_encode_decode
+from test_erc721_escrow_obligation_statement import test_basic_encode_decode as test_erc721_escrow_encode_decode
 from test_erc721_payment_obligation_statement import test_basic_encode_decode as test_erc721_payment_encode_decode
+from test_erc1155_escrow_obligation_statement import test_basic_encode_decode as test_erc1155_escrow_encode_decode
 from test_erc1155_payment_obligation_statement import test_basic_encode_decode as test_erc1155_payment_encode_decode
 from test_erc20_approval import test_erc20_approvals
 from test_erc20_approve_if_less import test_approve_if_less
@@ -61,7 +63,9 @@ async def main():
         # Obligation Statement Encode/Decode Tests
         (test_erc20_escrow_encode_decode, "ERC20 Escrow Obligation Statement - Basic Encode/Decode"),
         (test_erc20_payment_encode_decode, "ERC20 Payment Obligation Statement - Basic Encode/Decode"),
+        (test_erc721_escrow_encode_decode, "ERC721 Escrow Obligation Statement - Basic Encode/Decode"),
         (test_erc721_payment_encode_decode, "ERC721 Payment Obligation Statement - Basic Encode/Decode"),
+        (test_erc1155_escrow_encode_decode, "ERC1155 Escrow Obligation Statement - Basic Encode/Decode"),
         (test_erc1155_payment_encode_decode, "ERC1155 Payment Obligation Statement - Basic Encode/Decode"),
         
         # ERC20 Core Tests
