@@ -2,7 +2,7 @@ import asyncio
 from alkahest_py import PyTestEnvManager, PyMockERC721
 
 
-async def test_approve():
+async def test_erc721_approve():
     """
     Test ERC721 token approval for both payment and escrow purposes.
     This corresponds to test_approve() in main.rs (lines 81-135)
@@ -48,17 +48,17 @@ async def test_approve():
         
         print(f"✓ Escrow approval verified: token 1 approved for {escrow_approved}")
         
-        print("✅ test_approve PASSED")
+        print("✅ test_erc721_approve PASSED")
         return True
         
     except Exception as e:
-        print(f"❌ test_approve FAILED: {e}")
+        print(f"❌ test_erc721_approve FAILED: {e}")
         raise
 
 
 async def main():
     try:
-        success = await test_approve()
+        success = await test_erc721_approve()
         return success
     except Exception as e:
         print(f"Unexpected error: {e}")

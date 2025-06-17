@@ -37,9 +37,9 @@ from test_pay_erc20_for_erc1155 import test_pay_erc20_for_erc1155
 from test_permit_and_pay_erc20_for_erc1155 import test_permit_and_pay_erc20_for_erc1155
 from test_pay_erc20_for_bundle import test_pay_erc20_for_bundle
 from test_permit_and_pay_erc20_for_bundle import test_permit_and_pay_erc20_for_bundle
-from test_approve import test_approve
-from test_approve_all import test_approve_all
-from test_revoke_all import test_revoke_all
+from test_erc721_approve import test_erc721_approve
+from test_erc721_approve_all import test_erc721_approve_all
+from test_erc721_revoke_all import test_erc721_revoke_all
 from test_buy_with_erc721 import test_buy_with_erc721
 from test_pay_with_erc721 import test_pay_with_erc721
 from test_buy_erc721_for_erc721 import test_buy_erc721_for_erc721
@@ -87,9 +87,9 @@ async def main():
         (test_approve_if_less, "ERC20 Approve If Less - Conditional Approval"),
         
         # ERC721 Core Tests
-        (test_approve, "ERC721 Approve - Payment and Escrow Token Approval"),
-        (test_approve_all, "ERC721 Approve All - Payment and Escrow Operator Approval"),
-        (test_revoke_all, "ERC721 Revoke All - Revoke Operator Approval"),
+        (test_erc721_approve, "ERC721 Approve - Payment and Escrow Token Approval"),
+        (test_erc721_approve_all, "ERC721 Approve All - Payment and Escrow Operator Approval"),
+        (test_erc721_revoke_all, "ERC721 Revoke All - Revoke Operator Approval"),
         
         # ERC721 Transaction Tests
         (test_buy_with_erc721, "ERC721 Buy with ERC721 - Custom Arbiter Purchase"),

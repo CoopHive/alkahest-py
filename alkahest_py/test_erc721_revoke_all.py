@@ -2,7 +2,7 @@ import asyncio
 from alkahest_py import PyTestEnvManager, PyMockERC721
 
 
-async def test_revoke_all():
+async def test_erc721_revoke_all():
     """
     Test ERC721 revoke_all functionality for payment purpose.
     This corresponds to test_revoke_all() in main.rs
@@ -58,17 +58,17 @@ async def test_revoke_all():
         
         print("✅ Payment approval successfully revoked")
         
-        print("✅ test_revoke_all PASSED")
+        print("✅ test_erc721_revoke_all PASSED")
         return True
         
     except Exception as e:
-        print(f"❌ test_revoke_all FAILED: {e}")
+        print(f"❌ test_erc721_revoke_all FAILED: {e}")
         raise
 
 
 async def main():
     try:
-        success = await test_revoke_all()
+        success = await test_erc721_revoke_all()
         return 0 if success else 1
     except Exception as e:
         print(f"Test execution failed: {e}")
