@@ -9,7 +9,20 @@ import sys
 import traceback
 from typing import List, Callable
 
-# Import all test functions
+from test_erc20_escrow_obligation_statement import test_basic_encode_decode as test_erc20_escrow_encode_decode
+from test_erc20_payment_obligation_statement import test_basic_encode_decode as test_erc20_payment_encode_decode
+from test_erc721_payment_obligation_statement import test_basic_encode_decode as test_erc721_payment_encode_decode
+from test_erc1155_payment_obligation_statement import test_basic_encode_decode as test_erc1155_payment_encode_decode
+from test_erc20_approval import test_erc20_approvals
+from test_erc20_approve_if_less import test_approve_if_less
+from test_buy_with_erc20 import test_buy_with_erc20
+from test_pay_with_erc20 import test_pay_with_erc20
+from test_permit_and_buy_with_erc20 import test_permit_and_buy_with_erc20
+from test_permit_and_pay_with_erc20 import test_permit_and_pay_with_erc20
+from test_buy_erc20_for_erc20 import test_buy_erc20_for_erc20
+from test_permit_and_buy_erc20_for_erc20 import test_permit_and_buy_erc20_for_erc20
+from test_pay_erc20_for_erc20 import test_pay_erc20_for_erc20
+from test_permit_and_pay_erc20_for_erc20 import test_permit_and_pay_erc20_for_erc20
 from test_buy_erc721_for_erc20 import test_buy_erc721_for_erc20
 from test_buy_erc1155_for_erc20 import test_buy_erc1155_for_erc20
 from test_buy_bundle_for_erc20 import test_buy_bundle_for_erc20
@@ -25,13 +38,12 @@ from test_permit_and_pay_erc20_for_bundle import test_permit_and_pay_erc20_for_b
 
 
 async def run_test(test_func: Callable, test_name: str) -> bool:
-    """Run a single test function and return True if it passes, False if it fails."""
     try:
-        print(f"\n🧪 Running {test_name}...")
         await test_func()
+        print(f"✅ {test_name.split(' - ')[0]} PASSED")
         return True
     except Exception as e:
-        print(f"❌ {test_name} FAILED:")
+        print(f"❌ {test_name.split(' - ')[0]} FAILED:")
         print(f"   Error: {str(e)}")
         if "--verbose" in sys.argv:
             print(f"   Traceback:")
@@ -46,25 +58,39 @@ async def main():
     
     # Define all test cases
     test_cases = [
-        # Buy flows (Alice creates escrow to buy tokens)
-        (test_buy_erc721_for_erc20, "test_buy_erc721_for_erc20"),
-        (test_buy_erc1155_for_erc20, "test_buy_erc1155_for_erc20"),
-        (test_buy_bundle_for_erc20, "test_buy_bundle_for_erc20"),
+        # Obligation Statement Encode/Decode Tests
+        (test_erc20_escrow_encode_decode, "ERC20 Escrow Obligation Statement - Basic Encode/Decode"),
+        (test_erc20_payment_encode_decode, "ERC20 Payment Obligation Statement - Basic Encode/Decode"),
+        (test_erc721_payment_encode_decode, "ERC721 Payment Obligation Statement - Basic Encode/Decode"),
+        (test_erc1155_payment_encode_decode, "ERC1155 Payment Obligation Statement - Basic Encode/Decode"),
         
-        # Permit + Buy flows (Alice creates escrow with permit)
-        (test_permit_and_buy_erc721_for_erc20, "test_permit_and_buy_erc721_for_erc20"),
-        (test_permit_and_buy_erc1155_for_erc20, "test_permit_and_buy_erc1155_for_erc20"),
-        (test_permit_and_buy_bundle_for_erc20, "test_permit_and_buy_bundle_for_erc20"),
+        # ERC20 Core Tests
+        (test_erc20_approvals, "ERC20 Approvals - Payment and Escrow"),
+        (test_approve_if_less, "ERC20 Approve If Less - Conditional Approval"),
+        (test_buy_with_erc20, "ERC20 Buy with ERC20 - Escrow Creation"),
+        (test_pay_with_erc20, "ERC20 Pay with ERC20 - Direct Payment"),
+        (test_permit_and_pay_with_erc20, "ERC20 Permit and Pay - Signature-based Payment"),
+        (test_buy_erc20_for_erc20, "ERC20 Buy ERC20 for ERC20 - Token Exchange Escrow"),
+        (test_permit_and_buy_erc20_for_erc20, "ERC20 Permit and Buy ERC20 for ERC20 - Signature-based Exchange"),
+        (test_permit_and_buy_with_erc20, "ERC20 Permit and Buy with ERC20 - Signature-based Purchase"),
+        (test_pay_erc20_for_erc20, "ERC20 Pay ERC20 for ERC20 - Order Fulfillment"),
+        (test_permit_and_pay_erc20_for_erc20, "ERC20 Permit and Pay ERC20 for ERC20 - Signature-based Order Fulfillment"),
         
-        # Pay flows (Alice fulfills Bob's escrow)
-        (test_pay_erc20_for_erc721, "test_pay_erc20_for_erc721"),
-        (test_pay_erc20_for_erc1155, "test_pay_erc20_for_erc1155"),
-        (test_pay_erc20_for_bundle, "test_pay_erc20_for_bundle"),
+        # Cross-token Buy flows (Alice creates escrow to buy tokens)
+        (test_buy_erc721_for_erc20, "ERC20 Buy ERC721 for ERC20 - NFT Purchase Order"),
+        (test_permit_and_buy_erc721_for_erc20, "ERC20 Permit and Buy ERC721 for ERC20 - Signature-based NFT Purchase"),
+        (test_buy_erc1155_for_erc20, "ERC20 Buy ERC1155 for ERC20 - Multi-token Purchase Order"),
+        (test_permit_and_buy_erc1155_for_erc20, "ERC20 Permit and Buy ERC1155 for ERC20 - Signature-based Multi-token Purchase"),
+        (test_buy_bundle_for_erc20, "ERC20 Buy Bundle for ERC20 - Token Bundle Purchase Order"),
+        (test_permit_and_buy_bundle_for_erc20, "ERC20 Permit and Buy Bundle for ERC20 - Signature-based Bundle Purchase"),
         
-        # Permit + Pay flows (Alice fulfills Bob's escrow with permit)
-        (test_permit_and_pay_erc20_for_erc721, "test_permit_and_pay_erc20_for_erc721"),
-        (test_permit_and_pay_erc20_for_erc1155, "test_permit_and_pay_erc20_for_erc1155"),
-        (test_permit_and_pay_erc20_for_bundle, "test_permit_and_pay_erc20_for_bundle"),
+        # Cross-token Pay flows (Alice fulfills Bob's escrow)
+        (test_pay_erc20_for_erc721, "ERC20 Pay ERC20 for ERC721 - NFT Order Fulfillment"),
+        (test_permit_and_pay_erc20_for_erc721, "ERC20 Permit and Pay ERC20 for ERC721 - Signature-based NFT Fulfillment"),
+        (test_pay_erc20_for_erc1155, "ERC20 Pay ERC20 for ERC1155 - Multi-token Order Fulfillment"),
+        (test_permit_and_pay_erc20_for_erc1155, "ERC20 Permit and Pay ERC20 for ERC1155 - Signature-based Multi-token Fulfillment"),
+        (test_pay_erc20_for_bundle, "ERC20 Pay ERC20 for Bundle - Bundle Order Fulfillment"),
+        (test_permit_and_pay_erc20_for_bundle, "ERC20 Permit and Pay ERC20 for Bundle - Signature-based Bundle Fulfillment"),
     ]
     
     # Run all tests
@@ -80,7 +106,6 @@ async def main():
             failed += 1
             failed_tests.append(test_name)
     
-    # Print summary
     print("\n" + "=" * 60)
     print("📊 TEST SUMMARY")
     print("=" * 60)
@@ -92,35 +117,10 @@ async def main():
         print(f"\n❌ Failed tests:")
         for test_name in failed_tests:
             print(f"   - {test_name}")
+  
+    if failed == 0:
+        print(f"\n🎉 ALL {passed} TESTS PASSED! ERC20 functionality is working correctly.")
     
-    # Print test descriptions
-    print(f"\n📝 TEST DESCRIPTIONS")
-    print("=" * 60)
-    print("🔵 Buy Flows - User creates escrow to buy tokens:")
-    print("   • test_buy_erc721_for_erc20 - Buy NFT with ERC20 tokens")
-    print("   • test_buy_erc1155_for_erc20 - Buy ERC1155 tokens with ERC20")
-    print("   • test_buy_bundle_for_erc20 - Buy token bundle with ERC20")
-    
-    print("\n🟡 Permit + Buy Flows - User creates escrow with permit:")
-    print("   • test_permit_and_buy_erc721_for_erc20 - Buy NFT with permit")
-    print("   • test_permit_and_buy_erc1155_for_erc20 - Buy ERC1155 with permit")
-    print("   • test_permit_and_buy_bundle_for_erc20 - Buy bundle with permit")
-    
-    print("\n🟢 Pay Flows - User fulfills existing escrow:")
-    print("   • test_pay_erc20_for_erc721 - Pay ERC20 to get NFT from escrow")
-    print("   • test_pay_erc20_for_erc1155 - Pay ERC20 to get ERC1155 from escrow")
-    print("   • test_pay_erc20_for_bundle - Pay ERC20 to get bundle from escrow")
-    
-    print("\n🟣 Permit + Pay Flows - User fulfills escrow with permit:")
-    print("   • test_permit_and_pay_erc20_for_erc721 - Pay with permit for NFT")
-    print("   • test_permit_and_pay_erc20_for_erc1155 - Pay with permit for ERC1155")
-    print("   • test_permit_and_pay_erc20_for_bundle - Pay with permit for bundle")
-    
-    print(f"\n💡 Note: Some tests use PyMockERC721 and PyMockERC1155 which are")
-    print(f"   currently not exported from the Rust module. Once those are")
-    print(f"   available, the tests can be enhanced with full token verification.")
-    
-    # Exit with appropriate code
     sys.exit(0 if failed == 0 else 1)
 
 

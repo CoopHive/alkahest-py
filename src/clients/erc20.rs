@@ -568,7 +568,27 @@ impl PyERC20PaymentObligationStatement {
         Ok(statement_data.abi_encode())
     }
 
+    #[staticmethod]
+    pub fn decode(statement_data: Vec<u8>) -> eyre::Result<PyERC20PaymentObligationStatement> {
+        use alloy::primitives::Bytes;
+        let bytes = Bytes::from(statement_data);
+        let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_payment_statement(&bytes)?;
+        Ok(decoded.into())
+    }
+
     pub fn encode_self(&self) -> eyre::Result<Vec<u8>> {
         PyERC20PaymentObligationStatement::encode(self)
+    }
+}
+
+impl From<alkahest_rs::contracts::ERC20PaymentObligation::StatementData>
+    for PyERC20PaymentObligationStatement
+{
+    fn from(data: alkahest_rs::contracts::ERC20PaymentObligation::StatementData) -> Self {
+        Self {
+            token: format!("{:?}", data.token),
+            amount: data.amount.try_into().unwrap_or(0), // Handle potential overflow
+            payee: format!("{:?}", data.payee),
+        }
     }
 }

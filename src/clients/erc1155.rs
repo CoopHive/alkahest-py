@@ -1,6 +1,6 @@
 use alkahest_rs::clients::erc1155;
 use alloy::primitives::Address;
-use pyo3::{pyclass, pymethods, PyResult};
+use pyo3::{pyclass, pymethods};
 
 use crate::{
     get_attested_event,
@@ -296,26 +296,28 @@ impl PyERC1155EscrowObligationStatement {
         )
     }
 
-    pub fn encode(&self) -> PyResult<String> {
+    #[staticmethod]
+    pub fn decode(statement_data: Vec<u8>) -> eyre::Result<PyERC1155EscrowObligationStatement> {
+        use alloy::primitives::Bytes;
+        let bytes = Bytes::from(statement_data);
+        let decoded =
+            alkahest_rs::clients::erc1155::Erc1155Client::decode_escrow_statement(&bytes)?;
+        Ok(decoded.into())
+    }
+
+    #[staticmethod]
+    pub fn encode(obligation: &PyERC1155EscrowObligationStatement) -> eyre::Result<Vec<u8>> {
         use alkahest_rs::contracts::ERC1155EscrowObligation;
         use alloy::{
             primitives::{Address, Bytes, U256},
             sol_types::SolValue,
         };
 
-        let token: Address = self.token.parse().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid token address: {}", e))
-        })?;
-        let token_id: U256 = self.token_id.parse().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid token ID: {}", e))
-        })?;
-        let amount: U256 = self.amount.parse().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid amount: {}", e))
-        })?;
-        let arbiter: Address = self.arbiter.parse().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid arbiter address: {}", e))
-        })?;
-        let demand = Bytes::from(self.demand.clone());
+        let token: Address = obligation.token.parse()?;
+        let token_id: U256 = obligation.token_id.parse()?;
+        let amount: U256 = obligation.amount.parse()?;
+        let arbiter: Address = obligation.arbiter.parse()?;
+        let demand = Bytes::from(obligation.demand.clone());
 
         let statement_data = ERC1155EscrowObligation::StatementData {
             token,
@@ -325,12 +327,25 @@ impl PyERC1155EscrowObligationStatement {
             demand,
         };
 
-        let encoded = statement_data.abi_encode();
-        Ok(format!("0x{}", alloy::hex::encode(encoded)))
+        Ok(statement_data.abi_encode())
     }
 
-    pub fn encode_self(&self) -> PyResult<String> {
-        self.encode()
+    pub fn encode_self(&self) -> eyre::Result<Vec<u8>> {
+        PyERC1155EscrowObligationStatement::encode(self)
+    }
+}
+
+impl From<alkahest_rs::contracts::ERC1155EscrowObligation::StatementData>
+    for PyERC1155EscrowObligationStatement
+{
+    fn from(data: alkahest_rs::contracts::ERC1155EscrowObligation::StatementData) -> Self {
+        Self {
+            token: format!("{:?}", data.token),
+            token_id: data.tokenId.to_string(),
+            amount: data.amount.to_string(),
+            arbiter: format!("{:?}", data.arbiter),
+            demand: data.demand.to_vec(),
+        }
     }
 }
 
@@ -366,25 +381,27 @@ impl PyERC1155PaymentObligationStatement {
         )
     }
 
-    pub fn encode(&self) -> PyResult<String> {
+    #[staticmethod]
+    pub fn decode(statement_data: Vec<u8>) -> eyre::Result<PyERC1155PaymentObligationStatement> {
+        use alloy::primitives::Bytes;
+        let bytes = Bytes::from(statement_data);
+        let decoded =
+            alkahest_rs::clients::erc1155::Erc1155Client::decode_payment_statement(&bytes)?;
+        Ok(decoded.into())
+    }
+
+    #[staticmethod]
+    pub fn encode(obligation: &PyERC1155PaymentObligationStatement) -> eyre::Result<Vec<u8>> {
         use alkahest_rs::contracts::ERC1155PaymentObligation;
         use alloy::{
             primitives::{Address, U256},
             sol_types::SolValue,
         };
 
-        let token: Address = self.token.parse().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid token address: {}", e))
-        })?;
-        let token_id: U256 = self.token_id.parse().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid token ID: {}", e))
-        })?;
-        let amount: U256 = self.amount.parse().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid amount: {}", e))
-        })?;
-        let payee: Address = self.payee.parse().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid payee address: {}", e))
-        })?;
+        let token: Address = obligation.token.parse()?;
+        let token_id: U256 = obligation.token_id.parse()?;
+        let amount: U256 = obligation.amount.parse()?;
+        let payee: Address = obligation.payee.parse()?;
 
         let statement_data = ERC1155PaymentObligation::StatementData {
             token,
@@ -393,11 +410,23 @@ impl PyERC1155PaymentObligationStatement {
             payee,
         };
 
-        let encoded = statement_data.abi_encode();
-        Ok(format!("0x{}", alloy::hex::encode(encoded)))
+        Ok(statement_data.abi_encode())
     }
 
-    pub fn encode_self(&self) -> PyResult<String> {
-        self.encode()
+    pub fn encode_self(&self) -> eyre::Result<Vec<u8>> {
+        PyERC1155PaymentObligationStatement::encode(self)
+    }
+}
+
+impl From<alkahest_rs::contracts::ERC1155PaymentObligation::StatementData>
+    for PyERC1155PaymentObligationStatement
+{
+    fn from(data: alkahest_rs::contracts::ERC1155PaymentObligation::StatementData) -> Self {
+        Self {
+            token: format!("{:?}", data.token),
+            token_id: data.tokenId.to_string(),
+            amount: data.amount.to_string(),
+            payee: format!("{:?}", data.payee),
+        }
     }
 }
