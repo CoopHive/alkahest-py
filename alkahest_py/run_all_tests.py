@@ -37,6 +37,20 @@ from test_pay_erc20_for_erc1155 import test_pay_erc20_for_erc1155
 from test_permit_and_pay_erc20_for_erc1155 import test_permit_and_pay_erc20_for_erc1155
 from test_pay_erc20_for_bundle import test_pay_erc20_for_bundle
 from test_permit_and_pay_erc20_for_bundle import test_permit_and_pay_erc20_for_bundle
+from test_approve import test_approve
+from test_approve_all import test_approve_all
+from test_revoke_all import test_revoke_all
+from test_buy_with_erc721 import test_buy_with_erc721
+from test_pay_with_erc721 import test_pay_with_erc721
+from test_buy_erc721_for_erc721 import test_buy_erc721_for_erc721
+from test_pay_erc721_for_erc721 import test_pay_erc721_for_erc721
+from test_collect_expired import test_collect_expired
+from test_buy_erc20_with_erc721 import test_buy_erc20_with_erc721
+from test_buy_erc1155_with_erc721 import test_buy_erc1155_with_erc721
+from test_buy_bundle_with_erc721 import test_buy_bundle_with_erc721
+from test_pay_erc721_for_erc20 import test_pay_erc721_for_erc20
+from test_pay_erc721_for_erc1155 import test_pay_erc721_for_erc1155
+from test_pay_erc721_for_bundle import test_pay_erc721_for_bundle
 
 
 async def run_test(test_func: Callable, test_name: str) -> bool:
@@ -71,6 +85,26 @@ async def main():
         # ERC20 Core Tests
         (test_erc20_approvals, "ERC20 Approvals - Payment and Escrow"),
         (test_approve_if_less, "ERC20 Approve If Less - Conditional Approval"),
+        
+        # ERC721 Core Tests
+        (test_approve, "ERC721 Approve - Payment and Escrow Token Approval"),
+        (test_approve_all, "ERC721 Approve All - Payment and Escrow Operator Approval"),
+        (test_revoke_all, "ERC721 Revoke All - Revoke Operator Approval"),
+        
+        # ERC721 Transaction Tests
+        (test_buy_with_erc721, "ERC721 Buy with ERC721 - Custom Arbiter Purchase"),
+        (test_pay_with_erc721, "ERC721 Pay with ERC721 - Direct NFT Payment"),
+        (test_buy_erc721_for_erc721, "ERC721 Buy ERC721 for ERC721 - NFT to NFT Exchange Escrow"),
+        (test_pay_erc721_for_erc721, "ERC721 Pay ERC721 for ERC721 - NFT to NFT Exchange Fulfillment"),
+        (test_collect_expired, "ERC721 Collect Expired - Reclaim Expired Escrow"),
+        (test_buy_erc20_with_erc721, "ERC721 Buy ERC20 with ERC721 - Use NFT to Buy Tokens"),
+        (test_buy_erc1155_with_erc721, "ERC721 Buy ERC1155 with ERC721 - Use NFT to Buy Multi-tokens"),
+        (test_buy_bundle_with_erc721, "ERC721 Buy Bundle with ERC721 - Use NFT to Buy Token Bundle"),
+        (test_pay_erc721_for_erc20, "ERC721 Pay ERC721 for ERC20 - Use NFT to Fulfill Token Escrow"),
+        (test_pay_erc721_for_erc1155, "ERC721 Pay ERC721 for ERC1155 - Use NFT to Fulfill Multi-token Escrow"),
+        (test_pay_erc721_for_bundle, "ERC721 Pay ERC721 for Bundle - Use NFT to Fulfill Bundle Escrow"),
+        
+        # Transaction Flow Tests
         (test_buy_with_erc20, "ERC20 Buy with ERC20 - Escrow Creation"),
         (test_pay_with_erc20, "ERC20 Pay with ERC20 - Direct Payment"),
         (test_permit_and_pay_with_erc20, "ERC20 Permit and Pay - Signature-based Payment"),
@@ -123,7 +157,7 @@ async def main():
             print(f"   - {test_name}")
   
     if failed == 0:
-        print(f"\n🎉 ALL {passed} TESTS PASSED! ERC20 functionality is working correctly.")
+        print(f"\n🎉 ALL {passed} TESTS PASSED! Alkahest-py functionality is working correctly.")
     
     sys.exit(0 if failed == 0 else 1)
 

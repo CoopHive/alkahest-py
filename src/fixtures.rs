@@ -288,6 +288,26 @@ impl PyMockERC721 {
             Ok(format!("{:?}", approved))
         })
     }
+
+    pub fn is_approved_for_all(&self, account: String, operator: String) -> PyResult<bool> {
+        let account_addr = account
+            .parse::<Address>()
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+        let operator_addr = operator
+            .parse::<Address>()
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+        self.runtime.block_on(async {
+            let approved = self
+                .inner
+                .isApprovedForAll(account_addr, operator_addr)
+                .call()
+                .await
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+
+            Ok(approved)
+        })
+    }
 }
 
 #[pyclass]

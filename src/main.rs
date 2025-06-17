@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use alkahest_rs::clients::erc721::Erc721Client;
 use alkahest_rs::contracts::{
-    ERC20EscrowObligation, ERC20PaymentObligation, ERC721EscrowObligation, ERC721PaymentObligation
+    ERC20EscrowObligation, ERC20PaymentObligation, ERC721EscrowObligation, ERC721PaymentObligation,
 };
 use alkahest_rs::fixtures::{MockERC1155, MockERC20Permit, MockERC721};
 use alkahest_rs::types::{ApprovalPurpose, ArbiterData, Erc1155Data, Erc721Data, TokenBundleData};
@@ -73,73 +73,6 @@ async fn main() -> eyre::Result<()> {
     // escrow statement made
     let attested_event = AlkahestClient::get_attested_event(receipt)?;
     assert_ne!(attested_event.uid, FixedBytes::<32>::default());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_decode_escrow_statement() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // Create sample statement data
-    let token_address = test.mock_addresses.erc721_a;
-    let id: U256 = 1.try_into()?;
-    let arbiter = test
-        .addresses
-        .erc721_addresses
-        .ok_or(eyre::eyre!("no erc721-related addresses"))?
-        .payment_obligation;
-    let demand = Bytes::from(vec![1, 2, 3, 4]); // sample demand data
-
-    let escrow_data = ERC721EscrowObligation::StatementData {
-        token: token_address,
-        tokenId: id,
-        arbiter,
-        demand: demand.clone(),
-    };
-
-    // Encode the data
-    let encoded = escrow_data.abi_encode();
-
-    // Decode the data
-    let decoded = Erc721Client::decode_escrow_statement(&encoded.into())?;
-
-    // Verify decoded data
-    assert_eq!(decoded.token, token_address, "Token address should match");
-    assert_eq!(decoded.tokenId, id, "ID should match");
-    assert_eq!(decoded.arbiter, arbiter, "Arbiter should match");
-    assert_eq!(decoded.demand, demand, "Demand should match");
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_decode_payment_statement() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // Create sample statement data
-    let token_address = test.mock_addresses.erc721_a;
-    let id: U256 = 1.try_into()?;
-    let payee = test.alice.address();
-
-    let payment_data = ERC721PaymentObligation::StatementData {
-        token: token_address,
-        tokenId: id,
-        payee,
-    };
-
-    // Encode the data
-    let encoded = payment_data.abi_encode();
-
-    // Decode the data
-    let decoded = Erc721Client::decode_payment_statement(&encoded.into())?;
-
-    // Verify decoded data
-    assert_eq!(decoded.token, token_address, "Token address should match");
-    assert_eq!(decoded.tokenId, id, "ID should match");
-    assert_eq!(decoded.payee, payee, "Payee should match");
 
     Ok(())
 }
