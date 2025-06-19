@@ -25,7 +25,7 @@ use crate::{
         erc1155::{PyERC1155EscrowObligationStatement, PyERC1155PaymentObligationStatement},
         erc20::{PyERC20EscrowObligationStatement, PyERC20PaymentObligationStatement},
         erc721::{PyERC721EscrowObligationStatement, PyERC721PaymentObligationStatement},
-        string_obligation::{PyDecodedStringStatement, PyStringObligationStatementData},
+        string_obligation::PyStringObligationStatementData,
     },
     contract::{
         PyAttestation, PyAttestationRequest, PyAttestationRequestData, PyAttested,
@@ -192,7 +192,7 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyERC1155EscrowObligationStatement>()?;
     m.add_class::<PyERC1155PaymentObligationStatement>()?;
     m.add_class::<PyStringObligationStatementData>()?;
-    m.add_class::<PyDecodedStringStatement>()?;
+    // Note: PyDecodedAttestation is now IntoPyObject, not a class, so it converts to dict automatically
 
     // IEAS (Ethereum Attestation Service) Types from contract.rs
     m.add_class::<PyAttestation>()?;

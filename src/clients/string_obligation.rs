@@ -2,6 +2,8 @@ use alkahest_rs::clients::string_obligation;
 use alloy::primitives::FixedBytes;
 use pyo3::{pyclass, pymethods};
 
+use crate::contract::PyDecodedAttestation;
+
 #[pyclass]
 #[derive(Clone)]
 pub struct StringObligationClient {
@@ -20,7 +22,10 @@ impl StringObligationClient {
 
 #[pymethods]
 impl StringObligationClient {
-    pub async fn get_statement(&self, uid: String) -> eyre::Result<PyDecodedStringStatement> {
+    pub async fn get_statement(
+        &self,
+        uid: String,
+    ) -> eyre::Result<PyDecodedAttestation<PyStringObligationStatementData>> {
         self.runtime.block_on(async {
             let uid: FixedBytes<32> = uid.parse()?;
             let statement = self.inner.get_statement(uid).await?;
@@ -131,68 +136,10 @@ impl PyStringObligationStatementData {
     }
 }
 
-#[pyclass]
-#[derive(Clone)]
-pub struct PyDecodedStringStatement {
-    #[pyo3(get)]
-    pub uid: String,
-    #[pyo3(get)]
-    pub attester: String,
-    #[pyo3(get)]
-    pub recipient: String,
-    #[pyo3(get)]
-    pub ref_uid: String,
-    #[pyo3(get)]
-    pub time: u64,
-    #[pyo3(get)]
-    pub expiration_time: u64,
-    #[pyo3(get)]
-    pub revocable: bool,
-    #[pyo3(get)]
-    pub data: PyStringObligationStatementData,
-}
-
-#[pymethods]
-impl PyDecodedStringStatement {
-    fn __repr__(&self) -> String {
-        format!(
-            "PyDecodedStringStatement(uid='{}', attester='{}', recipient='{}', ref_uid='{}', time={}, expiration_time={}, revocable={}, data={:?})",
-            self.uid, self.attester, self.recipient, self.ref_uid, self.time, self.expiration_time, self.revocable, self.data
-        )
-    }
-}
-
 impl From<alkahest_rs::contracts::StringObligation::StatementData>
     for PyStringObligationStatementData
 {
     fn from(data: alkahest_rs::contracts::StringObligation::StatementData) -> Self {
         Self { item: data.item }
-    }
-}
-
-impl
-    From<
-        alkahest_rs::types::DecodedAttestation<
-            alkahest_rs::contracts::StringObligation::StatementData,
-        >,
-    > for PyDecodedStringStatement
-{
-    fn from(
-        decoded: alkahest_rs::types::DecodedAttestation<
-            alkahest_rs::contracts::StringObligation::StatementData,
-        >,
-    ) -> Self {
-        Self {
-            uid: decoded.attestation.uid.to_string(),
-            attester: format!("{:?}", decoded.attestation.attester),
-            recipient: format!("{:?}", decoded.attestation.recipient),
-            ref_uid: decoded.attestation.refUID.to_string(),
-            time: decoded.attestation.time,
-            expiration_time: decoded.attestation.expirationTime,
-            revocable: decoded.attestation.revocable,
-            data: PyStringObligationStatementData {
-                item: decoded.data.item,
-            },
-        }
     }
 }

@@ -71,6 +71,9 @@ from test_erc1155_collect_expired import test_erc1155_collect_expired
 # IEAS Types Test
 from test_ieas_types import test_ieas_types
 
+# String Obligation Test
+from test_string_obligation import test_string_obligation
+
 
 async def run_test(test_func: Callable, test_name: str) -> bool:
     try:
@@ -95,6 +98,9 @@ async def main():
     test_cases = [
         # IEAS Types Test
         (test_ieas_types, "IEAS Types - Python Bindings Test"),
+        
+        # String Obligation Test
+        (test_string_obligation, "String Obligation - PyDecodedAttestation<T> Test"),
         
         # Obligation Statement Encode/Decode Tests
         (test_erc20_escrow_encode_decode, "ERC20 Escrow Obligation Statement - Basic Encode/Decode"),

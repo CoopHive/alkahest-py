@@ -1,5 +1,5 @@
 use alkahest_rs::contracts::IEAS;
-use pyo3::{pyclass, pymethods};
+use pyo3::{pyclass, pymethods, IntoPyObject};
 
 // Python bindings for IEAS (Ethereum Attestation Service) types
 
@@ -440,6 +440,33 @@ impl From<alkahest_rs::contracts::IEAS::Timestamped> for PyTimestamped {
         Self {
             data: timestamped.data.to_vec(),
             timestamp: timestamped.timestamp,
+        }
+    }
+}
+
+#[derive(IntoPyObject)]
+pub struct PyDecodedAttestation<T> {
+    pub attestation: PyAttestation,
+    pub data: T,
+}
+
+impl
+    From<
+        alkahest_rs::types::DecodedAttestation<
+            alkahest_rs::contracts::StringObligation::StatementData,
+        >,
+    > for PyDecodedAttestation<crate::clients::string_obligation::PyStringObligationStatementData>
+{
+    fn from(
+        decoded: alkahest_rs::types::DecodedAttestation<
+            alkahest_rs::contracts::StringObligation::StatementData,
+        >,
+    ) -> Self {
+        Self {
+            attestation: PyAttestation::from(decoded.attestation),
+            data: crate::clients::string_obligation::PyStringObligationStatementData {
+                item: decoded.data.item,
+            },
         }
     }
 }

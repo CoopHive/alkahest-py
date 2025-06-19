@@ -17,7 +17,6 @@ from .alkahest_py import (
     PyERC1155PaymentObligationStatement,
     StringObligationClient,
     PyStringObligationStatementData,
-    PyDecodedStringStatement,
     # IEAS Types
     PyAttestation,
     PyAttestationRequest,
@@ -45,6 +44,7 @@ __all__ = [
     "StringObligationClient",
     "PyStringObligationStatementData",
     "PyDecodedStringStatement",
+    "PyDecodedAttestation",
     # IEAS Types
     "PyAttestation",
     "PyAttestationRequest",
