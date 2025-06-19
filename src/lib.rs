@@ -9,7 +9,8 @@ use alloy::{
 };
 use clients::{
     attestation::AttestationClient, erc1155::Erc1155Client, erc20::Erc20Client,
-    erc721::Erc721Client, token_bundle::TokenBundleClient,
+    erc721::Erc721Client, string_obligation::StringObligationClient,
+    token_bundle::TokenBundleClient,
 };
 use pyo3::{
     pyclass, pymethods, pymodule,
@@ -24,6 +25,7 @@ use crate::{
         erc1155::{PyERC1155EscrowObligationStatement, PyERC1155PaymentObligationStatement},
         erc20::{PyERC20EscrowObligationStatement, PyERC20PaymentObligationStatement},
         erc721::{PyERC721EscrowObligationStatement, PyERC721PaymentObligationStatement},
+        string_obligation::{PyDecodedStringStatement, PyStringObligationStatementData},
     },
     fixtures::{PyMockERC1155, PyMockERC20, PyMockERC721},
     utils::{PyTestEnvManager, PyWalletProvider},
@@ -44,6 +46,7 @@ pub struct PyAlkahestClient {
     erc1155: Erc1155Client,
     token_bundle: TokenBundleClient,
     attestation: AttestationClient,
+    string_obligation: StringObligationClient,
     runtime: std::sync::Arc<tokio::runtime::Runtime>,
 }
 
@@ -56,6 +59,10 @@ impl PyAlkahestClient {
             erc1155: Erc1155Client::new(client.erc1155.clone(), runtime.clone()),
             token_bundle: TokenBundleClient::new(client.token_bundle.clone(), runtime.clone()),
             attestation: AttestationClient::new(client.attestation.clone(), runtime.clone()),
+            string_obligation: StringObligationClient::new(
+                client.string_obligation.clone(),
+                runtime.clone(),
+            ),
             inner: client,
             runtime: runtime,
         }
@@ -82,7 +89,7 @@ impl PyAlkahestClient {
 
         // Since new is async, we must block_on it
         let client = runtime.clone().block_on(async {
-            alkahest_rs::AlkahestClient::new(signer, rpc_url, address_config).await
+            alkahest_rs::AlkahestClient::new(signer.clone(), rpc_url.clone(), address_config).await
         })?;
 
         let client = Self {
@@ -92,6 +99,10 @@ impl PyAlkahestClient {
             erc1155: Erc1155Client::new(client.erc1155, runtime.clone()),
             token_bundle: TokenBundleClient::new(client.token_bundle, runtime.clone()),
             attestation: AttestationClient::new(client.attestation, runtime.clone()),
+            string_obligation: StringObligationClient::new(
+                client.string_obligation,
+                runtime.clone(),
+            ),
             runtime: runtime,
         };
 
@@ -121,6 +132,11 @@ impl PyAlkahestClient {
     #[getter]
     pub fn attestation(&self) -> AttestationClient {
         self.attestation.clone()
+    }
+
+    #[getter]
+    pub fn string_obligation(&self) -> StringObligationClient {
+        self.string_obligation.clone()
     }
 
     #[pyo3(signature = (contract_address, buy_attestation, from_block=None))]
@@ -159,6 +175,7 @@ pub fn get_attested_event(receipt: TransactionReceipt) -> eyre::Result<Log<Attes
 #[pymodule]
 fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAlkahestClient>()?;
+    m.add_class::<StringObligationClient>()?;
     m.add_class::<PyTestEnvManager>()?;
     m.add_class::<PyWalletProvider>()?;
     m.add_class::<PyMockERC20>()?;
@@ -170,5 +187,7 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyERC721PaymentObligationStatement>()?;
     m.add_class::<PyERC1155EscrowObligationStatement>()?;
     m.add_class::<PyERC1155PaymentObligationStatement>()?;
+    m.add_class::<PyStringObligationStatementData>()?;
+    m.add_class::<PyDecodedStringStatement>()?;
     Ok(())
 }

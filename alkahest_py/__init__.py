@@ -15,6 +15,9 @@ from .alkahest_py import (
     PyERC721PaymentObligationStatement,
     PyERC1155EscrowObligationStatement,
     PyERC1155PaymentObligationStatement,
+    StringObligationClient,
+    PyStringObligationStatementData,
+    PyDecodedStringStatement,
 )
 
 __all__ = [
@@ -30,4 +33,7 @@ __all__ = [
     "PyERC721PaymentObligationStatement",
     "PyERC1155EscrowObligationStatement",
     "PyERC1155PaymentObligationStatement",
+    "StringObligationClient",
+    "PyStringObligationStatementData",
+    "PyDecodedStringStatement",
 ]
