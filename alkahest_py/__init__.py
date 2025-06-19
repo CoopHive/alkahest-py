@@ -18,6 +18,15 @@ from .alkahest_py import (
     StringObligationClient,
     PyStringObligationStatementData,
     PyDecodedStringStatement,
+    # IEAS Types
+    PyAttestation,
+    PyAttestationRequest,
+    PyAttestationRequestData,
+    PyAttested,
+    PyRevocationRequest,
+    PyRevocationRequestData,
+    PyRevoked,
+    PyTimestamped,
 )
 
 __all__ = [
@@ -36,4 +45,13 @@ __all__ = [
     "StringObligationClient",
     "PyStringObligationStatementData",
     "PyDecodedStringStatement",
+    # IEAS Types
+    "PyAttestation",
+    "PyAttestationRequest",
+    "PyAttestationRequestData",
+    "PyAttested",
+    "PyRevocationRequest",
+    "PyRevocationRequestData",
+    "PyRevoked",
+    "PyTimestamped",
 ]

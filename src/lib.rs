@@ -27,6 +27,10 @@ use crate::{
         erc721::{PyERC721EscrowObligationStatement, PyERC721PaymentObligationStatement},
         string_obligation::{PyDecodedStringStatement, PyStringObligationStatementData},
     },
+    contract::{
+        PyAttestation, PyAttestationRequest, PyAttestationRequestData, PyAttested,
+        PyRevocationRequest, PyRevocationRequestData, PyRevoked, PyTimestamped,
+    },
     fixtures::{PyMockERC1155, PyMockERC20, PyMockERC721},
     utils::{PyTestEnvManager, PyWalletProvider},
 };
@@ -189,5 +193,15 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyERC1155PaymentObligationStatement>()?;
     m.add_class::<PyStringObligationStatementData>()?;
     m.add_class::<PyDecodedStringStatement>()?;
+
+    // IEAS (Ethereum Attestation Service) Types from contract.rs
+    m.add_class::<PyAttestation>()?;
+    m.add_class::<PyAttestationRequest>()?;
+    m.add_class::<PyAttestationRequestData>()?;
+    m.add_class::<PyAttested>()?;
+    m.add_class::<PyRevocationRequest>()?;
+    m.add_class::<PyRevocationRequestData>()?;
+    m.add_class::<PyRevoked>()?;
+    m.add_class::<PyTimestamped>()?;
     Ok(())
 }
