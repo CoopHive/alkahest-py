@@ -9,7 +9,7 @@ use alloy::{
 };
 use clients::{
     attestation::AttestationClient, erc1155::Erc1155Client, erc20::Erc20Client,
-    erc721::Erc721Client, string_obligation::StringObligationClient,
+    erc721::Erc721Client, oracle::OracleClient, string_obligation::StringObligationClient,
     token_bundle::TokenBundleClient,
 };
 use pyo3::{
@@ -25,6 +25,10 @@ use crate::{
         erc1155::{PyERC1155EscrowObligationStatement, PyERC1155PaymentObligationStatement},
         erc20::{PyERC20EscrowObligationStatement, PyERC20PaymentObligationStatement},
         erc721::{PyERC721EscrowObligationStatement, PyERC721PaymentObligationStatement},
+        oracle::{
+            PyArbitrateOptions, PyArbitrationResult, PyAttestationFilter, PyDecision,
+            PyFulfillmentParams, PyOracleAddresses, PyOracleAttestation, PySubscriptionResult,
+        },
         string_obligation::PyStringObligationStatementData,
     },
     contract::{
@@ -32,6 +36,7 @@ use crate::{
         PyRevocationRequest, PyRevocationRequestData, PyRevoked, PyTimestamped,
     },
     fixtures::{PyMockERC1155, PyMockERC20, PyMockERC721},
+    types::PyErc20Data,
     utils::{PyTestEnvManager, PyWalletProvider},
 };
 
@@ -51,6 +56,7 @@ pub struct PyAlkahestClient {
     token_bundle: TokenBundleClient,
     attestation: AttestationClient,
     string_obligation: StringObligationClient,
+    oracle: OracleClient,
     runtime: std::sync::Arc<tokio::runtime::Runtime>,
 }
 
@@ -67,6 +73,7 @@ impl PyAlkahestClient {
                 client.string_obligation.clone(),
                 runtime.clone(),
             ),
+            oracle: OracleClient::new(client.oracle.clone(), runtime.clone()),
             inner: client,
             runtime: runtime,
         }
@@ -107,6 +114,7 @@ impl PyAlkahestClient {
                 client.string_obligation,
                 runtime.clone(),
             ),
+            oracle: OracleClient::new(client.oracle, runtime.clone()),
             runtime: runtime,
         };
 
@@ -141,6 +149,11 @@ impl PyAlkahestClient {
     #[getter]
     pub fn string_obligation(&self) -> StringObligationClient {
         self.string_obligation.clone()
+    }
+
+    #[getter]
+    pub fn oracle(&self) -> OracleClient {
+        self.oracle.clone()
     }
 
     #[pyo3(signature = (contract_address, buy_attestation, from_block=None))]
@@ -180,6 +193,15 @@ pub fn get_attested_event(receipt: TransactionReceipt) -> eyre::Result<Log<Attes
 fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAlkahestClient>()?;
     m.add_class::<StringObligationClient>()?;
+    m.add_class::<OracleClient>()?;
+    m.add_class::<PyOracleAddresses>()?;
+    m.add_class::<PyAttestationFilter>()?;
+    m.add_class::<PyOracleAttestation>()?;
+    m.add_class::<PyDecision>()?;
+    m.add_class::<PyFulfillmentParams>()?;
+    m.add_class::<PyArbitrateOptions>()?;
+    m.add_class::<PyArbitrationResult>()?;
+    m.add_class::<PySubscriptionResult>()?;
     m.add_class::<PyTestEnvManager>()?;
     m.add_class::<PyWalletProvider>()?;
     m.add_class::<PyMockERC20>()?;
@@ -192,6 +214,7 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyERC1155EscrowObligationStatement>()?;
     m.add_class::<PyERC1155PaymentObligationStatement>()?;
     m.add_class::<PyStringObligationStatementData>()?;
+    m.add_class::<PyErc20Data>()?;
     // Note: PyDecodedAttestation is now IntoPyObject, not a class, so it converts to dict automatically
 
     // IEAS (Ethereum Attestation Service) Types from contract.rs

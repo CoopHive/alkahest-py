@@ -1,1110 +1,539 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use alkahest_rs::clients::erc721::Erc721Client;
-use alkahest_rs::contracts::{
-    ERC1155PaymentObligation, ERC20EscrowObligation, ERC20PaymentObligation,
-    ERC721EscrowObligation, ERC721PaymentObligation,
+use alkahest_rs::{
+    clients::oracle::{
+        ArbitrateOptions, AttestationFilter, AttestationFilterWithoutRefUid, EscrowParams,
+        FulfillmentParams, FulfillmentParamsWithoutRefUid,
+    },
+    contracts::StringObligation,
+    fixtures::MockERC20Permit,
+    types::{ArbiterData, Erc20Data},
+    utils::TestContext,
+    AlkahestClient,
 };
-use alkahest_rs::fixtures::{MockERC1155, MockERC20Permit, MockERC721};
-use alkahest_rs::types::{ApprovalPurpose, ArbiterData, Erc1155Data, Erc721Data, TokenBundleData};
-use alkahest_rs::utils::setup_test_environment;
-use alkahest_rs::AlkahestClient;
-use alkahest_rs::{clients::erc20::Erc20Client, types::Erc20Data};
-use alloy::primitives::FixedBytes;
-use alloy::providers::ext::AnvilApi;
 use alloy::{
-    primitives::{Bytes, U256},
+    eips::BlockNumberOrTag,
+    primitives::{bytes, Address, Bytes, FixedBytes},
+    providers::Provider as _,
+    rpc::types::{FilterBlockOption, ValueOrArray},
+    sol,
     sol_types::SolValue,
 };
-#[tokio::main]
-async fn main() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-    // Set up tokens - alice gets ERC20, bob gets ERC721
+use {
+    alkahest_rs::clients::arbiters::{
+        ArbitersClient, IntrinsicsArbiter2, MultiArbiter, RecipientArbiterNonComposing,
+        SpecificAttestationArbiter, TrustedOracleArbiter, TrustedPartyArbiter, UidArbiterComposing,
+    },
+    alkahest_rs::clients::oracle::OracleClient,
+    alkahest_rs::contracts,
+    alkahest_rs::utils::setup_test_environment,
+};
+
+async fn setup_escrow(
+    test: &TestContext,
+) -> eyre::Result<(Erc20Data, ArbiterData, FixedBytes<32>)> {
     let mock_erc20 = MockERC20Permit::new(test.mock_addresses.erc20_a, &test.god_provider);
     mock_erc20
-        .transfer(test.alice.address(), 100.try_into()?)
+        .transfer(test.alice.address(), 100u64.try_into()?)
         .send()
         .await?
         .get_receipt()
         .await?;
 
-    // Create a purchase offer
-    let bid = Erc20Data {
+    let price = Erc20Data {
         address: test.mock_addresses.erc20_a,
-        value: 50.try_into()?,
+        value: 100u64.try_into()?,
     };
 
-    let ask = Erc721Data {
-        address: test.mock_addresses.erc721_a,
-        id: 1.try_into()?,
-    };
-
-    // alice approves tokens for escrow
-    test.alice_client
-        .erc20
-        .approve(&bid, ApprovalPurpose::Escrow)
-        .await?;
-
-    // alice creates purchase offer
-    let receipt = test
-        .alice_client
-        .erc20
-        .buy_erc721_for_erc20(&bid, &ask, 0)
-        .await?;
-
-    // Verify escrow happened
-    let alice_balance = mock_erc20.balanceOf(test.alice.address()).call().await?;
-
-    let escrow_balance = mock_erc20
-        .balanceOf(
-            test.addresses
-                .erc20_addresses
-                .ok_or(eyre::eyre!("no erc20-related addresses"))?
-                .escrow_obligation,
-        )
-        .call()
-        .await?;
-
-    // tokens in escrow
-    assert_eq!(alice_balance, 50.try_into()?);
-    assert_eq!(escrow_balance, 50.try_into()?);
-
-    // escrow statement made
-    let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    assert_ne!(attested_event.uid, FixedBytes::<32>::default());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_erc1155_approve_all() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // Test approve_all for payment
-    let _receipt = test
-        .alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Payment)
-        .await?;
-
-    // Verify approval for payment obligation
-    let payment_approved = mock_erc1155_a
-        .isApprovedForAll(
-            test.alice.address(),
-            test.addresses
-                .erc1155_addresses
-                .clone()
-                .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                .payment_obligation,
-        )
-        .call()
-        .await?;
-
-    assert!(
-        payment_approved,
-        "Payment approval for all should be set correctly"
-    );
-
-    // Test approve_all for escrow
-    let _receipt = test
-        .alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Escrow)
-        .await?;
-
-    // Verify approval for escrow obligation
-    let escrow_approved = mock_erc1155_a
-        .isApprovedForAll(
-            test.alice.address(),
-            test.addresses
-                .erc1155_addresses
-                .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                .escrow_obligation,
-        )
-        .call()
-        .await?;
-
-    assert!(
-        escrow_approved,
-        "Escrow approval for all should be set correctly"
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_erc1155_revoke_all() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // First approve all
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Payment)
-        .await?;
-
-    // Then revoke all
-    let _receipt = test
-        .alice_client
-        .erc1155
-        .revoke_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Payment)
-        .await?;
-
-    // Verify revocation
-    let payment_approved = mock_erc1155_a
-        .isApprovedForAll(
-            test.alice.address(),
-            test.addresses
-                .erc1155_addresses
-                .clone()
-                .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                .payment_obligation,
-        )
-        .call()
-        .await?;
-
-    assert!(!payment_approved, "Payment approval should be revoked");
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_buy_with_erc1155() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    let price = Erc1155Data {
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-
-    // Create custom arbiter data
     let arbiter = test
         .addresses
-        .erc1155_addresses
-        .clone()
-        .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-        .payment_obligation;
-    let demand = Bytes::from(b"custom demand data");
+        .arbiters_addresses
+        .as_ref()
+        .ok_or(eyre::eyre!("Missing arbiter addresses"))?
+        .trusted_oracle_arbiter;
+
+    let demand_data = TrustedOracleArbiter::DemandData {
+        oracle: test.bob.address(),
+        data: bytes!(""),
+    };
+
+    let demand = ArbitersClient::encode_trusted_oracle_arbiter_demand(&demand_data);
     let item = ArbiterData { arbiter, demand };
+    let expiration = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() + 3600;
 
-    // approve tokens for escrow
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Escrow)
-        .await?;
-
-    // alice creates escrow with custom demand
-    let receipt = test
+    let escrow_receipt = test
         .alice_client
-        .erc1155
-        .buy_with_erc1155(&price, &item, 0)
-        .await?;
-
-    // Verify escrow happened - check alice's balance decreased
-    let alice_balance = mock_erc1155_a
-        .balanceOf(test.alice.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // Check escrow contract's balance increased
-    let escrow_balance = mock_erc1155_a
-        .balanceOf(
-            test.addresses
-                .erc1155_addresses
-                .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                .escrow_obligation,
-            1.try_into()?,
-        )
-        .call()
-        .await?;
-
-    // token in escrow
-    assert_eq!(
-        alice_balance,
-        5.try_into()?,
-        "Alice should have 5 tokens remaining"
-    );
-    assert_eq!(escrow_balance, 5.try_into()?, "Escrow should have 5 tokens");
-
-    // escrow statement made
-    let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    assert_ne!(attested_event.uid, FixedBytes::<32>::default());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_pay_with_erc1155() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    let price = Erc1155Data {
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-
-    // approve tokens for payment
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Payment)
-        .await?;
-
-    // Check initial balances
-    let initial_bob_balance = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // alice makes direct payment to bob
-    let receipt = test
-        .alice_client
-        .erc1155
-        .pay_with_erc1155(&price, test.bob.address())
-        .await?;
-
-    // Verify payment happened
-    let final_bob_balance = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // tokens paid to bob
-    assert_eq!(
-        final_bob_balance - initial_bob_balance,
-        5.try_into()?,
-        "Bob should have received 5 tokens"
-    );
-
-    // payment statement made
-    let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    assert_ne!(attested_event.uid, FixedBytes::<32>::default());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_buy_erc1155_for_erc1155() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // begin test
-    let bid = Erc1155Data {
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-    let ask = Erc1155Data {
-        address: test.mock_addresses.erc1155_b,
-        id: 2.try_into()?,
-        value: 3.try_into()?,
-    };
-
-    // alice approves token for escrow
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Escrow)
-        .await?;
-
-    // alice makes escrow
-    let receipt = test
-        .alice_client
-        .erc1155
-        .buy_erc1155_for_erc1155(&bid, &ask, 0)
-        .await?;
-
-    // verify escrow
-    let escrow_balance = mock_erc1155_a
-        .balanceOf(
-            test.addresses
-                .erc1155_addresses
-                .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                .escrow_obligation,
-            1.try_into()?,
-        )
-        .call()
-        .await?;
-
-    assert_eq!(
-        escrow_balance,
-        5.try_into()?,
-        "5 tokens should be in escrow"
-    );
-
-    // escrow statement made
-    let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    assert_ne!(attested_event.uid, FixedBytes::<32>::default());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_pay_erc1155_for_erc1155() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice and bob
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    let mock_erc1155_b = MockERC1155::new(test.mock_addresses.erc1155_b, &test.god_provider);
-    mock_erc1155_b
-        .mint(test.bob.address(), 2.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // begin test
-    let bid = Erc1155Data {
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-    let ask = Erc1155Data {
-        address: test.mock_addresses.erc1155_b,
-        id: 2.try_into()?,
-        value: 3.try_into()?,
-    };
-
-    // alice approves token for escrow and creates buy attestation
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Escrow)
-        .await?;
-
-    let buy_receipt = test
-        .alice_client
-        .erc1155
-        .buy_erc1155_for_erc1155(&bid, &ask, 0)
-        .await?;
-
-    let buy_attestation = AlkahestClient::get_attested_event(buy_receipt)?.uid;
-
-    // bob approves token for payment
-    test.bob_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_b, ApprovalPurpose::Payment)
-        .await?;
-
-    // Check initial balances
-    let initial_alice_balance_b = mock_erc1155_b
-        .balanceOf(test.alice.address(), 2.try_into()?)
-        .call()
-        .await?;
-    let initial_bob_balance_a = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // bob fulfills the buy attestation
-    let _sell_receipt = test
-        .bob_client
-        .erc1155
-        .pay_erc1155_for_erc1155(buy_attestation)
-        .await?;
-
-    // verify token transfers
-    let final_alice_balance_b = mock_erc1155_b
-        .balanceOf(test.alice.address(), 2.try_into()?)
-        .call()
-        .await?;
-    let final_bob_balance_a = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // both sides received the tokens
-    assert_eq!(
-        final_alice_balance_b - initial_alice_balance_b,
-        3.try_into()?,
-        "Alice should have received 3 tokens B"
-    );
-    assert_eq!(
-        final_bob_balance_a - initial_bob_balance_a,
-        5.try_into()?,
-        "Bob should have received 5 tokens A"
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_collect_expired() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // begin test
-    let bid = Erc1155Data {
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-    let ask = Erc1155Data {
-        address: test.mock_addresses.erc1155_b,
-        id: 2.try_into()?,
-        value: 3.try_into()?,
-    };
-
-    // alice approves token for escrow
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Escrow)
-        .await?;
-
-    // Check initial balance
-    let initial_alice_balance = mock_erc1155_a
-        .balanceOf(test.alice.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // alice makes escrow with a short expiration
-    let expiration = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() + 10;
-    let receipt = test
-        .alice_client
-        .erc1155
-        .buy_erc1155_for_erc1155(&bid, &ask, expiration as u64 + 1)
-        .await?;
-
-    let buy_attestation = AlkahestClient::get_attested_event(receipt)?.uid;
-
-    // Wait for expiration
-    test.god_provider.anvil_increase_time(20).await?;
-
-    // alice collects expired funds
-    let _collect_receipt = test
-        .alice_client
-        .erc1155
-        .collect_expired(buy_attestation)
-        .await?;
-
-    // verify tokens returned to alice
-    let final_alice_balance = mock_erc1155_a
-        .balanceOf(test.alice.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    assert_eq!(
-        final_alice_balance, initial_alice_balance,
-        "All tokens should be returned to Alice"
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_buy_erc20_with_erc1155() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // Create exchange information
-    let bid = Erc1155Data {
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-    let ask = Erc20Data {
-        address: test.mock_addresses.erc20_a,
-        value: 100.try_into()?,
-    };
-
-    // alice approves token for escrow
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Escrow)
-        .await?;
-
-    // alice creates purchase offer
-    let receipt = test
-        .alice_client
-        .erc1155
-        .buy_erc20_with_erc1155(&bid, &ask, 0)
-        .await?;
-
-    // Verify escrow happened
-    let escrow_balance = mock_erc1155_a
-        .balanceOf(
-            test.addresses
-                .erc1155_addresses
-                .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                .escrow_obligation,
-            1.try_into()?,
-        )
-        .call()
-        .await?;
-
-    assert_eq!(
-        escrow_balance,
-        5.try_into()?,
-        "5 tokens should be in escrow"
-    );
-
-    // escrow statement made
-    let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    assert_ne!(attested_event.uid, FixedBytes::<32>::default());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_buy_erc721_with_erc1155() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // Create exchange information
-    let bid = Erc1155Data {
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-    let ask = Erc721Data {
-        address: test.mock_addresses.erc721_a,
-        id: 1.try_into()?,
-    };
-
-    // alice approves token for escrow
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Escrow)
-        .await?;
-
-    // alice creates purchase offer
-    let receipt = test
-        .alice_client
-        .erc1155
-        .buy_erc721_with_erc1155(&bid, &ask, 0)
-        .await?;
-
-    // Verify escrow happened
-    let escrow_balance = mock_erc1155_a
-        .balanceOf(
-            test.addresses
-                .erc1155_addresses
-                .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                .escrow_obligation,
-            1.try_into()?,
-        )
-        .call()
-        .await?;
-
-    assert_eq!(
-        escrow_balance,
-        5.try_into()?,
-        "5 tokens should be in escrow"
-    );
-
-    // escrow statement made
-    let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    assert_ne!(attested_event.uid, FixedBytes::<32>::default());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_buy_bundle_with_erc1155() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // Create exchange information
-    let bid = Erc1155Data {
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-
-    // Create bundle data
-    let bundle = TokenBundleData {
-        erc20s: vec![Erc20Data {
-            address: test.mock_addresses.erc20_b,
-            value: 20.try_into()?,
-        }],
-        erc721s: vec![Erc721Data {
-            address: test.mock_addresses.erc721_b,
-            id: 2.try_into()?,
-        }],
-        erc1155s: vec![Erc1155Data {
-            address: test.mock_addresses.erc1155_b,
-            id: 3.try_into()?,
-            value: 4.try_into()?,
-        }],
-    };
-
-    // alice approves token for escrow
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Escrow)
-        .await?;
-
-    // alice creates purchase offer
-    let receipt = test
-        .alice_client
-        .erc1155
-        .buy_bundle_with_erc1155(&bid, &bundle, 0)
-        .await?;
-
-    // Verify escrow happened
-    let escrow_balance = mock_erc1155_a
-        .balanceOf(
-            test.addresses
-                .erc1155_addresses
-                .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                .escrow_obligation,
-            1.try_into()?,
-        )
-        .call()
-        .await?;
-
-    assert_eq!(
-        escrow_balance,
-        5.try_into()?,
-        "5 tokens should be in escrow"
-    );
-
-    // escrow statement made
-    let attested_event = AlkahestClient::get_attested_event(receipt)?;
-    assert_ne!(attested_event.uid, FixedBytes::<32>::default());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_pay_erc1155_for_erc20() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // give bob some ERC20 tokens for escrow
-    let mock_erc20_a = MockERC20Permit::new(test.mock_addresses.erc20_a, &test.god_provider);
-    mock_erc20_a
-        .transfer(test.bob.address(), 100.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // begin test
-    let bid = Erc20Data {
-        // bob's bid
-        address: test.mock_addresses.erc20_a,
-        value: 100.try_into()?,
-    };
-    let ask = Erc1155Data {
-        // bob asks for alice's ERC1155
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-
-    // bob approves tokens for escrow and creates buy attestation
-    test.bob_client
         .erc20
-        .approve(&bid, ApprovalPurpose::Escrow)
+        .permit_and_buy_with_erc20(&price, &item, expiration)
         .await?;
 
-    let buy_receipt = test
-        .bob_client
-        .erc20
-        .buy_erc1155_for_erc20(&bid, &ask, 0)
-        .await?;
+    let escrow_event = AlkahestClient::get_attested_event(escrow_receipt)?;
 
-    let buy_attestation = AlkahestClient::get_attested_event(buy_receipt)?.uid;
-
-    // alice approves her ERC1155 tokens for payment
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Payment)
-        .await?;
-
-    // Check initial balances
-    let initial_alice_erc20_balance = mock_erc20_a.balanceOf(test.alice.address()).call().await?;
-
-    let initial_bob_erc1155_balance = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // alice fulfills bob's buy attestation with her ERC1155
-    let _sell_receipt = test
-        .alice_client
-        .erc1155
-        .pay_erc1155_for_erc20(buy_attestation)
-        .await?;
-
-    // verify token transfers
-    let final_alice_erc20_balance = mock_erc20_a.balanceOf(test.alice.address()).call().await?;
-
-    let final_bob_erc1155_balance = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // both sides received the tokens
-    assert_eq!(
-        final_alice_erc20_balance - initial_alice_erc20_balance,
-        100.try_into()?,
-        "Alice should have received ERC20 tokens"
-    );
-    assert_eq!(
-        final_bob_erc1155_balance - initial_bob_erc1155_balance,
-        5.try_into()?,
-        "Bob should have received the ERC1155 tokens"
-    );
-
-    Ok(())
+    Ok((price, item, escrow_event.uid))
 }
 
-#[tokio::test]
-async fn test_pay_erc1155_for_erc721() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // mint an ERC721 token to bob
-    let mock_erc721_a = MockERC721::new(test.mock_addresses.erc721_a, &test.god_provider);
-    mock_erc721_a
-        .mint(test.bob.address())
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // begin test
-    let bid = Erc721Data {
-        // bob's bid
-        address: test.mock_addresses.erc721_a,
-        id: 1.try_into()?,
-    };
-    let ask = Erc1155Data {
-        // bob asks for alice's ERC1155
-        address: test.mock_addresses.erc1155_a,
-        id: 1.try_into()?,
-        value: 5.try_into()?,
-    };
-
-    // bob approves tokens for escrow and creates buy attestation
-    test.bob_client
-        .erc721
-        .approve(&bid, ApprovalPurpose::Escrow)
-        .await?;
-
-    let buy_receipt = test
-        .bob_client
-        .erc721
-        .buy_erc1155_with_erc721(&bid, &ask, 0)
-        .await?;
-
-    let buy_attestation = AlkahestClient::get_attested_event(buy_receipt)?.uid;
-
-    // alice approves her ERC1155 tokens for payment
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Payment)
-        .await?;
-
-    // Check initial ERC1155 balance for bob
-    let initial_bob_erc1155_balance = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // alice fulfills bob's buy attestation with her ERC1155
-    let _sell_receipt = test
-        .alice_client
-        .erc1155
-        .pay_erc1155_for_erc721(buy_attestation)
-        .await?;
-
-    // verify token transfers
-    let alice_now_owns_erc721 = mock_erc721_a.ownerOf(1.try_into()?).call().await?;
-    let final_bob_erc1155_balance = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // both sides received the tokens
-    assert_eq!(
-        alice_now_owns_erc721,
-        test.alice.address(),
-        "Alice should have received the ERC721 token"
-    );
-    assert_eq!(
-        final_bob_erc1155_balance - initial_bob_erc1155_balance,
-        5.try_into()?,
-        "Bob should have received the ERC1155 tokens"
-    );
-
-    Ok(())
+fn main() {
+    println!("This is a test binary. Run with `cargo test` to execute the tests.");
 }
 
-#[tokio::test]
-async fn test_pay_erc1155_for_bundle() -> eyre::Result<()> {
-    // test setup
-    let test = setup_test_environment().await?;
-
-    // mint ERC1155 tokens to alice (she will fulfill with these)
-    let mock_erc1155_a = MockERC1155::new(test.mock_addresses.erc1155_a, &test.god_provider);
-    mock_erc1155_a
-        .mint(test.alice.address(), 1.try_into()?, 10.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // give bob tokens for the bundle (he will escrow these)
-    // ERC20
-    let mock_erc20_b = MockERC20Permit::new(test.mock_addresses.erc20_b, &test.god_provider);
-    mock_erc20_b
-        .transfer(test.bob.address(), 20.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // ERC721
-    let mock_erc721_b = MockERC721::new(test.mock_addresses.erc721_b, &test.god_provider);
-    mock_erc721_b
-        .mint(test.bob.address())
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // ERC1155
-    let mock_erc1155_b = MockERC1155::new(test.mock_addresses.erc1155_b, &test.god_provider);
-    mock_erc1155_b
-        .mint(test.bob.address(), 3.try_into()?, 4.try_into()?)
-        .send()
-        .await?
-        .get_receipt()
-        .await?;
-
-    // begin test
-    // Check balances before the exchange
-    let initial_alice_erc20_balance = mock_erc20_b.balanceOf(test.alice.address()).call().await?;
-    let initial_alice_erc1155b_balance = mock_erc1155_b
-        .balanceOf(test.alice.address(), 3.try_into()?)
-        .call()
-        .await?;
-    let initial_bob_erc1155a_balance = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
-        .await?;
-
-    // Bob's bundle that he'll escrow
-    let bundle = TokenBundleData {
-        erc20s: vec![Erc20Data {
-            address: test.mock_addresses.erc20_b,
-            value: 20.try_into()?,
-        }],
-        erc721s: vec![Erc721Data {
-            address: test.mock_addresses.erc721_b,
-            id: 1.try_into()?,
-        }],
-        erc1155s: vec![Erc1155Data {
-            address: test.mock_addresses.erc1155_b,
-            id: 3.try_into()?,
-            value: 4.try_into()?,
-        }],
-    };
-
-    // Create the ERC1155 payment statement data as the demand
-    let payment_statement_data = ERC1155PaymentObligation::StatementData {
-        token: test.mock_addresses.erc1155_a,
-        tokenId: 1.try_into()?,
-        amount: 5.try_into()?,
-        payee: test.bob.address(),
-    };
-
-    // bob approves all tokens for the bundle escrow
-    test.bob_client
-        .token_bundle
-        .approve(&bundle, ApprovalPurpose::Escrow)
-        .await?;
-
-    // bob creates bundle escrow demanding ERC1155 from Alice
-    let buy_receipt = test
+async fn make_fulfillment(
+    test: &TestContext,
+    statement: &str,
+    ref_uid: FixedBytes<32>,
+) -> eyre::Result<FixedBytes<32>> {
+    let receipt = test
         .bob_client
-        .token_bundle
-        .buy_with_bundle(
-            &bundle,
-            &ArbiterData {
-                arbiter: test
-                    .addresses
-                    .erc1155_addresses
-                    .ok_or(eyre::eyre!("no erc1155-related addresses"))?
-                    .payment_obligation,
-                demand: payment_statement_data.abi_encode().into(),
+        .string_obligation
+        .make_statement(
+            StringObligation::StatementData {
+                item: statement.to_string(),
             },
-            0,
+            Some(ref_uid),
+        )
+        .await?;
+    Ok(AlkahestClient::get_attested_event(receipt)?.uid)
+}
+
+fn make_filter(test: &TestContext, ref_uid: Option<FixedBytes<32>>) -> AttestationFilter {
+    AttestationFilter {
+        attester: Some(ValueOrArray::Value(
+            test.addresses
+                .string_obligation_addresses
+                .as_ref()
+                .unwrap()
+                .obligation,
+        )),
+        recipient: Some(ValueOrArray::Value(test.bob.address())),
+        schema_uid: None,
+        uid: None,
+        ref_uid: ref_uid.map(ValueOrArray::Value),
+        block_option: Some(FilterBlockOption::Range {
+            from_block: Some(BlockNumberOrTag::Earliest),
+            to_block: Some(BlockNumberOrTag::Latest),
+        }),
+    }
+}
+
+fn make_filter_for_escrow(
+    test: &TestContext,
+    ref_uid: Option<FixedBytes<32>>,
+) -> AttestationFilter {
+    AttestationFilter {
+        attester: Some(ValueOrArray::Value(
+            test.addresses
+                .erc20_addresses
+                .as_ref()
+                .unwrap()
+                .escrow_obligation,
+        )),
+        recipient: None,
+        schema_uid: None,
+        uid: None,
+        ref_uid: ref_uid.map(ValueOrArray::Value),
+        block_option: Some(FilterBlockOption::Range {
+            from_block: Some(BlockNumberOrTag::Earliest),
+            to_block: Some(BlockNumberOrTag::Latest),
+        }),
+    }
+}
+
+fn make_fulfillment_params(
+    filter: AttestationFilter,
+) -> FulfillmentParams<StringObligation::StatementData> {
+    FulfillmentParams {
+        statement_abi: StringObligation::StatementData {
+            item: "".to_string(),
+        },
+        filter,
+    }
+}
+
+fn make_filter_without_refuid(test: &TestContext) -> AttestationFilterWithoutRefUid {
+    AttestationFilterWithoutRefUid {
+        attester: Some(ValueOrArray::Value(
+            test.addresses
+                .string_obligation_addresses
+                .as_ref()
+                .unwrap()
+                .obligation,
+        )),
+        recipient: Some(ValueOrArray::Value(test.bob.address())),
+        schema_uid: None,
+        uid: None,
+        block_option: Some(FilterBlockOption::Range {
+            from_block: Some(BlockNumberOrTag::Earliest),
+            to_block: Some(BlockNumberOrTag::Latest),
+        }),
+    }
+}
+
+fn make_fulfillment_params_without_refuid(
+    filter: AttestationFilterWithoutRefUid,
+) -> FulfillmentParamsWithoutRefUid<StringObligation::StatementData> {
+    FulfillmentParamsWithoutRefUid {
+        statement_abi: StringObligation::StatementData {
+            item: "".to_string(),
+        },
+        filter,
+    }
+}
+
+#[tokio::test]
+async fn test_trivial_arbitrate_past() -> eyre::Result<()> {
+    let test = setup_test_environment().await?;
+    let (_, _, escrow_uid) = setup_escrow(&test).await?;
+
+    let fulfillment_uid = make_fulfillment(&test, "good", escrow_uid).await?;
+
+    let filter = make_filter(&test, Some(escrow_uid));
+    let fulfillment = make_fulfillment_params(filter);
+
+    let decisions = test
+        .bob_client
+        .oracle
+        .arbitrate_past(
+            &fulfillment,
+            |s| Some(s.item == "good"),
+            &ArbitrateOptions {
+                require_oracle: true,
+                skip_arbitrated: false,
+            },
         )
         .await?;
 
-    let buy_attestation = AlkahestClient::get_attested_event(buy_receipt)?.uid;
+    assert_eq!(decisions.len(), 1);
+    assert_eq!(decisions[0].decision, true);
 
-    // alice approves her ERC1155 for payment
-    test.alice_client
-        .erc1155
-        .approve_all(test.mock_addresses.erc1155_a, ApprovalPurpose::Payment)
+    let collection = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, fulfillment_uid)
         .await?;
 
-    // alice fulfills bob's buy attestation with her ERC1155
-    let pay_receipt = test
-        .alice_client
-        .erc1155
-        .pay_erc1155_for_bundle(buy_attestation)
+    println!("✅ Arbitrate decision passed. Tx: {:?}", collection);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_trivial_listen_and_arbitrate() -> eyre::Result<()> {
+    let test = setup_test_environment().await?;
+    let (_, _, escrow_uid) = setup_escrow(&test).await?;
+
+    let filter = make_filter(&test, Some(escrow_uid));
+    let fulfillment = make_fulfillment_params(filter);
+
+    println!("Listening for decisions...");
+
+    let oracle = test.bob_client.oracle.clone();
+
+    // ⬇️ Directly call listen_and_arbitrate (no need to spawn)
+    let listen_result = oracle
+        .listen_and_arbitrate(
+            &fulfillment,
+            |_statement: &StringObligation::StatementData| -> Option<bool> { Some(true) },
+            |decision| {
+                let statement_item = decision.statement.item.clone();
+                let decision_value = decision.decision;
+                async move {
+                    assert_eq!(statement_item, "good");
+                    assert!(decision_value);
+                }
+            },
+            &ArbitrateOptions {
+                require_oracle: true,
+                skip_arbitrated: false,
+            },
+        )
         .await?;
 
-    // Verify the payment attestation was created
-    let pay_attestation = AlkahestClient::get_attested_event(pay_receipt)?;
-    assert_ne!(pay_attestation.uid, FixedBytes::<32>::default());
+    // Trigger fulfillment
+    let fulfillment_uid = make_fulfillment(&test, "good", escrow_uid).await?;
 
-    // verify token transfers
-    // Check alice received all tokens from the bundle
-    let final_alice_erc20_balance = mock_erc20_b.balanceOf(test.alice.address()).call().await?;
+    // Allow time for listener to process
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
-    let alice_erc721_owner = mock_erc721_b.ownerOf(1.try_into()?).call().await?;
-
-    let final_alice_erc1155b_balance = mock_erc1155_b
-        .balanceOf(test.alice.address(), 3.try_into()?)
-        .call()
+    let collection = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, fulfillment_uid)
         .await?;
 
-    // Check bob received the ERC1155 tokens
-    let final_bob_erc1155a_balance = mock_erc1155_a
-        .balanceOf(test.bob.address(), 1.try_into()?)
-        .call()
+    println!("✅ Arbitrate decision passed. Tx: {:?}", collection);
+
+    // Cleanup
+    oracle.unsubscribe(listen_result.subscription_id).await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_conditional_listen_and_arbitrate_new_fulfillments() -> eyre::Result<()> {
+    let test = setup_test_environment().await?;
+    let (_, _, escrow_uid) = setup_escrow(&test).await?;
+
+    let filter = make_filter(&test, Some(escrow_uid));
+    let fulfillment = make_fulfillment_params(filter);
+
+    println!("Listening for decisions...");
+
+    let oracle = test.bob_client.oracle.clone();
+    let listen_result = oracle
+        .listen_and_arbitrate_new_fulfillments(
+            &fulfillment,
+            |_statement: &StringObligation::StatementData| -> Option<bool> {
+                Some(_statement.item == "good")
+            },
+            |decision| {
+                let statement_item = decision.statement.item.clone();
+                let decision_value = decision.decision;
+                async move {
+                    assert_eq!(
+                        decision_value,
+                        statement_item == "good",
+                        "❌ Expected decision to be {} for item '{}'",
+                        statement_item == "good",
+                        statement_item
+                    );
+                }
+            },
+            &ArbitrateOptions {
+                require_oracle: true,
+                skip_arbitrated: false,
+            },
+        )
         .await?;
 
-    // Verify alice received the bundle
-    assert_eq!(
-        final_alice_erc20_balance - initial_alice_erc20_balance,
-        20.try_into()?,
-        "Alice should have received ERC20 tokens"
-    );
-    assert_eq!(
-        alice_erc721_owner,
-        test.alice.address(),
-        "Alice should have received the ERC721 token from bundle"
-    );
-    assert_eq!(
-        final_alice_erc1155b_balance - initial_alice_erc1155b_balance,
-        4.try_into()?,
-        "Alice should have received ERC1155 tokens"
+    let good_fulfillment_uid = make_fulfillment(&test, "good", escrow_uid).await?;
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    let bad_fulfillment_uid = make_fulfillment(&test, "bad", escrow_uid).await?;
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    let good_collection = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, good_fulfillment_uid)
+        .await?;
+
+    println!(
+        "✅ Expected good_collection to succeed, got receipt: {:?}",
+        good_collection
     );
 
-    // Verify bob received the ERC1155
-    assert_eq!(
-        final_bob_erc1155a_balance - initial_bob_erc1155a_balance,
-        5.try_into()?,
-        "Bob should have received the ERC1155 tokens"
+    let bad_collection = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, bad_fulfillment_uid)
+        .await;
+
+    assert!(
+        bad_collection.is_err(),
+        "❌ Expected bad_collection to fail due to failed arbitration, but it succeeded"
     );
+
+    oracle.unsubscribe(listen_result.subscription_id).await?;
+
+    Ok(())
+}
+
+async fn test_trivial_arbitrate_past_for_escrow() -> eyre::Result<()> {
+    let test = setup_test_environment().await?;
+    let (_, item, escrow_uid) = setup_escrow(&test).await?;
+
+    let fulfillment_uid = make_fulfillment(&test, "good", escrow_uid).await?;
+
+    let filter = make_filter_without_refuid(&test);
+    let fulfillment = make_fulfillment_params_without_refuid(filter);
+
+    let demand_data = TrustedOracleArbiter::DemandData::abi_decode(&item.demand)?;
+    let escrow = EscrowParams {
+        filter: make_filter_for_escrow(&test, None),
+        demand_abi: demand_data.clone(),
+    };
+    let (decisions, _, _) = test
+        .bob_client
+        .oracle
+        .arbitrate_past_for_escrow(
+            &escrow,
+            &fulfillment,
+            |_statement, _demand| {
+                println!(
+                    "🔍 Checking item: '{}', demand: {:?}",
+                    _statement.item, _demand.oracle
+                );
+                let item = _statement.item.clone();
+                let oracle_addr = _demand.oracle;
+                println!("🔍 Checking item: '{}', oracle: {}", item, oracle_addr);
+                Some(item == "good")
+            },
+            None,
+        )
+        .await?;
+
+    let collection = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, fulfillment_uid)
+        .await?;
+
+    println!("✅ Arbitrate decision passed. Tx: {:?}", collection);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_trivial_listen_and_arbitrate_for_escrow() -> eyre::Result<()> {
+    let test = setup_test_environment().await?;
+    let (_, item, escrow_uid) = setup_escrow(&test).await?;
+
+    let filter = make_filter_without_refuid(&test);
+    let fulfillment = make_fulfillment_params_without_refuid(filter);
+
+    let demand_data = TrustedOracleArbiter::DemandData::abi_decode(&item.demand)?;
+    let escrow = EscrowParams {
+        filter: make_filter_for_escrow(&test, None),
+        demand_abi: demand_data.clone(),
+    };
+    let oracle = test.bob_client.oracle.clone();
+
+    let listen_result = oracle
+        .listen_and_arbitrate_for_escrow(
+            &escrow,
+            &fulfillment,
+            |_statement, _demand| {
+                println!(
+                    "🔍 Checking item: '{}', demand: {:?}",
+                    _statement.item, _demand.oracle
+                );
+                let item = _statement.item.clone();
+                let oracle_addr = _demand.oracle;
+                println!("🔍 Checking item: '{}', oracle: {}", item, oracle_addr);
+                Some(item == "good")
+            },
+            |_decision| {
+                let statement_item = _decision.statement.item.clone();
+                let decision_value = _decision.decision;
+                async move {
+                    assert_eq!(statement_item, "good");
+                    assert!(decision_value);
+                }
+            },
+            None,
+        )
+        .await?;
+
+    // Ensure listener starts
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    let fulfillment_uid = make_fulfillment(&test, "good", escrow_uid).await?;
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    let _collection = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, fulfillment_uid)
+        .await?;
+
+    oracle
+        .unsubscribe(listen_result.escrow_subscription_id)
+        .await?;
+    oracle
+        .unsubscribe(listen_result.fulfillment_subscription_id)
+        .await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_conditional_listen_and_arbitrate_new_fulfillments_for_escrow() -> eyre::Result<()> {
+    let test = setup_test_environment().await?;
+    let (_, item, escrow_uid) = setup_escrow(&test).await?;
+
+    let bad_fulfillment_uid1 = make_fulfillment(&test, "bad", escrow_uid).await?;
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    let filter = make_filter_without_refuid(&test);
+    let fulfillment = make_fulfillment_params_without_refuid(filter);
+
+    let demand_data = TrustedOracleArbiter::DemandData::abi_decode(&item.demand)?;
+    let escrow = EscrowParams {
+        filter: make_filter_for_escrow(&test, None),
+        demand_abi: demand_data.clone(),
+    };
+    let oracle = test.bob_client.oracle.clone();
+
+    let listen_result = oracle
+        .listen_and_arbitrate_new_fulfillments_for_escrow(
+            &escrow,
+            &fulfillment,
+            |_statement, _demand| {
+                println!(
+                    "🔍 Checking item: '{}', demand: {:?}",
+                    _statement.item, _demand.oracle
+                );
+                let item = _statement.item.clone();
+                let oracle_addr = _demand.oracle;
+                println!("🔍 Checking item: '{}', oracle: {}", item, oracle_addr);
+                println!("Result: {:?}", Some(item == "good"));
+                Some(item == "good")
+            },
+            |_decision| {
+                let statement_item = _decision.statement.item.clone();
+                let decision_value = _decision.decision;
+
+                async move {
+                    println!("📣 Decision for '{}': {}", statement_item, decision_value);
+                }
+            },
+        )
+        .await?;
+
+    let bad_fulfillment_uid2 = make_fulfillment(&test, "bad", escrow_uid).await?;
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    let good_fulfillment_uid = make_fulfillment(&test, "good", escrow_uid).await?;
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    let good_collection = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, good_fulfillment_uid)
+        .await?;
+
+    println!(
+        "✅ Expected good_collection to succeed, got receipt: {:?}",
+        good_collection
+    );
+
+    let bad_collection1 = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, bad_fulfillment_uid1)
+        .await;
+
+    assert!(
+        bad_collection1.is_err(),
+        "❌ Expected bad_collection1 to fail due to failed arbitration, but it succeeded"
+    );
+
+    let bad_collection2 = test
+        .bob_client
+        .erc20
+        .collect_payment(escrow_uid, bad_fulfillment_uid2)
+        .await;
+
+    assert!(
+        bad_collection2.is_err(),
+        "❌ Expected bad_collection2 to fail due to failed arbitration, but it succeeded"
+    );
+
+    oracle
+        .unsubscribe(listen_result.escrow_subscription_id)
+        .await?;
+    oracle
+        .unsubscribe(listen_result.fulfillment_subscription_id)
+        .await?;
 
     Ok(())
 }
