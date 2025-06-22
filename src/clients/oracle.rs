@@ -164,17 +164,19 @@ impl OracleClient {
     pub fn create_trusted_oracle_demand(&self, oracle_address: String) -> PyResult<Vec<u8>> {
         use alkahest_rs::clients::arbiters::{ArbitersClient, TrustedOracleArbiter};
         use alloy::primitives::{Address, Bytes};
-        
-        let oracle_addr: Address = oracle_address.parse()
-            .map_err(|e| pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("Invalid oracle address: {}", e)
-            ))?;
-            
+
+        let oracle_addr: Address = oracle_address.parse().map_err(|e| {
+            pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid oracle address: {}",
+                e
+            ))
+        })?;
+
         let demand_data = TrustedOracleArbiter::DemandData {
             oracle: oracle_addr,
             data: Bytes::new(),
         };
-        
+
         let encoded = ArbitersClient::encode_trusted_oracle_arbiter_demand(&demand_data);
         Ok(encoded.to_vec())
     }

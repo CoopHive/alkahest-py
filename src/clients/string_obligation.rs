@@ -52,7 +52,14 @@ impl StringObligationClient {
             };
 
             let receipt = self.inner.make_statement(data, ref_uid).await?;
-            Ok(receipt.transaction_hash.to_string())
+
+            // Extract the attestation UID from the receipt instead of returning transaction hash
+            use alkahest_rs::AlkahestClient;
+            let attested_event = AlkahestClient::get_attested_event(receipt)?;
+            Ok(format!(
+                "0x{}",
+                alloy::hex::encode(attested_event.uid.as_slice())
+            ))
         })
     }
 
@@ -71,7 +78,14 @@ impl StringObligationClient {
             };
 
             let receipt = self.inner.make_statement_json(json_value, ref_uid).await?;
-            Ok(receipt.transaction_hash.to_string())
+
+            // Extract the attestation UID from the receipt instead of returning transaction hash
+            use alkahest_rs::AlkahestClient;
+            let attested_event = AlkahestClient::get_attested_event(receipt)?;
+            Ok(format!(
+                "0x{}",
+                alloy::hex::encode(attested_event.uid.as_slice())
+            ))
         })
     }
 }
