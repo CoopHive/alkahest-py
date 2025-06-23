@@ -159,6 +159,174 @@ impl OracleClient {
             )),
         }
     }
+
+    /// Arbitrate past escrow attestations based on a decision function
+    pub fn arbitrate_past_for_escrow(
+        &self,
+        escrow_params: PyEscrowParams,
+        fulfillment_params: PyFulfillmentParams,
+        _py: Python,
+        decision_func: PyObject,
+        options: Option<PyArbitrateOptions>,
+    ) -> PyResult<PyEscrowArbitrationResult> {
+        let opts = options.unwrap_or_default();
+
+        let result: eyre::Result<(Vec<PyDecision>, Vec<PyOracleAttestation>, Vec<String>)> = 
+            self.runtime.block_on(async {
+                // Convert PyAttestationFilter to Rust AttestationFilter for escrow
+                let escrow_filter = escrow_params
+                    .filter
+                    .try_into()
+                    .map_err(|e| eyre::eyre!("Failed to convert escrow filter: {}", e))?;
+
+                // Convert PyAttestationFilter to Rust AttestationFilter for fulfillment
+                let rust_filter = fulfillment_params
+                    .filter
+                    .try_into()
+                    .map_err(|e| eyre::eyre!("Failed to convert fulfillment filter: {}", e))?;
+
+                // Convert PyStringObligationStatementData to Rust StatementData
+                let statement_abi = StringObligation::StatementData {
+                    item: fulfillment_params.statement_abi.item.clone(),
+                };
+
+                // Decode the demand data from escrow params
+                use alkahest_rs::clients::arbiters::TrustedOracleArbiter;
+                use alloy::primitives::Bytes;
+                use alloy::sol_types::SolValue;
+
+                let demand_bytes = Bytes::from(escrow_params.demand_abi.clone());
+                let demand_abi = TrustedOracleArbiter::DemandData::abi_decode(&demand_bytes)?;
+
+                // Create escrow parameters
+                let escrow = alkahest_rs::clients::oracle::EscrowParams {
+                    filter: escrow_filter,
+                    demand_abi: demand_abi.clone(),
+                };
+
+                // Create fulfillment parameters using FulfillmentParamsWithoutRefUid
+                let fulfillment = alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
+                    statement_abi,
+                    filter: rust_filter,
+                };
+
+                // Create arbitration closure that calls back to Python
+                let arbitrate_func = |statement_data: &StringObligation::StatementData, 
+                                     demand_data: &TrustedOracleArbiter::DemandData| -> Option<bool> {
+                    Python::with_gil(|py| {
+                        // Convert StringObligation::StatementData to Python string
+                        let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+                        
+                        // Convert demand data to Python object
+                        let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
+
+                        // Call the Python decision function with both statement and demand
+                        match decision_func.call1(py, (py_statement, demand_py)) {
+                            Ok(result) => {
+                                // Try to extract boolean result
+                                match result.extract::<bool>(py) {
+                                    Ok(decision) => Some(decision),
+                                    Err(_) => {
+                                        // If not a boolean, try to interpret as truthy/falsy
+                                        match result.is_truthy(py) {
+                                            Ok(truthy) => Some(truthy),
+                                            Err(_) => None,
+                                        }
+                                    }
+                                }
+                            }
+                            Err(_) => None,
+                        }
+                    })
+                };
+
+                // Call the actual Rust arbitrate_past_for_escrow method
+                let (decisions, escrow_result, _) = self
+                    .inner
+                    .arbitrate_past_for_escrow(
+                        &escrow, 
+                        &fulfillment, 
+                        arbitrate_func, 
+                        Some(opts.require_oracle) // Use the require_oracle option directly
+                    )
+                    .await?;
+
+                // Convert Rust decisions to Python decisions
+                let py_decisions = decisions
+                    .into_iter()
+                    .map(|decision| {
+                        let attestation = PyOracleAttestation::__new__(
+                            format!(
+                                "0x{}",
+                                alloy::hex::encode(decision.attestation.uid.as_slice())
+                            ),
+                            format!(
+                                "0x{}",
+                                alloy::hex::encode(decision.attestation.schema.as_slice())
+                            ),
+                            format!(
+                                "0x{}",
+                                alloy::hex::encode(decision.attestation.refUID.as_slice())
+                            ),
+                            decision.attestation.time,
+                            decision.attestation.expirationTime,
+                            decision.attestation.revocationTime,
+                            format!("0x{:x}", decision.attestation.recipient),
+                            format!("0x{:x}", decision.attestation.attester),
+                            decision.attestation.revocable,
+                            format!("0x{}", alloy::hex::encode(&decision.attestation.data)),
+                        );
+                        PyDecision::__new__(
+                            attestation,
+                            decision.decision,
+                            format!(
+                                "0x{}",
+                                alloy::hex::encode(decision.receipt.transaction_hash.as_slice())
+                            ),
+                            Some(decision.statement.item),
+                            None, // demand is handled separately
+                        )
+                    })
+                    .collect();
+
+                // Convert escrow attestations
+                let py_escrow_attestations = escrow_result
+                    .into_iter()
+                    .map(|att| {
+                        PyOracleAttestation::__new__(
+                            format!("0x{}", alloy::hex::encode(att.uid.as_slice())),
+                            format!("0x{}", alloy::hex::encode(att.schema.as_slice())),
+                            format!("0x{}", alloy::hex::encode(att.refUID.as_slice())),
+                            att.time,
+                            att.expirationTime,
+                            att.revocationTime,
+                            format!("0x{:x}", att.recipient),
+                            format!("0x{:x}", att.attester),
+                            att.revocable,
+                            format!("0x{}", alloy::hex::encode(&att.data)),
+                        )
+                    })
+                    .collect();
+
+                // Convert demands to string representation
+                let py_demands = vec![format!("oracle: 0x{:x}, data: {} bytes", demand_abi.oracle, demand_abi.data.len())];
+
+                Ok((py_decisions, py_escrow_attestations, py_demands))
+            });
+
+        match result {
+            Ok((py_decisions, py_escrow_attestations, py_demands)) => {
+                Ok(PyEscrowArbitrationResult::__new__(
+                    py_decisions,
+                    py_escrow_attestations,
+                    py_demands,
+                ))
+            }
+            Err(e) => Err(pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                format!("Escrow arbitration failed: {}", e),
+            )),
+        }
+    }
 }
 
 // ===== HELPER TYPES =====

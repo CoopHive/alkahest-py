@@ -77,6 +77,12 @@ from test_string_obligation import test_string_obligation
 # Oracle Tests
 from test_arbitrate_past import test_fixed_arbitrate_past
 
+# Need to import from the parent directory for escrow arbitration test
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from test_arbitrate_past_for_escrow import test_arbitrate_past_for_escrow
+
 
 async def run_test(test_func: Callable, test_name: str) -> bool:
     try:
@@ -107,6 +113,7 @@ async def main():
         
         # Oracle Tests
         (test_fixed_arbitrate_past, "Oracle Arbitrate Past - Complete arbitration and payment collection flow"),
+        (test_arbitrate_past_for_escrow, "Oracle Arbitrate Past for Escrow - Escrow arbitration and payment collection flow"),
         
         # Obligation Statement Encode/Decode Tests
         (test_erc20_escrow_encode_decode, "ERC20 Escrow Obligation Statement - Basic Encode/Decode"),
