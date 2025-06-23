@@ -74,6 +74,9 @@ from test_ieas_types import test_ieas_types
 # String Obligation Test
 from test_string_obligation import test_string_obligation
 
+# Oracle Tests
+from test_arbitrate_past import test_fixed_arbitrate_past
+
 
 async def run_test(test_func: Callable, test_name: str) -> bool:
     try:
@@ -101,6 +104,9 @@ async def main():
         
         # String Obligation Test
         (test_string_obligation, "String Obligation - PyDecodedAttestation<T> Test"),
+        
+        # Oracle Tests
+        (test_fixed_arbitrate_past, "Oracle Arbitrate Past - Complete arbitration and payment collection flow"),
         
         # Obligation Statement Encode/Decode Tests
         (test_erc20_escrow_encode_decode, "ERC20 Escrow Obligation Statement - Basic Encode/Decode"),
