@@ -134,8 +134,8 @@ impl OracleClient {
                             "0x{}",
                             alloy::hex::encode(decision.receipt.transaction_hash.as_slice())
                         ),
-                        Some(decision.statement.item), // Use the string directly instead of hex encoding
-                        None,                          // demand is None for this simple case
+                        Some(decision.statement.item),
+                        None, // demand is None for this simple case
                     )
                 })
                 .collect();
@@ -158,27 +158,6 @@ impl OracleClient {
                 format!("Arbitration failed: {}", e),
             )),
         }
-    }
-
-    /// Create demand data for trusted oracle arbiter
-    pub fn create_trusted_oracle_demand(&self, oracle_address: String) -> PyResult<Vec<u8>> {
-        use alkahest_rs::clients::arbiters::{ArbitersClient, TrustedOracleArbiter};
-        use alloy::primitives::{Address, Bytes};
-
-        let oracle_addr: Address = oracle_address.parse().map_err(|e| {
-            pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid oracle address: {}",
-                e
-            ))
-        })?;
-
-        let demand_data = TrustedOracleArbiter::DemandData {
-            oracle: oracle_addr,
-            data: Bytes::new(),
-        };
-
-        let encoded = ArbitersClient::encode_trusted_oracle_arbiter_demand(&demand_data);
-        Ok(encoded.to_vec())
     }
 }
 
@@ -363,7 +342,7 @@ impl PyFulfillmentParams {
 #[derive(Clone)]
 pub struct PyFulfillmentParamsWithoutRefUid {
     #[pyo3(get, set)]
-    pub schema_uid: String,
+    pub statement_abi: PyStringObligationStatementData,
     #[pyo3(get, set)]
     pub filter: PyAttestationFilter, // Note: ref_uid will be ignored
 }
@@ -371,14 +350,20 @@ pub struct PyFulfillmentParamsWithoutRefUid {
 #[pymethods]
 impl PyFulfillmentParamsWithoutRefUid {
     #[new]
-    pub fn __new__(schema_uid: String, filter: PyAttestationFilter) -> Self {
-        Self { schema_uid, filter }
+    pub fn __new__(
+        statement_abi: PyStringObligationStatementData,
+        filter: PyAttestationFilter,
+    ) -> Self {
+        Self {
+            statement_abi,
+            filter,
+        }
     }
 
     pub fn __str__(&self) -> String {
         format!(
-            "PyFulfillmentParamsWithoutRefUid(schema_uid={}, filter={})",
-            self.schema_uid,
+            "PyFulfillmentParamsWithoutRefUid(statement_abi={:?}, filter={})",
+            self.statement_abi,
             self.filter.__str__()
         )
     }
@@ -392,7 +377,7 @@ impl PyFulfillmentParamsWithoutRefUid {
 #[derive(Clone)]
 pub struct PyEscrowParams {
     #[pyo3(get, set)]
-    pub demand_schema_uid: String,
+    pub demand_abi: Vec<u8>,
     #[pyo3(get, set)]
     pub filter: PyAttestationFilter,
 }
@@ -400,17 +385,14 @@ pub struct PyEscrowParams {
 #[pymethods]
 impl PyEscrowParams {
     #[new]
-    pub fn __new__(demand_schema_uid: String, filter: PyAttestationFilter) -> Self {
-        Self {
-            demand_schema_uid,
-            filter,
-        }
+    pub fn __new__(demand_abi: Vec<u8>, filter: PyAttestationFilter) -> Self {
+        Self { demand_abi, filter }
     }
 
     pub fn __str__(&self) -> String {
         format!(
-            "PyEscrowParams(demand_schema_uid={}, filter={})",
-            self.demand_schema_uid,
+            "PyEscrowParams(demand_abi={} bytes, filter={})",
+            self.demand_abi.len(),
             self.filter.__str__()
         )
     }
@@ -822,5 +804,83 @@ impl TryFrom<PyAttestationFilter> for alkahest_rs::clients::oracle::AttestationF
                 uid: full_filter.uid,
             },
         )
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyTrustedOracleArbiterDemandData {
+    #[pyo3(get)]
+    pub oracle: String,
+    #[pyo3(get)]
+    pub data: Vec<u8>,
+}
+
+#[pymethods]
+impl PyTrustedOracleArbiterDemandData {
+    #[new]
+    pub fn new(oracle: String, data: Vec<u8>) -> Self {
+        Self { oracle, data }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "PyTrustedOracleArbiterDemandData(oracle='{}', data={:?})",
+            self.oracle, self.data
+        )
+    }
+
+    #[staticmethod]
+    pub fn decode(demand_bytes: Vec<u8>) -> eyre::Result<PyTrustedOracleArbiterDemandData> {
+        use alkahest_rs::clients::arbiters::TrustedOracleArbiter;
+        use alloy::primitives::Bytes;
+        use alloy::sol_types::SolValue;
+
+        let bytes = Bytes::from(demand_bytes);
+        let decoded = TrustedOracleArbiter::DemandData::abi_decode(&bytes)?;
+        Ok(decoded.into())
+    }
+
+    #[staticmethod]
+    pub fn encode(demand_data: &PyTrustedOracleArbiterDemandData) -> eyre::Result<Vec<u8>> {
+        use alkahest_rs::clients::arbiters::{ArbitersClient, TrustedOracleArbiter};
+        use alloy::primitives::{Address, Bytes};
+
+        let oracle: Address = demand_data.oracle.parse()?;
+        let data = Bytes::from(demand_data.data.clone());
+
+        let rust_demand_data = TrustedOracleArbiter::DemandData { oracle, data };
+        let encoded = ArbitersClient::encode_trusted_oracle_arbiter_demand(&rust_demand_data);
+        Ok(encoded.to_vec())
+    }
+
+    pub fn encode_self(&self) -> eyre::Result<Vec<u8>> {
+        PyTrustedOracleArbiterDemandData::encode(self)
+    }
+}
+
+impl From<alkahest_rs::clients::arbiters::TrustedOracleArbiter::DemandData>
+    for PyTrustedOracleArbiterDemandData
+{
+    fn from(data: alkahest_rs::clients::arbiters::TrustedOracleArbiter::DemandData) -> Self {
+        Self {
+            oracle: format!("{:?}", data.oracle),
+            data: data.data.to_vec(),
+        }
+    }
+}
+
+impl TryFrom<PyTrustedOracleArbiterDemandData>
+    for alkahest_rs::clients::arbiters::TrustedOracleArbiter::DemandData
+{
+    type Error = eyre::Error;
+
+    fn try_from(py_data: PyTrustedOracleArbiterDemandData) -> eyre::Result<Self> {
+        use alloy::primitives::{Address, Bytes};
+
+        let oracle: Address = py_data.oracle.parse()?;
+        let data = Bytes::from(py_data.data);
+
+        Ok(Self { oracle, data })
     }
 }

@@ -12,6 +12,7 @@ from alkahest_py import (
     PyFulfillmentParams,
     PyArbitrateOptions,
     PyMockERC20,
+    PyTrustedOracleArbiterDemandData,
 )
 
 
@@ -30,7 +31,8 @@ async def test_arbitrate_past():
         
         # Create proper demand data with Bob as the oracle
         oracle_client = env.bob_client.oracle
-        demand_bytes = oracle_client.create_trusted_oracle_demand(env.bob)
+        demand_data = PyTrustedOracleArbiterDemandData(env.bob, [])
+        demand_bytes = demand_data.encode_self()
         
         arbiter = {
             "arbiter": trusted_oracle_arbiter,

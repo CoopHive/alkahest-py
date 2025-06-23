@@ -26,6 +26,7 @@ from .alkahest_py import (
     PyArbitrateOptions,
     PyArbitrationResult,
     PySubscriptionResult,
+    PyTrustedOracleArbiterDemandData,
     PyErc20Data,
     # IEAS Types
     PyAttestation,
@@ -64,6 +65,7 @@ __all__ = [
     "PyArbitrateOptions",
     "PyArbitrationResult",
     "PySubscriptionResult",
+    "PyTrustedOracleArbiterDemandData",
     "PyErc20Data",
     # IEAS Types
     "PyAttestation",

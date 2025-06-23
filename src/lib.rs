@@ -28,6 +28,7 @@ use crate::{
         oracle::{
             PyArbitrateOptions, PyArbitrationResult, PyAttestationFilter, PyDecision,
             PyFulfillmentParams, PyOracleAddresses, PyOracleAttestation, PySubscriptionResult,
+            PyTrustedOracleArbiterDemandData,
         },
         string_obligation::PyStringObligationStatementData,
     },
@@ -202,6 +203,7 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyArbitrateOptions>()?;
     m.add_class::<PyArbitrationResult>()?;
     m.add_class::<PySubscriptionResult>()?;
+    m.add_class::<PyTrustedOracleArbiterDemandData>()?;
     m.add_class::<PyTestEnvManager>()?;
     m.add_class::<PyWalletProvider>()?;
     m.add_class::<PyMockERC20>()?;
