@@ -41,6 +41,40 @@ pub struct ArbitersAddresses {
     pub all_arbiter: String,
     pub uid_arbiter: String,
     pub recipient_arbiter: String,
+    pub not_arbiter: String,
+    pub attester_arbiter_composing: String,
+    pub attester_arbiter_non_composing: String,
+    pub expiration_time_after_arbiter_composing: String,
+    pub expiration_time_before_arbiter_composing: String,
+    pub expiration_time_equal_arbiter_composing: String,
+    pub recipient_arbiter_composing: String,
+    pub ref_uid_arbiter_composing: String,
+    pub revocable_arbiter_composing: String,
+    pub schema_arbiter_composing: String,
+    pub time_after_arbiter_composing: String,
+    pub time_before_arbiter_composing: String,
+    pub time_equal_arbiter_composing: String,
+    pub uid_arbiter_composing: String,
+    pub erc20_payment_fulfillment_arbiter: String,
+    pub erc721_payment_fulfillment_arbiter: String,
+    pub erc1155_payment_fulfillment_arbiter: String,
+    pub token_bundle_payment_fulfillment_arbiter: String,
+    pub expiration_time_after_arbiter_non_composing: String,
+    pub expiration_time_before_arbiter_non_composing: String,
+    pub expiration_time_equal_arbiter_non_composing: String,
+    pub recipient_arbiter_non_composing: String,
+    pub ref_uid_arbiter_non_composing: String,
+    pub revocable_arbiter_non_composing: String,
+    pub schema_arbiter_non_composing: String,
+    pub time_after_arbiter_non_composing: String,
+    pub time_before_arbiter_non_composing: String,
+    pub time_equal_arbiter_non_composing: String,
+    pub uid_arbiter_non_composing: String,
+    pub confirmation_arbiter: String,
+    pub confirmation_arbiter_composing: String,
+    pub revocable_confirmation_arbiter: String,
+    pub revocable_confirmation_arbiter_composing: String,
+    pub unrevocable_confirmation_arbiter: String,
 }
 
 #[derive(FromPyObject)]
@@ -187,6 +221,58 @@ impl TryFrom<ArbitersAddresses> for alkahest_rs::clients::arbiters::ArbitersAddr
             all_arbiter: parse_address!(all_arbiter),
             uid_arbiter: parse_address!(uid_arbiter),
             recipient_arbiter: parse_address!(recipient_arbiter),
+            not_arbiter: parse_address!(not_arbiter),
+            attester_arbiter_composing: parse_address!(attester_arbiter_composing),
+            attester_arbiter_non_composing: parse_address!(attester_arbiter_non_composing),
+            expiration_time_after_arbiter_composing: parse_address!(
+                expiration_time_after_arbiter_composing
+            ),
+            expiration_time_before_arbiter_composing: parse_address!(
+                expiration_time_before_arbiter_composing
+            ),
+            expiration_time_equal_arbiter_composing: parse_address!(
+                expiration_time_equal_arbiter_composing
+            ),
+            recipient_arbiter_composing: parse_address!(recipient_arbiter_composing),
+            ref_uid_arbiter_composing: parse_address!(ref_uid_arbiter_composing),
+            revocable_arbiter_composing: parse_address!(revocable_arbiter_composing),
+            schema_arbiter_composing: parse_address!(schema_arbiter_composing),
+            time_after_arbiter_composing: parse_address!(time_after_arbiter_composing),
+            time_before_arbiter_composing: parse_address!(time_before_arbiter_composing),
+            time_equal_arbiter_composing: parse_address!(time_equal_arbiter_composing),
+            uid_arbiter_composing: parse_address!(uid_arbiter_composing),
+            erc20_payment_fulfillment_arbiter: parse_address!(erc20_payment_fulfillment_arbiter),
+            erc721_payment_fulfillment_arbiter: parse_address!(erc721_payment_fulfillment_arbiter),
+            erc1155_payment_fulfillment_arbiter: parse_address!(
+                erc1155_payment_fulfillment_arbiter
+            ),
+            token_bundle_payment_fulfillment_arbiter: parse_address!(
+                token_bundle_payment_fulfillment_arbiter
+            ),
+            expiration_time_after_arbiter_non_composing: parse_address!(
+                expiration_time_after_arbiter_non_composing
+            ),
+            expiration_time_before_arbiter_non_composing: parse_address!(
+                expiration_time_before_arbiter_non_composing
+            ),
+            expiration_time_equal_arbiter_non_composing: parse_address!(
+                expiration_time_equal_arbiter_non_composing
+            ),
+            recipient_arbiter_non_composing: parse_address!(recipient_arbiter_non_composing),
+            ref_uid_arbiter_non_composing: parse_address!(ref_uid_arbiter_non_composing),
+            revocable_arbiter_non_composing: parse_address!(revocable_arbiter_non_composing),
+            schema_arbiter_non_composing: parse_address!(schema_arbiter_non_composing),
+            time_after_arbiter_non_composing: parse_address!(time_after_arbiter_non_composing),
+            time_before_arbiter_non_composing: parse_address!(time_before_arbiter_non_composing),
+            time_equal_arbiter_non_composing: parse_address!(time_equal_arbiter_non_composing),
+            uid_arbiter_non_composing: parse_address!(uid_arbiter_non_composing),
+            confirmation_arbiter: parse_address!(confirmation_arbiter),
+            confirmation_arbiter_composing: parse_address!(confirmation_arbiter_composing),
+            revocable_confirmation_arbiter: parse_address!(revocable_confirmation_arbiter),
+            revocable_confirmation_arbiter_composing: parse_address!(
+                revocable_confirmation_arbiter_composing
+            ),
+            unrevocable_confirmation_arbiter: parse_address!(unrevocable_confirmation_arbiter),
         })
     }
 }
@@ -598,5 +684,3 @@ impl From<&alkahest_rs::clients::string_obligation::StringObligationAddresses>
         }
     }
 }
-
-

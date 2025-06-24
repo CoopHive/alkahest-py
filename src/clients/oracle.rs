@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use alkahest_rs::{
     clients::oracle::OracleClient as InnerOracleClient, contracts::StringObligation,
 };
@@ -55,14 +57,9 @@ impl OracleClient {
                 .try_into()
                 .map_err(|e| eyre::eyre!("Failed to convert filter: {}", e))?;
 
-            // Convert PyStringObligationStatementData to Rust StatementData
-            let statement_abi = StringObligation::StatementData {
-                item: fulfillment_params.statement_abi.item.clone(),
-            };
-
             // Create fulfillment parameters using the statement_abi from the params
             let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
-                statement_abi,
+                _statement_data: PhantomData::<StringObligation::StatementData>,
                 filter: rust_filter,
             };
 
@@ -99,7 +96,7 @@ impl OracleClient {
             // Call the actual Rust arbitrate_past method
             let decisions = self
                 .inner
-                .arbitrate_past(&fulfillment, arbitrate_func, &arbitrate_options)
+                .arbitrate_past(&fulfillment, &arbitrate_func, &arbitrate_options)
                 .await?;
 
             // Convert Rust decisions to Python decisions
@@ -171,7 +168,7 @@ impl OracleClient {
     ) -> PyResult<PyEscrowArbitrationResult> {
         let opts = options.unwrap_or_default();
 
-        let result: eyre::Result<(Vec<PyDecision>, Vec<PyOracleAttestation>, Vec<String>)> = 
+        let result: eyre::Result<(Vec<PyDecision>, Vec<PyOracleAttestation>, Vec<String>)> =
             self.runtime.block_on(async {
                 // Convert PyAttestationFilter to Rust AttestationFilter for escrow
                 let escrow_filter = escrow_params
@@ -185,11 +182,6 @@ impl OracleClient {
                     .try_into()
                     .map_err(|e| eyre::eyre!("Failed to convert fulfillment filter: {}", e))?;
 
-                // Convert PyStringObligationStatementData to Rust StatementData
-                let statement_abi = StringObligation::StatementData {
-                    item: fulfillment_params.statement_abi.item.clone(),
-                };
-
                 // Decode the demand data from escrow params
                 use alkahest_rs::clients::arbiters::TrustedOracleArbiter;
                 use alloy::primitives::Bytes;
@@ -201,22 +193,23 @@ impl OracleClient {
                 // Create escrow parameters
                 let escrow = alkahest_rs::clients::oracle::EscrowParams {
                     filter: escrow_filter,
-                    demand_abi: demand_abi.clone(),
+                    _demand_data: PhantomData::<TrustedOracleArbiter::DemandData>,
                 };
 
                 // Create fulfillment parameters using FulfillmentParamsWithoutRefUid
                 let fulfillment = alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
-                    statement_abi,
+                    _statement_data: PhantomData::<StringObligation::StatementData>,
                     filter: rust_filter,
                 };
 
                 // Create arbitration closure that calls back to Python
-                let arbitrate_func = |statement_data: &StringObligation::StatementData, 
-                                     demand_data: &TrustedOracleArbiter::DemandData| -> Option<bool> {
+                let arbitrate_func = |statement_data: &StringObligation::StatementData,
+                                      demand_data: &TrustedOracleArbiter::DemandData|
+                 -> Option<bool> {
                     Python::with_gil(|py| {
                         // Convert StringObligation::StatementData to Python string
                         let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
-                        
+
                         // Convert demand data to Python object
                         let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
 
@@ -244,10 +237,10 @@ impl OracleClient {
                 let (decisions, escrow_result, _) = self
                     .inner
                     .arbitrate_past_for_escrow(
-                        &escrow, 
-                        &fulfillment, 
-                        arbitrate_func, 
-                        Some(opts.require_oracle) // Use the require_oracle option directly
+                        &escrow,
+                        &fulfillment,
+                        arbitrate_func,
+                        Some(opts.require_oracle), // Use the require_oracle option directly
                     )
                     .await?;
 
@@ -309,7 +302,11 @@ impl OracleClient {
                     .collect();
 
                 // Convert demands to string representation
-                let py_demands = vec![format!("oracle: 0x{:x}, data: {} bytes", demand_abi.oracle, demand_abi.data.len())];
+                let py_demands = vec![format!(
+                    "oracle: 0x{:x}, data: {} bytes",
+                    demand_abi.oracle,
+                    demand_abi.data.len()
+                )];
 
                 Ok((py_decisions, py_escrow_attestations, py_demands))
             });
@@ -324,6 +321,136 @@ impl OracleClient {
             }
             Err(e) => Err(pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
                 format!("Escrow arbitration failed: {}", e),
+            )),
+        }
+    }
+
+    pub fn listen_and_arbitrate_no_spawn(
+        &self,
+        fulfillment_params: PyFulfillmentParams,
+        _py: Python,
+        decision_func: PyObject,
+        options: Option<PyArbitrateOptions>,
+        timeout_seconds: Option<f64>,
+    ) -> PyResult<Vec<PyDecision>> {
+        let opts = options.unwrap_or_default();
+        let timeout = timeout_seconds.map(|secs| std::time::Duration::from_secs_f64(secs));
+        
+        let result: eyre::Result<Vec<PyDecision>> = self.runtime.block_on(async move {
+            // Convert PyAttestationFilter to Rust AttestationFilter
+            let rust_filter = fulfillment_params
+                .filter
+                .try_into()
+                .map_err(|e| eyre::eyre!("Failed to convert filter: {}", e))?;
+
+            // Create fulfillment parameters using the statement_abi from the params
+            let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
+                _statement_data: PhantomData::<StringObligation::StatementData>,
+                filter: rust_filter,
+            };
+
+            let arbitrate_options = alkahest_rs::clients::oracle::ArbitrateOptions {
+                require_oracle: opts.require_oracle,
+                skip_arbitrated: opts.skip_arbitrated,
+            };
+
+            // Create arbitration closure that calls back to Python
+            let arbitrate_func =
+                |statement_data: &StringObligation::StatementData| -> Option<bool> {
+                    Python::with_gil(|py| {
+                        // Convert StringObligation::StatementData to Python string
+                        let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+
+                        // Call the Python decision function with the decoded string
+                        match decision_func.call1(py, (py_statement,)) {
+                            Ok(result) => {
+                                // Try to extract boolean result
+                                match result.extract::<bool>(py) {
+                                    Ok(decision) => Some(decision),
+                                    Err(_) => {
+                                        // If not a boolean, try to interpret as truthy/falsy
+                                        match result.is_truthy(py) {
+                                            Ok(truthy) => Some(truthy),
+                                            Err(_) => None,
+                                        }
+                                    }
+                                }
+                            }
+                            Err(_) => None,
+                        }
+                    })
+                };
+
+            // Use a simple function for the callback that just prints (no external capture)
+            let simple_callback = |decision: &alkahest_rs::clients::oracle::Decision<
+                StringObligation::StatementData,
+                (),
+            >| {
+                println!(
+                    "Decision made: {} for statement: {}",
+                    decision.decision, decision.statement.item
+                );
+                Box::pin(async {})
+            };
+
+            // Call the actual Rust listen_and_arbitrate_no_spawn method
+            let listen_result = self
+                .inner
+                .listen_and_arbitrate_no_spawn(
+                    &fulfillment,
+                    &arbitrate_func,
+                    simple_callback,
+                    &arbitrate_options,
+                    timeout,
+                )
+                .await?;
+
+            // Convert the result to Python decisions
+            let py_decisions = listen_result
+                .decisions
+                .into_iter()
+                .map(|decision| {
+                    let attestation = PyOracleAttestation::__new__(
+                        format!(
+                            "0x{}",
+                            alloy::hex::encode(decision.attestation.uid.as_slice())
+                        ),
+                        format!(
+                            "0x{}",
+                            alloy::hex::encode(decision.attestation.schema.as_slice())
+                        ),
+                        format!(
+                            "0x{}",
+                            alloy::hex::encode(decision.attestation.refUID.as_slice())
+                        ),
+                        decision.attestation.time,
+                        decision.attestation.expirationTime,
+                        decision.attestation.revocationTime,
+                        format!("0x{:x}", decision.attestation.recipient),
+                        format!("0x{:x}", decision.attestation.attester),
+                        decision.attestation.revocable,
+                        format!("0x{}", alloy::hex::encode(&decision.attestation.data)),
+                    );
+                    PyDecision::__new__(
+                        attestation,
+                        decision.decision,
+                        format!(
+                            "0x{}",
+                            alloy::hex::encode(decision.receipt.transaction_hash.as_slice())
+                        ),
+                        Some(decision.statement.item),
+                        None, // demand is None for this simple case
+                    )
+                })
+                .collect();
+
+            Ok(py_decisions)
+        });
+
+        match result {
+            Ok(decisions) => Ok(decisions),
+            Err(e) => Err(pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                format!("Listen and arbitrate no spawn failed: {}", e),
             )),
         }
     }
