@@ -31,7 +31,7 @@ impl StringObligationClient {
 
 #[pymethods]
 impl StringObligationClient {
-    pub async fn get_statement(
+    pub fn get_statement(
         &self,
         uid: String,
     ) -> eyre::Result<PyDecodedAttestation<PyStringObligationStatementData>> {
@@ -42,7 +42,7 @@ impl StringObligationClient {
         })
     }
 
-    pub async fn make_statement(
+    pub fn make_statement(
         &self,
         statement_data: PyStringObligationStatementData,
         ref_uid: Option<String>,

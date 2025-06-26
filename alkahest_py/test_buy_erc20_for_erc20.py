@@ -15,7 +15,7 @@ async def test_buy_erc20_for_erc20():
     bid_amount = 100
     bid_data = {"address": env.mock_addresses.erc20_a, "value": bid_amount}
     
-    await env.alice_client.erc20.approve(bid_data, "escrow")
+    env.alice_client.erc20.approve(bid_data, "escrow")
     
     escrow_allowance = mock_erc20_a.allowance(env.alice, env.addresses.erc20_addresses.escrow_obligation)
     assert not (escrow_allowance < bid_amount), "Insufficient allowance. Expected >= {bid_amount}, got {escrow_allowance}"
@@ -24,7 +24,7 @@ async def test_buy_erc20_for_erc20():
     ask_data = {"address": env.mock_addresses.erc20_b, "value": ask_amount}
     expiration = 0
     
-    escrow_result = await env.alice_client.erc20.buy_erc20_for_erc20(bid_data, ask_data, expiration)
+    escrow_result = env.alice_client.erc20.buy_erc20_for_erc20(bid_data, ask_data, expiration)
     
     alice_final_a = mock_erc20_a.balance_of(env.alice)
     escrow_balance_a = mock_erc20_a.balance_of(env.addresses.erc20_addresses.escrow_obligation)

@@ -22,7 +22,7 @@ impl AttestationClient {
 
 #[pymethods]
 impl AttestationClient {
-    pub async fn register_schema(
+    pub fn register_schema(
         &self,
         schema: String,
         resolver: String,
@@ -39,7 +39,7 @@ impl AttestationClient {
         })
     }
 
-    pub async fn attest(
+    pub fn attest(
         &self,
         attestation: AttestationRequest,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -52,7 +52,7 @@ impl AttestationClient {
         })
     }
 
-    pub async fn collect_payment(
+    pub fn collect_payment(
         &self,
         buy_attestation: String,
         fulfillment: String,
@@ -66,7 +66,7 @@ impl AttestationClient {
         })
     }
 
-    pub async fn collect_payment_2(
+    pub fn collect_payment_2(
         &self,
         buy_attestation: String,
         fulfillment: String,
@@ -80,7 +80,7 @@ impl AttestationClient {
         })
     }
 
-    pub async fn create_escrow(
+    pub fn create_escrow(
         &self,
         attestation: AttestationRequest,
         demand: ArbiterData,
@@ -98,7 +98,7 @@ impl AttestationClient {
         })
     }
 
-    pub async fn create_escrow_2(
+    pub fn create_escrow_2(
         &self,
         attestation: String,
         demand: ArbiterData,
@@ -116,7 +116,7 @@ impl AttestationClient {
         })
     }
 
-    pub async fn attest_and_create_escrow(
+    pub fn attest_and_create_escrow(
         &self,
         attestation: AttestationRequest,
         demand: ArbiterData,

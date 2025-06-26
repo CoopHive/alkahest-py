@@ -30,7 +30,7 @@ async def test_erc721_approve_all():
     
     # Test approve_all for payment
     print("Testing approve_all for payment purpose...")
-    await env.alice_client.erc721.approve_all(env.mock_addresses.erc721_a, "payment")
+    env.alice_client.erc721.approve_all(env.mock_addresses.erc721_a, "payment")
     
     # Verify approval for payment obligation using isApprovedForAll
     payment_approved = mock_erc721_a.is_approved_for_all(
@@ -44,7 +44,7 @@ async def test_erc721_approve_all():
     
     # Test approve_all for escrow
     print("Testing approve_all for escrow purpose...")
-    await env.alice_client.erc721.approve_all(env.mock_addresses.erc721_a, "escrow")
+    env.alice_client.erc721.approve_all(env.mock_addresses.erc721_a, "escrow")
     
     # Verify approval for escrow obligation using isApprovedForAll
     escrow_approved = mock_erc721_a.is_approved_for_all(

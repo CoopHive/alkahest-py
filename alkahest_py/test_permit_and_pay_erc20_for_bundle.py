@@ -51,7 +51,7 @@ async def test_permit_and_pay_erc20_for_bundle():
     }
     
     # Step 1: Bob approves his tokens for the bundle escrow
-    await env.bob_client.token_bundle.approve(bundle_data, "escrow")
+    env.bob_client.token_bundle.approve(bundle_data, "escrow")
     
     # Step 2: Bob creates bundle escrow demanding ERC20 from Alice
     # Create proper ABI-encoded payment statement data
@@ -69,7 +69,7 @@ async def test_permit_and_pay_erc20_for_bundle():
         "demand": demand_bytes
     }
     
-    buy_result = await env.bob_client.token_bundle.buy_with_bundle(
+    buy_result = env.bob_client.token_bundle.buy_with_bundle(
         bundle_data, arbiter_data, expiration
     )
     
@@ -83,7 +83,7 @@ async def test_permit_and_pay_erc20_for_bundle():
     # initial_alice_erc1155_balance = mock_erc1155_a.balance_of(env.alice, erc1155_token_id)  # When available
     
     # Step 3: Alice fulfills Bob's bundle escrow using permit (no pre-approval needed)
-    pay_result = await env.alice_client.erc20.permit_and_pay_erc20_for_bundle(buy_attestation_uid)
+    pay_result = env.alice_client.erc20.permit_and_pay_erc20_for_bundle(buy_attestation_uid)
     
     assert not (not pay_result['log']['uid'] or pay_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid payment attestation UID"
     

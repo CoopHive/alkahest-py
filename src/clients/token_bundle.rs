@@ -24,7 +24,7 @@ impl TokenBundleClient {
 
 #[pymethods]
 impl TokenBundleClient {
-    pub async fn approve(&self, token: TokenBundleData, purpose: String) -> eyre::Result<String> {
+    pub fn approve(&self, token: TokenBundleData, purpose: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let purpose = match purpose.as_str() {
                 "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
@@ -41,7 +41,7 @@ impl TokenBundleClient {
         })
     }
 
-    pub async fn collect_payment(
+    pub fn collect_payment(
         &self,
         buy_attestation: String,
         fulfillment: String,
@@ -55,14 +55,14 @@ impl TokenBundleClient {
         })
     }
 
-    pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
+    pub fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub async fn buy_with_bundle(
+    pub fn buy_with_bundle(
         &self,
         price: TokenBundleData,
         item: ArbiterData,
@@ -80,7 +80,7 @@ impl TokenBundleClient {
         })
     }
 
-    pub async fn pay_with_bundle(
+    pub fn pay_with_bundle(
         &self,
         price: TokenBundleData,
         payee: String,
@@ -97,7 +97,7 @@ impl TokenBundleClient {
         })
     }
 
-    pub async fn buy_bundle_for_bundle(
+    pub fn buy_bundle_for_bundle(
         &self,
         bid: TokenBundleData,
         ask: TokenBundleData,
@@ -115,7 +115,7 @@ impl TokenBundleClient {
         })
     }
 
-    pub async fn pay_bundle_for_bundle(
+    pub fn pay_bundle_for_bundle(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {

@@ -27,11 +27,7 @@ impl Erc1155Client {
 
 #[pymethods]
 impl Erc1155Client {
-    pub async fn approve_all(
-        &self,
-        token_contract: String,
-        purpose: String,
-    ) -> eyre::Result<String> {
+    pub fn approve_all(&self, token_contract: String, purpose: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let token_contract: Address = token_contract.parse()?;
             let purpose = match purpose.as_str() {
@@ -44,11 +40,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn revoke_all(
-        &self,
-        token_contract: String,
-        purpose: String,
-    ) -> eyre::Result<String> {
+    pub fn revoke_all(&self, token_contract: String, purpose: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let token_contract: Address = token_contract.parse()?;
             let purpose = match purpose.as_str() {
@@ -61,7 +53,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn collect_payment(
+    pub fn collect_payment(
         &self,
         buy_attestation: String,
         fulfillment: String,
@@ -75,14 +67,14 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
+    pub fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub async fn buy_with_erc1155(
+    pub fn buy_with_erc1155(
         &self,
         price: Erc1155Data,
         item: ArbiterData,
@@ -100,7 +92,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn pay_with_erc_1155(
+    pub fn pay_with_erc_1155(
         &self,
         price: Erc1155Data,
         payee: String,
@@ -118,7 +110,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn buy_erc1155_for_erc1155(
+    pub fn buy_erc1155_for_erc1155(
         &self,
         bid: Erc1155Data,
         ask: Erc1155Data,
@@ -136,7 +128,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn pay_erc1155_for_erc1155(
+    pub fn pay_erc1155_for_erc1155(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -152,7 +144,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn buy_erc20_with_erc1155(
+    pub fn buy_erc20_with_erc1155(
         &self,
         bid: Erc1155Data,
         ask: Erc20Data,
@@ -170,7 +162,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn pay_erc1155_for_erc20(
+    pub fn pay_erc1155_for_erc20(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -186,7 +178,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn buy_erc721_with_erc1155(
+    pub fn buy_erc721_with_erc1155(
         &self,
         bid: Erc1155Data,
         ask: Erc721Data,
@@ -204,7 +196,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn pay_erc1155_for_erc721(
+    pub fn pay_erc1155_for_erc721(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -220,7 +212,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn buy_bundle_with_erc1155(
+    pub fn buy_bundle_with_erc1155(
         &self,
         bid: Erc1155Data,
         ask: TokenBundleData,
@@ -238,7 +230,7 @@ impl Erc1155Client {
         })
     }
 
-    pub async fn pay_erc1155_for_bundle(
+    pub fn pay_erc1155_for_bundle(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {

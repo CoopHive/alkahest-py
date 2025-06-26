@@ -27,7 +27,7 @@ impl Erc721Client {
 
 #[pymethods]
 impl Erc721Client {
-    pub async fn approve(&self, token: Erc721Data, purpose: String) -> eyre::Result<String> {
+    pub fn approve(&self, token: Erc721Data, purpose: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let purpose = match purpose.as_str() {
                 "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
@@ -40,11 +40,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn approve_all(
-        &self,
-        token_contract: String,
-        purpose: String,
-    ) -> eyre::Result<String> {
+    pub fn approve_all(&self, token_contract: String, purpose: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let token_contract: Address = token_contract.parse()?;
             let purpose = match purpose.as_str() {
@@ -58,11 +54,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn revoke_all(
-        &self,
-        token_contract: String,
-        purpose: String,
-    ) -> eyre::Result<String> {
+    pub fn revoke_all(&self, token_contract: String, purpose: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let token_contract: Address = token_contract.parse()?;
             let purpose = match purpose.as_str() {
@@ -76,7 +68,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn collect_payment(
+    pub fn collect_payment(
         &self,
         buy_attestation: String,
         fulfillment: String,
@@ -90,14 +82,14 @@ impl Erc721Client {
         })
     }
 
-    pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
+    pub fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub async fn buy_with_erc721(
+    pub fn buy_with_erc721(
         &self,
         price: Erc721Data,
         item: ArbiterData,
@@ -115,7 +107,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn pay_with_erc721(
+    pub fn pay_with_erc721(
         &self,
         price: Erc721Data,
         payee: String,
@@ -132,7 +124,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn buy_erc_721_for_erc_721(
+    pub fn buy_erc_721_for_erc_721(
         &self,
         bid: Erc721Data,
         ask: Erc721Data,
@@ -150,7 +142,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn pay_erc_721_for_erc_721(
+    pub fn pay_erc_721_for_erc_721(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -166,7 +158,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn buy_erc20_with_erc721(
+    pub fn buy_erc20_with_erc721(
         &self,
         bid: Erc721Data,
         ask: Erc20Data,
@@ -184,7 +176,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn pay_erc721_for_erc20(
+    pub fn pay_erc721_for_erc20(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -200,7 +192,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn buy_erc1155_with_erc721(
+    pub fn buy_erc1155_with_erc721(
         &self,
         bid: Erc721Data,
         ask: Erc1155Data,
@@ -218,7 +210,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn pay_erc721_for_erc1155(
+    pub fn pay_erc721_for_erc1155(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -234,7 +226,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn buy_bundle_with_erc721(
+    pub fn buy_bundle_with_erc721(
         &self,
         bid: Erc721Data,
         ask: TokenBundleData,
@@ -252,7 +244,7 @@ impl Erc721Client {
         })
     }
 
-    pub async fn pay_erc721_for_bundle(
+    pub fn pay_erc721_for_bundle(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {

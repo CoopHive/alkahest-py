@@ -158,7 +158,7 @@ impl PyAlkahestClient {
     }
 
     #[pyo3(signature = (contract_address, buy_attestation, from_block=None))]
-    pub async fn wait_for_fulfillment(
+    pub fn wait_for_fulfillment(
         &self,
         contract_address: String,
         buy_attestation: String,

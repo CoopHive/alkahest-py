@@ -26,7 +26,7 @@ impl Erc20Client {
 
 #[pymethods]
 impl Erc20Client {
-    pub async fn approve(&self, token: Erc20Data, purpose: String) -> eyre::Result<String> {
+    pub fn approve(&self, token: Erc20Data, purpose: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let purpose = match purpose.as_str() {
                 "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
@@ -39,7 +39,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn approve_if_less(
+    pub fn approve_if_less(
         &self,
         token: Erc20Data,
         purpose: String,
@@ -59,7 +59,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn collect_payment(
+    pub fn collect_payment(
         &self,
         buy_attestation: String,
         fulfillment: String,
@@ -73,14 +73,14 @@ impl Erc20Client {
         })
     }
 
-    pub async fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
+    pub fn collect_expired(&self, buy_attestation: String) -> eyre::Result<String> {
         self.runtime.block_on(async {
             let receipt = self.inner.collect_expired(buy_attestation.parse()?).await?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub async fn buy_with_erc20(
+    pub fn buy_with_erc20(
         &self,
         price: Erc20Data,
         item: ArbiterData,
@@ -98,7 +98,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_buy_with_erc20(
+    pub fn permit_and_buy_with_erc20(
         &self,
         price: Erc20Data,
         item: ArbiterData,
@@ -129,7 +129,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn pay_with_erc20(
+    pub fn pay_with_erc20(
         &self,
         price: Erc20Data,
         payee: String,
@@ -146,7 +146,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_pay_with_erc20(
+    pub fn permit_and_pay_with_erc20(
         &self,
         price: Erc20Data,
         payee: String,
@@ -163,7 +163,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn buy_erc20_for_erc20(
+    pub fn buy_erc20_for_erc20(
         &self,
         bid: Erc20Data,
         ask: Erc20Data,
@@ -181,7 +181,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_buy_erc20_for_erc20(
+    pub fn permit_and_buy_erc20_for_erc20(
         &self,
         bid: Erc20Data,
         ask: Erc20Data,
@@ -199,7 +199,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn pay_erc20_for_erc20(
+    pub fn pay_erc20_for_erc20(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -215,7 +215,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_pay_erc20_for_erc20(
+    pub fn permit_and_pay_erc20_for_erc20(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -231,7 +231,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn buy_erc721_for_erc20(
+    pub fn buy_erc721_for_erc20(
         &self,
         bid: Erc20Data,
         ask: Erc721Data,
@@ -249,7 +249,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_buy_erc721_for_erc20(
+    pub fn permit_and_buy_erc721_for_erc20(
         &self,
         bid: Erc20Data,
         ask: Erc721Data,
@@ -267,7 +267,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn pay_erc20_for_erc721(
+    pub fn pay_erc20_for_erc721(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -283,7 +283,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_pay_erc20_for_erc721(
+    pub fn permit_and_pay_erc20_for_erc721(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -299,7 +299,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn buy_erc1155_for_erc20(
+    pub fn buy_erc1155_for_erc20(
         &self,
         bid: Erc20Data,
         ask: Erc1155Data,
@@ -317,7 +317,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_buy_erc1155_for_erc20(
+    pub fn permit_and_buy_erc1155_for_erc20(
         &self,
         bid: Erc20Data,
         ask: Erc1155Data,
@@ -336,7 +336,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn pay_erc20_for_erc1155(
+    pub fn pay_erc20_for_erc1155(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -352,7 +352,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_pay_erc20_for_erc1155(
+    pub fn permit_and_pay_erc20_for_erc1155(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -368,7 +368,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn buy_bundle_for_erc20(
+    pub fn buy_bundle_for_erc20(
         &self,
         bid: Erc20Data,
         ask: TokenBundleData,
@@ -387,7 +387,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_buy_bundle_for_erc20(
+    pub fn permit_and_buy_bundle_for_erc20(
         &self,
         bid: Erc20Data,
         ask: TokenBundleData,
@@ -405,7 +405,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn pay_erc20_for_bundle(
+    pub fn pay_erc20_for_bundle(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {
@@ -421,7 +421,7 @@ impl Erc20Client {
         })
     }
 
-    pub async fn permit_and_pay_erc20_for_bundle(
+    pub fn permit_and_pay_erc20_for_bundle(
         &self,
         buy_attestation: String,
     ) -> eyre::Result<LogWithHash<AttestedLog>> {

@@ -24,7 +24,7 @@ async def test_erc721_approve():
     token_data = {"address": env.mock_addresses.erc721_a, "id": 1}
     
     # Test approve for payment
-    await env.alice_client.erc721.approve(token_data, "payment")
+    env.alice_client.erc721.approve(token_data, "payment")
     
     # Verify approval for payment obligation
     payment_approved = mock_erc721_a.get_approved(1)
@@ -35,7 +35,7 @@ async def test_erc721_approve():
     print(f"✓ Payment approval verified: token 1 approved for {payment_approved}")
     
     # Test approve for escrow
-    await env.alice_client.erc721.approve(token_data, "escrow")
+    env.alice_client.erc721.approve(token_data, "escrow")
     
     # Verify approval for escrow obligation
     escrow_approved = mock_erc721_a.get_approved(1)
