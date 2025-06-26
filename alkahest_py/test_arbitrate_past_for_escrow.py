@@ -16,6 +16,7 @@ from alkahest_py import (
     EscrowParams,
     EscrowArbitrationResult,
 )
+from eth_abi import encode
 
 @pytest.mark.asyncio
 async def test_arbitrate_past_for_escrow():
@@ -31,9 +32,12 @@ async def test_arbitrate_past_for_escrow():
     trusted_oracle_arbiter = env.addresses.arbiters_addresses.trusted_oracle_arbiter
     
     # Create proper demand data with Bob as the oracle
-    demand_data = TrustedOracleArbiterDemandData(env.bob, [])
-    demand_bytes = demand_data.encode_self()
-    
+    oracle = env.bob
+    data = b''
+
+    # Encode as Solidity struct: tuple(address, bytes)
+    demand_bytes = encode(['(address,bytes)'], [(oracle, data)])
+
     arbiter = {
         "arbiter": trusted_oracle_arbiter,
         "demand": demand_bytes
