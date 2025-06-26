@@ -1,7 +1,7 @@
-import asyncio
+import pytest
 from alkahest_py import PyTestEnvManager, PyMockERC1155
 
-
+@pytest.mark.asyncio
 async def test_erc1155_revoke_all():
     """
     Test ERC1155 revoke_all functionality for payment purpose.
@@ -13,68 +13,43 @@ async def test_erc1155_revoke_all():
     3. Then revoke_all for payment purpose
     4. Verify that approval has been revoked using isApprovedForAll
     """
-    try:
-        env = PyTestEnvManager()
-        
-        # Setup mock ERC1155 token
-        mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
-        
-        # Mint ERC1155 tokens to Alice
-        mock_erc1155_a.mint(env.alice, 1, 10)
-        print(f"Minted 10 ERC1155 tokens (ID: 1) to Alice")
-        
-        # Verify Alice owns the tokens
-        alice_balance = mock_erc1155_a.balance_of(env.alice, 1)
-        if alice_balance != 10:
-            raise Exception(f"Token ownership verification failed. Expected 10, got {alice_balance}")
-        
-        # First approve_all for payment
-        print("Setting approve_all for payment purpose...")
-        await env.alice_client.erc1155.approve_all(env.mock_addresses.erc1155_a, "payment")
-        
-        # Verify approval was set
-        payment_approved_before = mock_erc1155_a.is_approved_for_all(
-            env.alice, 
-            env.addresses.erc1155_addresses.payment_obligation
-        )
-        
-        if not payment_approved_before:
-            raise Exception("Payment approval should be set before revocation")
-        
-        print("✅ Payment approve_all verified as set")
-        
-        # Then revoke_all for payment
-        print("Revoking all approvals for payment purpose...")
-        await env.alice_client.erc1155.revoke_all(env.mock_addresses.erc1155_a, "payment")
-        
-        # Verify revocation
-        payment_approved_after = mock_erc1155_a.is_approved_for_all(
-            env.alice, 
-            env.addresses.erc1155_addresses.payment_obligation
-        )
-        
-        if payment_approved_after:
-            raise Exception("Payment approval should be revoked")
-        
-        print("✅ Payment approval successfully revoked")
-        
-        print("✅ test_erc1155_revoke_all PASSED")
-        return True
-        
-    except Exception as e:
-        print(f"❌ test_erc1155_revoke_all FAILED: {e}")
-        raise
-
-
-async def main():
-    try:
-        success = await test_erc1155_revoke_all()
-        return 0 if success else 1
-    except Exception as e:
-        print(f"Test execution failed: {e}")
-        return 1
-
-
-if __name__ == "__main__":
-    exit_code = asyncio.run(main())
-    exit(exit_code)
+    env = PyTestEnvManager()
+    
+    # Setup mock ERC1155 token
+    mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
+    
+    # Mint ERC1155 tokens to Alice
+    mock_erc1155_a.mint(env.alice, 1, 10)
+    print(f"Minted 10 ERC1155 tokens (ID: 1) to Alice")
+    
+    # Verify Alice owns the tokens
+    alice_balance = mock_erc1155_a.balance_of(env.alice, 1)
+    assert not (alice_balance != 10), "Token ownership verification failed. Expected 10, got {alice_balance}"
+    
+    # First approve_all for payment
+    print("Setting approve_all for payment purpose...")
+    await env.alice_client.erc1155.approve_all(env.mock_addresses.erc1155_a, "payment")
+    
+    # Verify approval was set
+    payment_approved_before = mock_erc1155_a.is_approved_for_all(
+        env.alice, 
+        env.addresses.erc1155_addresses.payment_obligation
+    )
+    
+    assert not (not payment_approved_before), "Payment approval should be set before revocation"
+    
+    print("✅ Payment approve_all verified as set")
+    
+    # Then revoke_all for payment
+    print("Revoking all approvals for payment purpose...")
+    await env.alice_client.erc1155.revoke_all(env.mock_addresses.erc1155_a, "payment")
+    
+    # Verify revocation
+    payment_approved_after = mock_erc1155_a.is_approved_for_all(
+        env.alice, 
+        env.addresses.erc1155_addresses.payment_obligation
+    )
+    
+    assert not (payment_approved_after), "Payment approval should be revoked"
+    
+    print("✅ Payment approval successfully revoked")
