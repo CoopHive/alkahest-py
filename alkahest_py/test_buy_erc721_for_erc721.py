@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC721
+from alkahest_py import EnvTestManager, MockERC721
 
 @pytest.mark.asyncio
 async def test_buy_erc721_for_erc721():
@@ -9,10 +9,10 @@ async def test_buy_erc721_for_erc721():
     
     Flow: Alice escrows ERC721 A to buy ERC721 B
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC721 tokens
-    mock_erc721_a = PyMockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
+    mock_erc721_a = MockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
     
     # Mint an ERC721 token to Alice
     token_id_a = mock_erc721_a.mint(env.alice)

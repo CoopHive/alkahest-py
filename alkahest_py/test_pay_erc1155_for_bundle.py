@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC1155, PyMockERC20, PyMockERC721, PyERC1155PaymentObligationStatement
+from alkahest_py import EnvTestManager, MockERC1155, MockERC20, MockERC721, ERC1155PaymentObligationStatement
 
 @pytest.mark.asyncio
 async def test_pay_erc1155_for_bundle():
@@ -13,13 +13,13 @@ async def test_pay_erc1155_for_bundle():
     3. Alice fulfills the escrow with her ERC1155 tokens
     4. Verify both parties received their tokens
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock tokens
-    mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
-    mock_erc20_b = PyMockERC20(env.mock_addresses.erc20_b, env.god_wallet_provider)
-    mock_erc721_b = PyMockERC721(env.mock_addresses.erc721_b, env.god_wallet_provider)
-    mock_erc1155_b = PyMockERC1155(env.mock_addresses.erc1155_b, env.god_wallet_provider)
+    mock_erc1155_a = MockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
+    mock_erc20_b = MockERC20(env.mock_addresses.erc20_b, env.god_wallet_provider)
+    mock_erc721_b = MockERC721(env.mock_addresses.erc721_b, env.god_wallet_provider)
+    mock_erc1155_b = MockERC1155(env.mock_addresses.erc1155_b, env.god_wallet_provider)
     
     # Mint ERC1155 tokens to Alice (she will fulfill with these)
     mock_erc1155_a.mint(env.alice, 1, 10)
@@ -53,7 +53,7 @@ async def test_pay_erc1155_for_bundle():
     }
     
     # Create the ERC1155 payment statement data as the demand
-    payment_statement = PyERC1155PaymentObligationStatement(
+    payment_statement = ERC1155PaymentObligationStatement(
         token=env.mock_addresses.erc1155_a,
         token_id="1",
         amount="5",

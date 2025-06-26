@@ -2,23 +2,23 @@ import pytest
 import time
 import threading
 from alkahest_py import (
-    PyTestEnvManager,
-    PyStringObligationStatementData,
-    PyAttestationFilter,
-    PyFulfillmentParams,
-    PyArbitrateOptions,
-    PyMockERC20,
-    PyTrustedOracleArbiterDemandData,
+    EnvTestManager,
+    StringObligationStatementData,
+    AttestationFilter,
+    FulfillmentParams,
+    ArbitrateOptions,
+    MockERC20,
+    TrustedOracleArbiterDemandData,
 )
 
 @pytest.mark.asyncio
 async def test_listen_and_arbitrate_no_spawn():
     """Test complete listen_and_arbitrate_no_spawn flow with concurrent threading and callback verification"""
     # Setup test environment
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup escrow with proper oracle demand data
-    mock_erc20 = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
+    mock_erc20 = MockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
     mock_erc20.transfer(env.alice, 100)
     
     price = {"address": env.mock_addresses.erc20_a, "value": 100}
@@ -26,7 +26,7 @@ async def test_listen_and_arbitrate_no_spawn():
     
     # Create proper demand data with Bob as the oracle
     oracle_client = env.bob_client.oracle
-    demand_data = PyTrustedOracleArbiterDemandData(env.bob, [])
+    demand_data = TrustedOracleArbiterDemandData(env.bob, [])
     demand_bytes = demand_data.encode_self()
     
     arbiter = {
@@ -42,7 +42,7 @@ async def test_listen_and_arbitrate_no_spawn():
     print(f"Escrow created with UID: {escrow_uid}")
     
     # Create filter and fulfillment params for listening
-    filter_obj = PyAttestationFilter(
+    filter_obj = AttestationFilter(
         attester=env.addresses.string_obligation_addresses.obligation,
         recipient=env.bob,
         schema_uid=None,
@@ -52,13 +52,13 @@ async def test_listen_and_arbitrate_no_spawn():
         to_block=None,
     )
     
-    statement_abi = PyStringObligationStatementData(item="")
-    fulfillment_params = PyFulfillmentParams(
+    statement_abi = StringObligationStatementData(item="")
+    fulfillment_params = FulfillmentParams(
         statement_abi=statement_abi,
         filter=filter_obj
     )
     
-    options = PyArbitrateOptions(
+    options = ArbitrateOptions(
         require_oracle=True,
         skip_arbitrated=False
     )

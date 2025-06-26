@@ -1,15 +1,15 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyStringObligationStatementData
+from alkahest_py import EnvTestManager, StringObligationStatementData
 
 @pytest.mark.asyncio
 async def test_basic_encode_decode():
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
-    obligation = PyStringObligationStatementData(
+    obligation = StringObligationStatementData(
         item="test string obligation data"
     )
     
-    encoded_data = PyStringObligationStatementData.encode(obligation)
-    decoded_obligation = PyStringObligationStatementData.decode(encoded_data)
+    encoded_data = StringObligationStatementData.encode(obligation)
+    decoded_obligation = StringObligationStatementData.decode(encoded_data)
 
     assert obligation.item == decoded_obligation.item, "Item mismatch"

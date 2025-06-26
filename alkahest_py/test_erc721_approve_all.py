@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC721
+from alkahest_py import EnvTestManager, MockERC721
 
 @pytest.mark.asyncio
 async def test_erc721_approve_all():
@@ -12,10 +12,10 @@ async def test_erc721_approve_all():
     2. Test approve_all for payment purpose and verify with isApprovedForAll
     3. Test approve_all for escrow purpose and verify with isApprovedForAll
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC721 token
-    mock_erc721_a = PyMockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
+    mock_erc721_a = MockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
     
     # Mint ERC721 tokens to Alice (mint 2 tokens like in Rust version)
     token_id_1 = mock_erc721_a.mint(env.alice)

@@ -38,7 +38,7 @@ use crate::{
     },
     fixtures::{PyMockERC1155, PyMockERC20, PyMockERC721},
     types::PyErc20Data,
-    utils::{PyTestEnvManager, PyWalletProvider},
+    utils::{EnvTestManager, PyWalletProvider},
 };
 
 pub mod clients;
@@ -206,7 +206,7 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTrustedOracleArbiterDemandData>()?;
     m.add_class::<PyEscrowParams>()?;
     m.add_class::<PyEscrowArbitrationResult>()?;
-    m.add_class::<PyTestEnvManager>()?;
+    m.add_class::<EnvTestManager>()?;
     m.add_class::<PyWalletProvider>()?;
     m.add_class::<PyMockERC20>()?;
     m.add_class::<PyMockERC721>()?;

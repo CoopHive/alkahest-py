@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC20
+from alkahest_py import EnvTestManager, MockERC20
 
 @pytest.mark.asyncio
 async def test_buy_erc1155_for_erc20():
@@ -7,10 +7,10 @@ async def test_buy_erc1155_for_erc20():
     Test buying ERC1155 tokens with ERC20 tokens.
     This corresponds to test_buy_erc1155_for_erc20() in main.rs
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC20 token  
-    mock_erc20 = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
+    mock_erc20 = MockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
     
     # Give Alice some ERC20 tokens (for bidding)
     alice_initial_erc20 = mock_erc20.balance_of(env.alice)

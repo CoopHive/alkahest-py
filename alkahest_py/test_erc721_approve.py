@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC721
+from alkahest_py import EnvTestManager, MockERC721
 
 @pytest.mark.asyncio
 async def test_erc721_approve():
@@ -12,10 +12,10 @@ async def test_erc721_approve():
     2. Test approve for payment purpose and verify approval
     3. Test approve for escrow purpose and verify approval
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC721 token
-    mock_erc721_a = PyMockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
+    mock_erc721_a = MockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
     
     # Mint an ERC721 token to Alice (token ID 1)
     mock_erc721_a.mint(env.alice)

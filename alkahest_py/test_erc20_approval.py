@@ -1,11 +1,11 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC20
+from alkahest_py import EnvTestManager, MockERC20
 
 @pytest.mark.asyncio
 async def test_erc20_approvals():
     # Test payment approval
-    env1 = PyTestEnvManager()
-    mock_erc20_1 = PyMockERC20(env1.mock_addresses.erc20_a, env1.god_wallet_provider)
+    env1 = EnvTestManager()
+    mock_erc20_1 = MockERC20(env1.mock_addresses.erc20_a, env1.god_wallet_provider)
     
     mock_erc20_1.transfer(env1.alice, 100)
     
@@ -16,8 +16,8 @@ async def test_erc20_approvals():
     assert payment_allowance == 100, "Payment approval failed"
 
     # Test escrow approval
-    env2 = PyTestEnvManager()
-    mock_erc20_2 = PyMockERC20(env2.mock_addresses.erc20_a, env2.god_wallet_provider)
+    env2 = EnvTestManager()
+    mock_erc20_2 = MockERC20(env2.mock_addresses.erc20_a, env2.god_wallet_provider)
     
     mock_erc20_2.transfer(env2.alice, 100)
     

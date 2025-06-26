@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC20, PyMockERC1155
+from alkahest_py import EnvTestManager, MockERC20, MockERC1155
 
 @pytest.mark.asyncio
 async def test_permit_and_pay_erc20_for_erc1155():
@@ -9,17 +9,17 @@ async def test_permit_and_pay_erc20_for_erc1155():
     
     Flow: Bob escrows ERC1155, Alice pays ERC20 using permit to get the ERC1155
     
-    ⚠️ KNOWN LIMITATION: This test currently fails because PyMockERC1155 is not yet 
+    ⚠️ KNOWN LIMITATION: This test currently fails because MockERC1155 is not yet 
     available in the Python module. Bob cannot mint/own ERC1155 tokens before 
     trying to approve them for escrow, causing a "not token owner" error.
     
-    TO FIX: Export PyMockERC1155 in lib.rs and ensure it's available in the Python module.
+    TO FIX: Export MockERC1155 in lib.rs and ensure it's available in the Python module.
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock tokens
-    mock_erc20_a = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
-    mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
+    mock_erc20_a = MockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
+    mock_erc1155_a = MockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
     
     # Give Alice ERC20 tokens and Bob ERC1155 tokens
     alice_initial_erc20 = mock_erc20_a.balance_of(env.alice)

@@ -1,19 +1,19 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyERC20EscrowObligationStatement
+from alkahest_py import EnvTestManager, ERC20EscrowObligationStatement
 
 @pytest.mark.asyncio
 async def test_basic_encode_decode():
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
-    obligation = PyERC20EscrowObligationStatement(
+    obligation = ERC20EscrowObligationStatement(
     token=env.mock_addresses.erc20_a,
     amount=100,
     arbiter=env.addresses.erc20_addresses.payment_obligation,
     demand=[1, 2, 3, 4, 5]
     )
     
-    encoded_data = PyERC20EscrowObligationStatement.encode(obligation)
-    decoded_obligation = PyERC20EscrowObligationStatement.decode(encoded_data)
+    encoded_data = ERC20EscrowObligationStatement.encode(obligation)
+    decoded_obligation = ERC20EscrowObligationStatement.decode(encoded_data)
 
     assert obligation.amount == decoded_obligation.amount, "Amount mismatch"
     assert obligation.token.lower() == decoded_obligation.token.lower(), "Token mismatch"

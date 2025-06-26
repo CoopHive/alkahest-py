@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC1155, PyMockERC20
+from alkahest_py import EnvTestManager, MockERC1155, MockERC20
 
 @pytest.mark.asyncio
 async def test_pay_erc1155_for_erc20():
@@ -13,11 +13,11 @@ async def test_pay_erc1155_for_erc20():
     3. Alice fulfills the escrow with her ERC1155 tokens
     4. Verify both parties received their tokens
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock tokens
-    mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
-    mock_erc20_a = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
+    mock_erc1155_a = MockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
+    mock_erc20_a = MockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
     
     # Mint ERC1155 tokens to Alice
     mock_erc1155_a.mint(env.alice, 1, 10)

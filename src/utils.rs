@@ -45,7 +45,7 @@ impl From<&MockAddresses> for PyMockAddresses {
 }
 
 #[pyclass]
-pub struct PyTestEnvManager {
+pub struct EnvTestManager {
     inner: TestContext, // Optional: keep TestContext for internal Rust usage
     runtime: tokio::runtime::Runtime,
 
@@ -70,7 +70,7 @@ pub struct PyTestEnvManager {
 }
 
 #[pymethods]
-impl PyTestEnvManager {
+impl EnvTestManager {
     #[new]
     pub fn new() -> PyResult<Self> {
         let rt = tokio::runtime::Runtime::new()?;

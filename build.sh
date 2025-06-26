@@ -1,12 +1,9 @@
 source .env/bin/activate
 maturin develop
 
-# Run comprehensive ERC20 test suite
-echo "Running comprehensive ERC20 test suite..."
-python alkahest_py/run_all_tests.py
+echo "Running test suite..."
+pytest -v
 
-# Individual test files (for debugging if needed)
-echo "Running individual tests..."
 
 
 

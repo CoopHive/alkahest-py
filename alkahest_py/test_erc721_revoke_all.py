@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC721
+from alkahest_py import EnvTestManager, MockERC721
 
 @pytest.mark.asyncio
 async def test_erc721_revoke_all():
@@ -13,10 +13,10 @@ async def test_erc721_revoke_all():
     3. Then revoke_all for payment purpose
     4. Verify that approval has been revoked using isApprovedForAll
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC721 token
-    mock_erc721_a = PyMockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
+    mock_erc721_a = MockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
     
     # Mint ERC721 token to Alice
     token_id = mock_erc721_a.mint(env.alice)

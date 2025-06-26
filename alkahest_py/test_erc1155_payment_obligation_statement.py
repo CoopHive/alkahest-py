@@ -1,11 +1,11 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyERC1155PaymentObligationStatement
+from alkahest_py import EnvTestManager, ERC1155PaymentObligationStatement
 
 @pytest.mark.asyncio
 async def test_basic_encode_decode():
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
-    obligation = PyERC1155PaymentObligationStatement(
+    obligation = ERC1155PaymentObligationStatement(
     token=env.mock_addresses.erc1155_a,
     token_id="98765",
     amount="500",
@@ -13,14 +13,14 @@ async def test_basic_encode_decode():
     )
     
     # Test encoding
-    encoded_data = PyERC1155PaymentObligationStatement.encode(obligation)
+    encoded_data = ERC1155PaymentObligationStatement.encode(obligation)
     
     # Verify encoded data is bytes
     assert isinstance(encoded_data, bytes), "Encoded data should be bytes"
     assert len(encoded_data) > 0, "Encoded data should have content"
     
     # Test decoding
-    decoded_obligation = PyERC1155PaymentObligationStatement.decode(encoded_data)
+    decoded_obligation = ERC1155PaymentObligationStatement.decode(encoded_data)
     
     assert obligation.token_id == decoded_obligation.token_id, "Token ID mismatch"
     assert obligation.amount == decoded_obligation.amount, "Amount mismatch"
@@ -29,7 +29,7 @@ async def test_basic_encode_decode():
     
     # Test __repr__ method
     repr_str = repr(obligation)
-    assert "PyERC1155PaymentObligationStatement" in repr_str, "Repr should contain class name"
+    assert "ERC1155PaymentObligationStatement" in repr_str, "Repr should contain class name"
     assert obligation.token in repr_str, "Repr should contain token address"
     assert obligation.token_id in repr_str, "Repr should contain token ID"
     assert obligation.amount in repr_str, "Repr should contain amount"

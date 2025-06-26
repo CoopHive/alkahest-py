@@ -6,32 +6,32 @@ Test the Oracle arbitrate_past_for_escrow functionality with complete escrow, ar
 import pytest
 import time
 from alkahest_py import (
-    PyTestEnvManager,
-    PyStringObligationStatementData,
-    PyAttestationFilter,
-    PyFulfillmentParams,
-    PyArbitrateOptions,
-    PyMockERC20,
-    PyTrustedOracleArbiterDemandData,
-    PyEscrowParams,
-    PyEscrowArbitrationResult,
+    EnvTestManager,
+    StringObligationStatementData,
+    AttestationFilter,
+    FulfillmentParams,
+    ArbitrateOptions,
+    MockERC20,
+    TrustedOracleArbiterDemandData,
+    EscrowParams,
+    EscrowArbitrationResult,
 )
 
 @pytest.mark.asyncio
 async def test_arbitrate_past_for_escrow():
     """Test complete arbitrate_past_for_escrow flow: escrow → fulfillment → arbitration → payment collection"""
     # Setup test environment
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup escrow with proper oracle demand data
-    mock_erc20 = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
+    mock_erc20 = MockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
     mock_erc20.transfer(env.alice, 100)
     
     price = {"address": env.mock_addresses.erc20_a, "value": 100}
     trusted_oracle_arbiter = env.addresses.arbiters_addresses.trusted_oracle_arbiter
     
     # Create proper demand data with Bob as the oracle
-    demand_data = PyTrustedOracleArbiterDemandData(env.bob, [])
+    demand_data = TrustedOracleArbiterDemandData(env.bob, [])
     demand_bytes = demand_data.encode_self()
     
     arbiter = {
@@ -47,11 +47,11 @@ async def test_arbitrate_past_for_escrow():
     
     # Make fulfillment statement
     string_client = env.bob_client.string_obligation
-    statement_data = PyStringObligationStatementData(item="good")
+    statement_data = StringObligationStatementData(item="good")
     fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
     
     # Setup escrow parameters for arbitration
-    escrow_filter = PyAttestationFilter(
+    escrow_filter = AttestationFilter(
         attester=env.addresses.erc20_addresses.escrow_obligation,
         recipient=None,
         schema_uid=None,
@@ -60,10 +60,10 @@ async def test_arbitrate_past_for_escrow():
         from_block=0,
         to_block=None
     )
-    escrow_params = PyEscrowParams(demand_bytes, escrow_filter)
+    escrow_params = EscrowParams(demand_bytes, escrow_filter)
     
     # Setup fulfillment parameters for arbitration
-    fulfillment_filter = PyAttestationFilter(
+    fulfillment_filter = AttestationFilter(
         attester=env.addresses.string_obligation_addresses.obligation,
         recipient=env.bob,
         schema_uid=None,
@@ -72,10 +72,10 @@ async def test_arbitrate_past_for_escrow():
         from_block=0,
         to_block=None
     )
-    fulfillment_params = PyFulfillmentParams(statement_data, fulfillment_filter)
+    fulfillment_params = FulfillmentParams(statement_data, fulfillment_filter)
     
     # Setup arbitration options
-    options = PyArbitrateOptions(require_oracle=True, skip_arbitrated=False)
+    options = ArbitrateOptions(require_oracle=True, skip_arbitrated=False)
     
     # Define decision function that receives both statement and demand data
     def decision_function(statement_str, demand_data):

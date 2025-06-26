@@ -1,6 +1,6 @@
 import pytest
 import time
-from alkahest_py import PyTestEnvManager, PyMockERC721
+from alkahest_py import EnvTestManager, MockERC721
 
 @pytest.mark.asyncio
 async def test_collect_expired():
@@ -10,10 +10,10 @@ async def test_collect_expired():
     
     Flow: Alice creates escrow with short expiration, waits for expiration, then collects
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC721 token
-    mock_erc721_a = PyMockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
+    mock_erc721_a = MockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
     
     # Mint an ERC721 token to Alice
     token_id = mock_erc721_a.mint(env.alice)

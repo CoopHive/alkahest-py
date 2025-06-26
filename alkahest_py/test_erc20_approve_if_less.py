@@ -1,11 +1,11 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC20
+from alkahest_py import EnvTestManager, MockERC20
 
 
 @pytest.mark.asyncio
 async def test_approve_if_less():
-    test = PyTestEnvManager()
-    mock_erc20_a = PyMockERC20(test.mock_addresses.erc20_a, test.god_wallet_provider)
+    test = EnvTestManager()
+    mock_erc20_a = MockERC20(test.mock_addresses.erc20_a, test.god_wallet_provider)
     
     mock_erc20_a.transfer(test.alice, 1000)
     alice_balance = mock_erc20_a.balance_of(test.alice)

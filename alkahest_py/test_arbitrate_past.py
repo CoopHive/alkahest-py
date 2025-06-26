@@ -6,23 +6,23 @@ Test the Oracle arbitrate_past functionality with complete escrow, arbitration, 
 import pytest
 import time
 from alkahest_py import (
-    PyTestEnvManager,
-    PyStringObligationStatementData,
-    PyAttestationFilter,
-    PyFulfillmentParams,
-    PyArbitrateOptions,
-    PyMockERC20,
-    PyTrustedOracleArbiterDemandData,
+    EnvTestManager,
+    StringObligationStatementData,
+    AttestationFilter,
+    FulfillmentParams,
+    ArbitrateOptions,
+    MockERC20,
+    TrustedOracleArbiterDemandData,
 )
 
 @pytest.mark.asyncio
 async def test_arbitrate_past():
     """Test complete arbitrate_past flow: escrow → fulfillment → arbitration → payment collection"""
     # Setup test environment
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup escrow with proper oracle demand data
-    mock_erc20 = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
+    mock_erc20 = MockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
     mock_erc20.transfer(env.alice, 100)
     
     price = {"address": env.mock_addresses.erc20_a, "value": 100}
@@ -30,7 +30,7 @@ async def test_arbitrate_past():
     
     # Create proper demand data with Bob as the oracle
     oracle_client = env.bob_client.oracle
-    demand_data = PyTrustedOracleArbiterDemandData(env.bob, [])
+    demand_data = TrustedOracleArbiterDemandData(env.bob, [])
     demand_bytes = demand_data.encode_self()
     
     arbiter = {
@@ -46,11 +46,11 @@ async def test_arbitrate_past():
     
     # Make fulfillment statement
     string_client = env.bob_client.string_obligation
-    statement_data = PyStringObligationStatementData(item="good")
+    statement_data = StringObligationStatementData(item="good")
     fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
     
     # Create filter and fulfillment params
-    filter_obj = PyAttestationFilter(
+    filter_obj = AttestationFilter(
         attester=env.addresses.string_obligation_addresses.obligation,
         recipient=env.bob,
         schema_uid=None,
@@ -60,13 +60,13 @@ async def test_arbitrate_past():
         to_block=None,
     )
     
-    statement_abi = PyStringObligationStatementData(item="")
-    fulfillment_params = PyFulfillmentParams(
+    statement_abi = StringObligationStatementData(item="")
+    fulfillment_params = FulfillmentParams(
         statement_abi=statement_abi,
         filter=filter_obj
     )
     
-    options = PyArbitrateOptions(
+    options = ArbitrateOptions(
         require_oracle=True,
         skip_arbitrated=False
     )

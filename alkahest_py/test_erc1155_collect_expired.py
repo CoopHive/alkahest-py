@@ -1,6 +1,6 @@
 import pytest
 import time
-from alkahest_py import PyTestEnvManager, PyMockERC1155
+from alkahest_py import EnvTestManager, MockERC1155
 
 @pytest.mark.asyncio
 async def test_erc1155_collect_expired():
@@ -15,10 +15,10 @@ async def test_erc1155_collect_expired():
     4. Alice collects expired tokens back
     5. Verify tokens returned to Alice
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC1155 token
-    mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
+    mock_erc1155_a = MockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
     
     # Mint ERC1155 tokens to Alice
     mock_erc1155_a.mint(env.alice, 1, 10)

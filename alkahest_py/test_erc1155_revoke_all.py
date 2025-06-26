@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC1155
+from alkahest_py import EnvTestManager, MockERC1155
 
 @pytest.mark.asyncio
 async def test_erc1155_revoke_all():
@@ -13,10 +13,10 @@ async def test_erc1155_revoke_all():
     3. Then revoke_all for payment purpose
     4. Verify that approval has been revoked using isApprovedForAll
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC1155 token
-    mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
+    mock_erc1155_a = MockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
     
     # Mint ERC1155 tokens to Alice
     mock_erc1155_a.mint(env.alice, 1, 10)

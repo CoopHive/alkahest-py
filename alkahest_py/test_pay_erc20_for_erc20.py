@@ -1,13 +1,13 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC20
+from alkahest_py import EnvTestManager, MockERC20
 
 @pytest.mark.asyncio
 async def test_pay_erc20_for_erc20():
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock ERC20 tokens
-    mock_erc20_a = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
-    mock_erc20_b = PyMockERC20(env.mock_addresses.erc20_b, env.god_wallet_provider)
+    mock_erc20_a = MockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)
+    mock_erc20_b = MockERC20(env.mock_addresses.erc20_b, env.god_wallet_provider)
     
     # Give Alice some token A (for bidding)
     alice_initial_a = mock_erc20_a.balance_of(env.alice)

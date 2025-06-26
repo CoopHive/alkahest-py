@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import PyTestEnvManager, PyMockERC20, PyMockERC721, PyMockERC1155, PyERC20PaymentObligationStatement
+from alkahest_py import EnvTestManager, MockERC20, MockERC721, MockERC1155, ERC20PaymentObligationStatement
 
 @pytest.mark.asyncio
 async def test_pay_erc20_for_bundle():
@@ -9,13 +9,13 @@ async def test_pay_erc20_for_bundle():
     
     Flow: Bob escrows a bundle (ERC20 + ERC721 + ERC1155), Alice pays ERC20 to get the bundle
     """
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     
     # Setup mock tokens
-    mock_erc20_a = PyMockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)  # Alice's payment token
-    mock_erc20_b = PyMockERC20(env.mock_addresses.erc20_b, env.god_wallet_provider)  # Bob's bundle token
-    mock_erc721_a = PyMockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
-    mock_erc1155_a = PyMockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
+    mock_erc20_a = MockERC20(env.mock_addresses.erc20_a, env.god_wallet_provider)  # Alice's payment token
+    mock_erc20_b = MockERC20(env.mock_addresses.erc20_b, env.god_wallet_provider)  # Bob's bundle token
+    mock_erc721_a = MockERC721(env.mock_addresses.erc721_a, env.god_wallet_provider)
+    mock_erc1155_a = MockERC1155(env.mock_addresses.erc1155_a, env.god_wallet_provider)
     
     # Give Alice ERC20 tokens for payment
     alice_initial_erc20 = mock_erc20_a.balance_of(env.alice)
@@ -52,7 +52,7 @@ async def test_pay_erc20_for_bundle():
     
     # Step 2: Bob creates bundle escrow demanding ERC20 from Alice
     # Create proper ABI-encoded payment statement data
-    payment_statement = PyERC20PaymentObligationStatement(
+    payment_statement = ERC20PaymentObligationStatement(
         token=env.mock_addresses.erc20_a,
         amount=erc20_amount,
         payee=env.bob

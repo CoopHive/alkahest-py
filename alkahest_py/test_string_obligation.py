@@ -3,16 +3,16 @@ Single comprehensive test for String Obligation with PyDecodedAttestation<T>
 """
 import pytest
 from alkahest_py import (
-    PyTestEnvManager,
-    PyStringObligationStatementData,
+    EnvTestManager,
+    StringObligationStatementData,
 )
 
 @pytest.mark.asyncio
 async def test_string_obligation():
-    env = PyTestEnvManager()
+    env = EnvTestManager()
     string_client = env.alice_client.string_obligation
     
-    statement_data = PyStringObligationStatementData(item="Test statement for PyDecodedAttestation<T>")
+    statement_data = StringObligationStatementData(item="Test statement for PyDecodedAttestation<T>")
     tx_hash = await string_client.make_statement(statement_data, None)
     
     # Verify transaction hash format
