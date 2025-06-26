@@ -1,8 +1,17 @@
 use alkahest_rs::clients::string_obligation;
 use alloy::primitives::FixedBytes;
-use pyo3::{pyclass, pymethods};
+use pyo3::prelude::PyAnyMethods;
+use pyo3::{pyclass, pymethods, types::PyAny, Bound};
 
 use crate::contract::PyDecodedAttestation;
+
+// Helper function to convert Python object to JSON string
+fn python_to_json_string(py_obj: &Bound<'_, PyAny>) -> eyre::Result<String> {
+    // Use Python's json.dumps to serialize the object
+    let json_module = py_obj.py().import("json")?;
+    let json_string = json_module.call_method1("dumps", (py_obj,))?;
+    Ok(json_string.extract::<String>()?)
+}
 
 #[pyclass]
 #[derive(Clone)]
@@ -63,13 +72,15 @@ impl StringObligationClient {
         })
     }
 
-    pub async fn make_statement_json(
+    pub fn make_statement_json(
         &self,
-        json_data: String,
+        json_data: &Bound<'_, PyAny>,
         ref_uid: Option<String>,
     ) -> eyre::Result<String> {
+        let json_string = python_to_json_string(json_data)?;
+
         self.runtime.block_on(async {
-            let json_value: serde_json::Value = serde_json::from_str(&json_data)?;
+            let json_value: serde_json::Value = serde_json::from_str(&json_string)?;
 
             let ref_uid = if let Some(ref_uid_str) = ref_uid {
                 Some(ref_uid_str.parse()?)
@@ -141,6 +152,14 @@ impl PyStringObligationStatementData {
     #[staticmethod]
     pub fn encode_json(json_data: String) -> eyre::Result<Vec<u8>> {
         let json_value: serde_json::Value = serde_json::from_str(&json_data)?;
+        let encoded = string_obligation::StringObligationClient::encode_json(json_value)?;
+        Ok(encoded.to_vec())
+    }
+
+    #[staticmethod]
+    pub fn encode_json_object(json_data: &Bound<'_, PyAny>) -> eyre::Result<Vec<u8>> {
+        let json_string = python_to_json_string(json_data)?;
+        let json_value: serde_json::Value = serde_json::from_str(&json_string)?;
         let encoded = string_obligation::StringObligationClient::encode_json(json_value)?;
         Ok(encoded.to_vec())
     }
