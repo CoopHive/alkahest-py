@@ -13,7 +13,7 @@ from alkahest_py import (
 )
 
 @pytest.mark.asyncio
-async def test_listen_and_arbitrate_no_spawn():
+async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
     """Test complete listen_and_arbitrate_no_spawn flow with concurrent threading and callback verification"""
     # Setup test environment
     env = EnvTestManager()
@@ -88,8 +88,8 @@ async def test_listen_and_arbitrate_no_spawn():
     def run_listener():
         nonlocal listen_result, listen_error
         try:
-            print("🎧 Listener thread: Starting listen_and_arbitrate_no_spawn...")
-            listen_result = oracle_client.listen_and_arbitrate_no_spawn(
+            print("🎧 Listener thread: Starting listen_and_arbitrate_new_fulfillments_no_spawn...")
+            listen_result = oracle_client.listen_and_arbitrate_new_fulfillments_no_spawn(
                 fulfillment_params,
                 decision_function,
                 callback_function,  # Pass the callback function

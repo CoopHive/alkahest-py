@@ -475,6 +475,118 @@ impl OracleClient {
             )),
         }
     }
+
+    pub fn listen_and_arbitrate_new_fulfillments_no_spawn(
+        &self,
+        fulfillment_params: PyFulfillmentParams,
+        py: Python,
+        decision_func: PyObject,
+        callback_func: Option<PyObject>,
+        options: Option<PyArbitrateOptions>,
+        timeout_seconds: Option<f64>,
+    ) -> PyResult<()> {
+        let opts = options.unwrap_or_default();
+        let timeout = timeout_seconds.map(|secs| std::time::Duration::from_secs_f64(secs));
+
+        // Release the GIL to allow Python threads to run concurrently
+        let result: eyre::Result<()> = py.allow_threads(|| {
+            self.runtime.block_on(async move {
+                // Convert PyAttestationFilter to Rust AttestationFilter
+                let rust_filter = fulfillment_params
+                    .filter
+                    .try_into()
+                    .map_err(|e| eyre::eyre!("Failed to convert filter: {}", e))?;
+
+                // Create fulfillment parameters using the statement_abi from the params
+                let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
+                    _statement_data: PhantomData::<StringObligation::StatementData>,
+                    filter: rust_filter,
+                };
+
+                let arbitrate_options = alkahest_rs::clients::oracle::ArbitrateOptions {
+                    require_oracle: opts.require_oracle,
+                    skip_arbitrated: opts.skip_arbitrated,
+                };
+
+                // Create arbitration closure that calls back to Python
+                let arbitrate_func =
+                    |statement_data: &StringObligation::StatementData| -> Option<bool> {
+                        Python::with_gil(|py| {
+                            // Convert StringObligation::StatementData to Python string
+                            let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+
+                            // Call the Python decision function with the decoded string
+                            match decision_func.call1(py, (py_statement,)) {
+                                Ok(result) => {
+                                    // Try to extract boolean result
+                                    match result.extract::<bool>(py) {
+                                        Ok(decision) => Some(decision),
+                                        Err(_) => {
+                                            // If not a boolean, try to interpret as truthy/falsy
+                                            match result.is_truthy(py) {
+                                                Ok(truthy) => Some(truthy),
+                                                Err(_) => None,
+                                            }
+                                        }
+                                    }
+                                }
+                                Err(_) => None,
+                            }
+                        })
+                    };
+
+                // Create callback function that calls back to Python if provided
+                let callback = |decision: &alkahest_rs::clients::oracle::Decision<
+                    StringObligation::StatementData,
+                    (),
+                >| {
+                    // Always print the decision for debugging
+                    println!(
+                        "Decision made: {} for statement: {}",
+                        decision.decision, decision.statement.item
+                    );
+
+                    // Call Python callback if provided
+                    if let Some(ref py_callback) = callback_func {
+                        Python::with_gil(|py| {
+                            let decision_info = format!(
+                                "Decision: {} for statement: '{}'",
+                                decision.decision, decision.statement.item
+                            );
+
+                            // Call the Python callback function
+                            if let Err(e) = py_callback.call1(py, (decision_info,)) {
+                                println!("Error calling Python callback: {}", e);
+                            }
+                        });
+                    }
+
+                    Box::pin(async {})
+                };
+
+                // Call the actual Rust listen_and_arbitrate_no_spawn method
+                let listen_result = self
+                    .inner
+                    .listen_and_arbitrate_new_fulfillments_no_spawn(
+                        &fulfillment,
+                        &arbitrate_func,
+                        callback,
+                        &arbitrate_options,
+                        timeout,
+                    )
+                    .await?;
+
+                Ok(())
+            }) // Close async move block
+        }); // Close py.allow_threads block
+
+        match result {
+            Ok(decisions) => Ok(decisions),
+            Err(e) => Err(pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                format!("Listen and arbitrate no spawn failed: {}", e),
+            )),
+        }
+    }
 }
 
 // ===== HELPER TYPES =====
