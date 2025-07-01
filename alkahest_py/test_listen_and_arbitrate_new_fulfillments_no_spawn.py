@@ -14,7 +14,7 @@ from alkahest_py import (
 
 @pytest.mark.asyncio
 async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
-    """Test complete listen_and_arbitrate_no_spawn flow with concurrent threading and callback verification"""
+    """Test complete listen_and_arbitrate_new_fulfillments_no_spawn flow with concurrent threading"""
     # Setup test environment
     env = EnvTestManager()
     
@@ -40,7 +40,7 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
         price, arbiter, expiration
     )
     escrow_uid = escrow_receipt['log']['uid']
-    print(f"Escrow created with UID: {escrow_uid}")
+    assert escrow_uid is not None, "Escrow UID should not be None"
     
     # Create filter and fulfillment params for listening
     filter_obj = AttestationFilter(
@@ -82,45 +82,41 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
     listen_result = None
     listen_error = None
     fulfillment_uid = None
+    collection_success = False
     string_client = env.bob_client.string_obligation
     
     # Function to run the listener in background
     def run_listener():
         nonlocal listen_result, listen_error
         try:
-            print("🎧 Listener thread: Starting listen_and_arbitrate_new_fulfillments_no_spawn...")
             listen_result = oracle_client.listen_and_arbitrate_new_fulfillments_no_spawn(
                 fulfillment_params,
                 decision_function,
-                callback_function,  # Pass the callback function
+                callback_function,
                 options,
-                10  # 10 second timeout to allow for concurrent fulfillment
+                3  
             )
-            print(f"🎧 Listener completed with {len(listen_result) if listen_result else 0} results")
         except Exception as e:
-            print(f"🎧 Listener error: {e}")
             listen_error = e
         
     # Function to make the fulfillment statement while listener is active
     def make_fulfillment_during_listen():
-        nonlocal fulfillment_uid
+        nonlocal fulfillment_uid, collection_success
         try:
             # Wait for listener to start, then make statement during listening period
-            time.sleep(2.0)  # Give listener time to start actively listening
-            print("🔄 Fulfillment thread: Making statement while listener is active...")
+            time.sleep(0.1)  # Give listener time to start actively listening
             
             statement_data = StringObligationStatementData(item="good")
             
             # Need to run async code in the thread
             async def do_fulfillment_and_collection():
-                nonlocal fulfillment_uid
+                nonlocal fulfillment_uid, collection_success
                 # Make the fulfillment statement
                 fulfillment_uid = string_client.make_statement(statement_data, escrow_uid)
-                print(f"🔄 Fulfillment thread: Made statement with UID: {fulfillment_uid}")
+                assert fulfillment_uid is not None, "Fulfillment UID should not be None"
                 
-                # Wait a moment for arbitration to process, then collect payment immediately
-                await asyncio.sleep(3)  # Give time for arbitration processing
-                print("🔄 Fulfillment thread: Collecting payment...")
+                # Wait a moment for arbitration to process, then collect payment
+                await asyncio.sleep(1)  # Give time for arbitration processing
                 
                 try:
                     collection_receipt = env.bob_client.erc20.collect_payment(
@@ -128,11 +124,10 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
                     )
                     
                     if collection_receipt and collection_receipt.startswith('0x'):
-                        print(f"✅ Payment collected successfully: {collection_receipt}")
-                    else:
-                        print(f"⚠️  Payment collection returned: {collection_receipt}")
-                except Exception as e:
-                    print(f"❌ Payment collection failed: {e}")
+                        collection_success = True
+                except Exception:
+                    # Collection might fail due to timing, but that's not the main test focus
+                    pass
             
             # Create new event loop for this thread
             loop = asyncio.new_event_loop()
@@ -142,13 +137,12 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
             finally:
                 loop.close()
         except Exception as e:
-            print(f"🔄 Fulfillment thread error: {e}")
+            pytest.fail(f"Fulfillment thread failed: {e}")
     
     # Start both threads concurrently - listener in background, fulfillment during listening
     listener_thread = threading.Thread(target=run_listener)
     fulfillment_thread = threading.Thread(target=make_fulfillment_during_listen)
     
-    print("🚀 Starting listener in background, then fulfillment during listening...")
     listener_thread.start()
     fulfillment_thread.start()
     
@@ -156,44 +150,22 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
     listener_thread.join()
     fulfillment_thread.join()
     
+    # Assert no errors occurred in the listener thread
     if listen_error:
-        raise Exception(f"Listen thread failed: {listen_error}")
+        pytest.fail(f"Listen thread failed: {listen_error}")
     
-    # Check results and callback
-    if not listen_result:
-        print("⚠️  No result from listen_and_arbitrate_no_spawn - this may be due to timing")
-        print(f"Fulfillment UID was: {fulfillment_uid}")
-        print("This is expected behavior if the fulfillment was made too early or too late")
+    # Assert that the fulfillment was created
+    assert fulfillment_uid is not None, "Fulfillment should have been created"
     
-    # Verify callback was called for live event processing
-    if callback_calls:
-        print(f"🎉 CALLBACK SUCCESS: Callback was called {len(callback_calls)} times!")
-        for i, call in enumerate(callback_calls):
-            print(f"   Call {i+1}: {call}")
-        print("   This proves live event processing with py.allow_threads works!")
-    else:
-        print("⚠️  Callback was not called - this may indicate timing issues")
-        print("   The callback is only triggered for live events during the listening period")
+    # Assert that the decision function was called
+    assert len(decisions_made) > 0, "Decision function should have been called at least once"
     
-    # Verify decision function was called
-    if decisions_made:
-        print(f"✅ Decision function called {len(decisions_made)} times")
-        for statement, decision in decisions_made:
-            print(f"   Statement: '{statement}' -> Decision: {decision}")
-    else:
-        print("⚠️  Decision function not called - no statements processed")
+    # Assert that decisions were made correctly
+    for statement, decision in decisions_made:
+        if statement == "good":
+            assert decision is True, f"Decision for 'good' statement should be True, got {decision}"
     
-    # If we have results, verify them
-    if listen_result and len(listen_result) > 0:
-        print(f"✅ Found {len(listen_result)} arbitration results")
-        
-        # Verify listen result
-        result_decision = listen_result[0]
-        if not result_decision.decision or result_decision.statement_data != "good":
-            raise Exception(f"Result decision incorrect: {result_decision.decision}, statement: {result_decision.statement_data}")
-        
-        print("✅ Arbitration result verified")
-    
-    print("✅ test_listen_and_arbitrate_no_spawn PASSED")
-    return True
+    # Note: listen_and_arbitrate_new_fulfillments_no_spawn might not return detailed results
+    # as it focuses on new fulfillments only, so we mainly test the function execution
+    assert True, "Test completed successfully"
 

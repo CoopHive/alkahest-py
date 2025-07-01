@@ -27,8 +27,9 @@ use crate::{
         erc721::{PyERC721EscrowObligationStatement, PyERC721PaymentObligationStatement},
         oracle::{
             PyArbitrateOptions, PyArbitrationResult, PyAttestationFilter, PyDecision,
-            PyEscrowArbitrationResult, PyEscrowParams, PyFulfillmentParams, PyOracleAddresses,
-            PyOracleAttestation, PySubscriptionResult, PyTrustedOracleArbiterDemandData,
+            PyEscrowArbitrationResult, PyEscrowParams, PyFulfillmentParams,
+            PyFulfillmentParamsWithoutRefUid, PyOracleAddresses, PyOracleAttestation,
+            PySubscriptionResult, PyTrustedOracleArbiterDemandData,
         },
         string_obligation::PyStringObligationStatementData,
     },
@@ -200,6 +201,7 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyOracleAttestation>()?;
     m.add_class::<PyDecision>()?;
     m.add_class::<PyFulfillmentParams>()?;
+    m.add_class::<PyFulfillmentParamsWithoutRefUid>()?;
     m.add_class::<PyArbitrateOptions>()?;
     m.add_class::<PyArbitrationResult>()?;
     m.add_class::<PySubscriptionResult>()?;

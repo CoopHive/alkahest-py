@@ -36,8 +36,8 @@ async def test_collect_expired():
     # Alice approves token for escrow
     env.alice_client.erc721.approve(bid_data, "escrow")
     
-    # Alice makes escrow with a short expiration (current time + 10 seconds)
-    expiration = int(time.time()) + 10
+    # Alice makes escrow with a short expiration (current time + 5 seconds)
+    expiration = int(time.time()) + 2
     buy_result = env.alice_client.erc721.buy_erc_721_for_erc_721(bid_data, ask_data, expiration)
     
     assert not (not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid buy attestation UID"
@@ -53,7 +53,7 @@ async def test_collect_expired():
     
     # Wait for expiration (adding buffer time)
     print("Waiting for escrow to expire...")
-    time.sleep(12)
+    time.sleep(3)
     
     # Alice collects expired funds
     collect_result = env.alice_client.erc721.collect_expired(buy_attestation_uid)

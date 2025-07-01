@@ -7,6 +7,7 @@ use alloy::primitives::FixedBytes;
 use pyo3::{pyclass, pymethods, PyObject, PyResult, Python};
 
 use crate::clients::string_obligation::PyStringObligationStatementData;
+use alkahest_rs::clients::arbiters::TrustedOracleArbiter;
 
 #[pyclass]
 #[derive(Clone)]
@@ -584,6 +585,363 @@ impl OracleClient {
             Ok(decisions) => Ok(decisions),
             Err(e) => Err(pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
                 format!("Listen and arbitrate no spawn failed: {}", e),
+            )),
+        }
+    }
+
+    /// Listen and arbitrate for escrow without spawning background tasks
+    pub fn listen_and_arbitrate_for_escrow_no_spawn(
+        &self,
+        escrow_params: PyEscrowParams,
+        fulfillment_params: PyFulfillmentParamsWithoutRefUid,
+        py: Python,
+        decision_func: PyObject,
+        callback_func: Option<PyObject>,
+        options: Option<PyArbitrateOptions>,
+        timeout_secs: Option<u64>,
+    ) -> PyResult<PyEscrowArbitrationResult> {
+        let opts = options.unwrap_or_default();
+        let timeout = timeout_secs.map(std::time::Duration::from_secs);
+
+        let result: eyre::Result<(Vec<PyDecision>, Vec<PyOracleAttestation>, Vec<String>)> = py
+            .allow_threads(|| {
+                self.runtime.block_on(async {
+                    // Convert PyAttestationFilter to Rust AttestationFilter for escrow
+                    let escrow_filter = escrow_params
+                        .filter
+                        .try_into()
+                        .map_err(|e| eyre::eyre!("Failed to convert escrow filter: {}", e))?;
+
+                    // Convert PyAttestationFilter to Rust AttestationFilter for fulfillment
+                    let rust_filter = fulfillment_params
+                        .filter
+                        .try_into()
+                        .map_err(|e| eyre::eyre!("Failed to convert fulfillment filter: {}", e))?;
+
+                    // Decode the demand data from escrow params
+                    use alloy::primitives::Bytes;
+                    use alloy::sol_types::SolValue;
+
+                    let demand_bytes = Bytes::from(escrow_params.demand_abi.clone());
+                    let _demand_abi = TrustedOracleArbiter::DemandData::abi_decode(&demand_bytes)?;
+
+                    // Create escrow parameters
+                    let escrow = alkahest_rs::clients::oracle::EscrowParams {
+                        filter: escrow_filter,
+                        _demand_data: PhantomData::<TrustedOracleArbiter::DemandData>,
+                    };
+
+                    // Create fulfillment parameters using FulfillmentParamsWithoutRefUid
+                    let fulfillment =
+                        alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
+                            _statement_data: PhantomData::<StringObligation::StatementData>,
+                            filter: rust_filter,
+                        };
+
+                    // Create arbitration closure that calls back to Python
+                    let arbitrate_func = |statement_data: &StringObligation::StatementData,
+                                          demand_data: &TrustedOracleArbiter::DemandData|
+                     -> Option<bool> {
+                        println!("🔍 RUST CORE: arbitrate_func called with statement '{}', demand oracle '{}'", 
+                                statement_data.item, demand_data.oracle);
+                        Python::with_gil(|py| {
+                            // Convert StringObligation::StatementData to Python string
+                            let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+
+                            // Convert demand data to Python object
+                            let demand_py =
+                                PyTrustedOracleArbiterDemandData::from(demand_data.clone());
+
+                            // Call the Python decision function with both statement and demand
+                            match decision_func.call1(py, (py_statement, demand_py)) {
+                                Ok(result) => {
+                                    // Try to extract boolean result
+                                    match result.extract::<bool>(py) {
+                                        Ok(decision) => {
+                                            println!("🔍 RUST CORE: Python decision function returned {}", decision);
+                                            Some(decision)
+                                        },
+                                        Err(_) => {
+                                            // If not a boolean, try to interpret as truthy/falsy
+                                            match result.is_truthy(py) {
+                                                Ok(truthy) => {
+                                                    println!("🔍 RUST CORE: Python decision function returned truthy: {}", truthy);
+                                                    Some(truthy)
+                                                },
+                                                Err(_) => {
+                                                    println!("🔍 RUST CORE: Python decision function returned invalid result");
+                                                    None
+                                                },
+                                            }
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    println!("🔍 RUST CORE: Error calling Python decision function: {}", e);
+                                    None
+                                },
+                            }
+                        })
+                    };
+
+                    // Create callback function that calls back to Python if provided
+                    let callback = |decision_info: &alkahest_rs::clients::oracle::Decision<
+                        StringObligation::StatementData,
+                        TrustedOracleArbiter::DemandData,
+                    >| {
+                        // Print the decision for debugging
+                        println!(
+                            "🔍 Checking item: '{}', demand: {:?}",
+                            decision_info.statement.item,
+                            decision_info.demand.as_ref().map(|d| &d.oracle)
+                        );
+                        println!("Result: {:?}", Some(decision_info.decision));
+
+                        // Call Python callback if provided
+                        if let Some(ref py_callback) = callback_func {
+                            Python::with_gil(|py| {
+                                let decision_info_str = format!(
+                                    "Decision: {} for statement: '{}'",
+                                    decision_info.decision, decision_info.statement.item
+                                );
+
+                                // Call the Python callback function
+                                if let Err(e) = py_callback.call1(py, (decision_info_str,)) {
+                                    println!("Error calling Python callback: {}", e);
+                                }
+                            });
+                        }
+
+                        Box::pin(async {})
+                    };
+
+                    // Call the actual Rust listen_and_arbitrate_for_escrow_no_spawn method
+                    let result = self
+                        .inner
+                        .listen_and_arbitrate_for_escrow_no_spawn(
+                            &escrow,
+                            &fulfillment,
+                            &arbitrate_func,
+                            callback,
+                            Some(opts.skip_arbitrated), 
+                            timeout,
+                        )
+                        .await?;
+
+                    // Convert Rust decisions to Python decisions
+                    let py_decisions = result
+                        .decisions
+                        .into_iter()
+                        .map(|decision| {
+                            let py_attestation = PyOracleAttestation {
+                                uid: format!("{:?}", decision.attestation.uid),
+                                schema: format!("{:?}", decision.attestation.schema),
+                                attester: format!("{:?}", decision.attestation.attester),
+                                recipient: format!("{:?}", decision.attestation.recipient),
+                                time: decision.attestation.time,
+                                expiration_time: decision.attestation.expirationTime,
+                                revocation_time: decision.attestation.revocationTime,
+                                ref_uid: format!("{:?}", decision.attestation.refUID),
+                                data: format!(
+                                    "0x{}",
+                                    alloy::hex::encode(&decision.attestation.data)
+                                ),
+                                revocable: decision.attestation.revocable,
+                            };
+                            PyDecision::__new__(
+                                py_attestation,
+                                decision.decision,
+                                format!("{:?}", decision.receipt.transaction_hash),
+                                Some(decision.statement.item.clone()),
+                                decision
+                                    .demand
+                                    .map(|d| PyTrustedOracleArbiterDemandData::from(d).oracle),
+                            )
+                        })
+                        .collect::<Vec<_>>();
+
+                    // Convert escrow attestations
+                    let py_escrow_attestations = result
+                        .escrow_attestations
+                        .into_iter()
+                        .map(|att| PyOracleAttestation {
+                            uid: format!("{:?}", att.uid),
+                            schema: format!("{:?}", att.schema),
+                            attester: format!("{:?}", att.attester),
+                            recipient: format!("{:?}", att.recipient),
+                            time: att.time,
+                            expiration_time: att.expirationTime,
+                            revocation_time: att.revocationTime,
+                            ref_uid: format!("{:?}", att.refUID),
+                            data: format!("0x{}", alloy::hex::encode(&att.data)),
+                            revocable: att.revocable,
+                        })
+                        .collect();
+
+                    // Convert demand data to Python strings
+                    let py_escrow_demands = vec![]; // TODO: Extract demands from attestations if needed
+
+                    Ok((py_decisions, py_escrow_attestations, py_escrow_demands))
+                })
+            });
+
+        match result {
+            Ok((decisions, escrow_attestations, escrow_demands)) => Ok(
+                PyEscrowArbitrationResult::__new__(decisions, escrow_attestations, escrow_demands),
+            ),
+            Err(e) => Err(pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                format!("Listen and arbitrate for escrow no spawn failed: {}", e),
+            )),
+        }
+    }
+
+    /// Listen and arbitrate new fulfillments for escrow without spawning background tasks
+    pub fn listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn(
+        &self,
+        escrow_params: PyEscrowParams,
+        fulfillment_params: PyFulfillmentParamsWithoutRefUid,
+        py: Python,
+        decision_func: PyObject,
+        callback_func: Option<PyObject>,
+        options: Option<PyArbitrateOptions>,
+        timeout_secs: Option<u64>,
+    ) -> PyResult<()> {
+        let opts = options.unwrap_or_default();
+        let timeout = timeout_secs.map(std::time::Duration::from_secs);
+
+        let result: eyre::Result<()> = py
+            .allow_threads(|| {
+                self.runtime.block_on(async {
+                    // Convert PyAttestationFilter to Rust AttestationFilter for escrow
+                    let escrow_filter = escrow_params
+                        .filter
+                        .try_into()
+                        .map_err(|e| eyre::eyre!("Failed to convert escrow filter: {}", e))?;
+
+                    // Convert PyAttestationFilter to Rust AttestationFilter for fulfillment
+                    let rust_filter = fulfillment_params
+                        .filter
+                        .try_into()
+                        .map_err(|e| eyre::eyre!("Failed to convert fulfillment filter: {}", e))?;
+
+                    // Decode the demand data from escrow params
+                    use alloy::primitives::Bytes;
+                    use alloy::sol_types::SolValue;
+
+                    let demand_bytes = Bytes::from(escrow_params.demand_abi.clone());
+                    let _demand_abi = TrustedOracleArbiter::DemandData::abi_decode(&demand_bytes)?;
+
+                    // Create escrow parameters
+                    let escrow = alkahest_rs::clients::oracle::EscrowParams {
+                        filter: escrow_filter,
+                        _demand_data: PhantomData::<TrustedOracleArbiter::DemandData>,
+                    };
+
+                    // Create fulfillment parameters using FulfillmentParamsWithoutRefUid
+                    let fulfillment =
+                        alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
+                            _statement_data: PhantomData::<StringObligation::StatementData>,
+                            filter: rust_filter,
+                        };
+
+                    // Create arbitration closure that calls back to Python
+                    let arbitrate_func = |statement_data: &StringObligation::StatementData,
+                                          demand_data: &TrustedOracleArbiter::DemandData|
+                     -> Option<bool> {
+                        println!("🔍 RUST CORE: arbitrate_func called with statement '{}', demand oracle '{}'", 
+                                statement_data.item, demand_data.oracle);
+                        Python::with_gil(|py| {
+                            // Convert StringObligation::StatementData to Python string
+                            let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+
+                            // Convert demand data to Python object
+                            let demand_py =
+                                PyTrustedOracleArbiterDemandData::from(demand_data.clone());
+
+                            // Call the Python decision function with both statement and demand
+                            match decision_func.call1(py, (py_statement, demand_py)) {
+                                Ok(result) => {
+                                    // Try to extract boolean result
+                                    match result.extract::<bool>(py) {
+                                        Ok(decision) => {
+                                            println!("🔍 RUST CORE: Python decision function returned {}", decision);
+                                            Some(decision)
+                                        },
+                                        Err(_) => {
+                                            // If not a boolean, try to interpret as truthy/falsy
+                                            match result.is_truthy(py) {
+                                                Ok(truthy) => {
+                                                    println!("🔍 RUST CORE: Python decision function returned truthy: {}", truthy);
+                                                    Some(truthy)
+                                                },
+                                                Err(_) => {
+                                                    println!("🔍 RUST CORE: Python decision function returned invalid result");
+                                                    None
+                                                },
+                                            }
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    println!("🔍 RUST CORE: Error calling Python decision function: {}", e);
+                                    None
+                                },
+                            }
+                        })
+                    };
+
+                    // Create callback function that calls back to Python if provided
+                    let callback = |decision_info: &alkahest_rs::clients::oracle::Decision<
+                        StringObligation::StatementData,
+                        TrustedOracleArbiter::DemandData,
+                    >| {
+                        // Print the decision for debugging
+                        println!(
+                            "🔍 Checking item: '{}', demand: {:?}",
+                            decision_info.statement.item,
+                            decision_info.demand.as_ref().map(|d| &d.oracle)
+                        );
+                        println!("Result: {:?}", Some(decision_info.decision));
+
+                        // Call Python callback if provided
+                        if let Some(ref py_callback) = callback_func {
+                            Python::with_gil(|py| {
+                                let decision_info_str = format!(
+                                    "Decision: {} for statement: '{}'",
+                                    decision_info.decision, decision_info.statement.item
+                                );
+
+                                // Call the Python callback function
+                                if let Err(e) = py_callback.call1(py, (decision_info_str,)) {
+                                    println!("Error calling Python callback: {}", e);
+                                }
+                            });
+                        }
+
+                        Box::pin(async {})
+                    };
+
+                    // Call the actual Rust listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn method
+                    let _result = self
+                        .inner
+                        .listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn(
+                            &escrow,
+                            &fulfillment,
+                            &arbitrate_func,
+                            callback,
+                            Some(opts.skip_arbitrated), 
+                            timeout,
+                        )
+                        .await?;
+
+                    Ok(())
+                })
+            });
+
+        match result {
+            Ok(()) => Ok(()),
+            Err(e) => Err(pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                format!("Listen and arbitrate new fulfillments for escrow no spawn failed: {}", e),
             )),
         }
     }
