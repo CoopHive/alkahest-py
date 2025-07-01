@@ -44,7 +44,7 @@ async def test_arbitrate_past_for_escrow():
     }
     
     expiration = int(time.time()) + 3600
-    escrow_receipt = env.alice_client.erc20.permit_and_buy_with_erc20(
+    escrow_receipt = await env.alice_client.erc20.permit_and_buy_with_erc20(
         price, arbiter, expiration
     )
     escrow_uid = escrow_receipt['log']['uid']
@@ -106,7 +106,7 @@ async def test_arbitrate_past_for_escrow():
     assert len(positive_decisions) > 0, "Should have positive arbitration decisions"
     
     # Collect payment for Bob
-    collection_receipt =  env.bob_client.erc20.collect_payment(escrow_uid, fulfillment_uid)
+    collection_receipt = await env.bob_client.erc20.collect_payment(escrow_uid, fulfillment_uid)
     print(f"Payment collected successfully: {collection_receipt}")
     
     # Verify Bob received payment

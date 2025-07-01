@@ -39,7 +39,7 @@ async def test_arbitrate_past():
     }
     
     expiration = int(time.time()) + 3600
-    escrow_receipt = env.alice_client.erc20.permit_and_buy_with_erc20(
+    escrow_receipt = await env.alice_client.erc20.permit_and_buy_with_erc20(
         price, arbiter, expiration
     )
     escrow_uid = escrow_receipt['log']['uid']
@@ -94,7 +94,7 @@ async def test_arbitrate_past():
     time.sleep(2)
     
     # Collect payment
-    collection_receipt =  env.bob_client.erc20.collect_payment(
+    collection_receipt = await env.bob_client.erc20.collect_payment(
         escrow_uid, fulfillment_uid
     )
     

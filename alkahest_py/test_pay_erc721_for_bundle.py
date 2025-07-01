@@ -74,11 +74,11 @@ async def test_pay_erc721_for_bundle():
     
     # Alice approves her ERC721 for payment
     erc721_data = {"address": env.mock_addresses.erc721_a, "id": alice_token_id}
-    env.alice_client.erc721.approve(erc721_data, "payment")
+    await env.alice_client.erc721.approve(erc721_data, "payment")
     
     # Alice fulfills Bob's buy attestation with her ERC721
-    pay_result = env.alice_client.erc721.pay_erc721_for_bundle(buy_attestation_uid)
-    
+    pay_result = await env.alice_client.erc721.pay_erc721_for_bundle(buy_attestation_uid)
+
     assert not (not pay_result['log']['uid'] or pay_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid payment attestation UID"
     
     # Verify token transfers

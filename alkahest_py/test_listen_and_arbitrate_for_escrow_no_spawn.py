@@ -38,7 +38,7 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
     }
     
     expiration = int(time.time()) + 3600
-    escrow_receipt = env.alice_client.erc20.permit_and_buy_with_erc20(
+    escrow_receipt = await env.alice_client.erc20.permit_and_buy_with_erc20(
         price, arbiter, expiration
     )
     escrow_uid = escrow_receipt['log']['uid']
@@ -134,39 +134,50 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
     def create_fulfillments_during_listen():
         nonlocal fulfillment_uids, collection_success
         try:
-            # Small delay to let listener start
-            time.sleep(0.1)
-            print("🔄 Creating fulfillments while listener is running...")
+            # Create new event loop for this thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             
-            # Create bad fulfillment
-            bad_statement = StringObligationStatementData(item="bad2")
-            bad_uid = string_client.make_statement(bad_statement, escrow_uid)
-            fulfillment_uids.append(("bad2", bad_uid))
-            print(f"🔄 Created bad fulfillment: {bad_uid}")
-            time.sleep(0.1)
+            async def do_fulfillments():
+                nonlocal fulfillment_uids, collection_success
+                # Small delay to let listener start
+                await asyncio.sleep(0.1)
+                print("🔄 Creating fulfillments while listener is running...")
+                
+                # Create bad fulfillment
+                bad_statement = StringObligationStatementData(item="bad2")
+                bad_uid = string_client.make_statement(bad_statement, escrow_uid)
+                fulfillment_uids.append(("bad2", bad_uid))
+                print(f"🔄 Created bad fulfillment: {bad_uid}")
+                await asyncio.sleep(0.1)
+                
+                # Create good fulfillment
+                good_statement = StringObligationStatementData(item="good")
+                good_uid = string_client.make_statement(good_statement, escrow_uid)
+                fulfillment_uids.append(("good", good_uid))
+                print(f"🔄 Created good fulfillment: {good_uid}")
+                await asyncio.sleep(0.1)
+                
+                # Wait for decisions to be processed
+                await asyncio.sleep(0.5)
+                print("💰 Attempting to collect payment for good fulfillment...")
+                
+                # Try to collect payment for good fulfillment
+                try:
+                    collection_receipt = await env.bob_client.erc20.collect_payment(escrow_uid, good_uid)
+                    print(f"💰 Collection receipt: {collection_receipt}")
+                    if collection_receipt and collection_receipt.startswith('0x'):
+                        collection_success = True
+                        print("✅ Payment collection successful!")
+                    else:
+                        print(f"⚠️ Unexpected collection result: {collection_receipt}")
+                except Exception as e:
+                    print(f"❌ Payment collection failed: {e}")
             
-            # Create good fulfillment
-            good_statement = StringObligationStatementData(item="good")
-            good_uid = string_client.make_statement(good_statement, escrow_uid)
-            fulfillment_uids.append(("good", good_uid))
-            print(f"🔄 Created good fulfillment: {good_uid}")
-            time.sleep(0.1)
-            
-            # Wait for decisions to be processed
-            time.sleep(0.5)
-            print("💰 Attempting to collect payment for good fulfillment...")
-            
-            # Try to collect payment for good fulfillment
             try:
-                collection_receipt = env.bob_client.erc20.collect_payment(escrow_uid, good_uid)
-                print(f"💰 Collection receipt: {collection_receipt}")
-                if collection_receipt and collection_receipt.startswith('0x'):
-                    collection_success = True
-                    print("✅ Payment collection successful!")
-                else:
-                    print(f"⚠️ Unexpected collection result: {collection_receipt}")
-            except Exception as e:
-                print(f"❌ Payment collection failed: {e}")
+                loop.run_until_complete(do_fulfillments())
+            finally:
+                loop.close()
                 
         except Exception as e:
             print(f"❌ Fulfillment creation failed: {e}")

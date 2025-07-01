@@ -20,7 +20,7 @@ async def test_buy_with_erc20():
     "value": 100
     }
     
-    env.alice_client.erc20.approve(price_data, "escrow")
+    await env.alice_client.erc20.approve(price_data, "escrow")
     
     arbiter_data = {
     "arbiter": env.addresses.erc20_addresses.payment_obligation,
@@ -28,7 +28,7 @@ async def test_buy_with_erc20():
     }
     expiration = 0
     
-    result = env.alice_client.erc20.buy_with_erc20(
+    result = await env.alice_client.erc20.buy_with_erc20(
     price_data, arbiter_data, expiration
     )
     

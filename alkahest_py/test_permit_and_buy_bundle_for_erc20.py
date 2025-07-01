@@ -31,7 +31,7 @@ async def test_permit_and_buy_bundle_for_erc20():
     }
     
     # Alice creates the buy order for token bundle with permit (no pre-approval needed)
-    buy_result = env.alice_client.erc20.permit_and_buy_bundle_for_erc20(bid_data, bundle_data, 0)
+    buy_result = await env.alice_client.erc20.permit_and_buy_bundle_for_erc20(bid_data, bundle_data, 0)
     
     assert not (not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid buy attestation UID"
     

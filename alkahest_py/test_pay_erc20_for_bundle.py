@@ -81,10 +81,10 @@ async def test_pay_erc20_for_bundle():
     
     # Step 3: Alice approves her ERC20 tokens for payment
     erc20_data = {"address": env.mock_addresses.erc20_a, "value": erc20_amount}
-    env.alice_client.erc20.approve(erc20_data, "payment")
+    await env.alice_client.erc20.approve(erc20_data, "payment")
     
     # Step 4: Alice fulfills Bob's bundle escrow
-    pay_result = env.alice_client.erc20.pay_erc20_for_bundle(buy_attestation_uid)
+    pay_result = await env.alice_client.erc20.pay_erc20_for_bundle(buy_attestation_uid)
     
     assert not (not pay_result['log']['uid'] or pay_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid payment attestation UID"
     

@@ -24,10 +24,10 @@ async def test_buy_erc1155_for_erc20():
     ask_data = {"address": env.mock_addresses.erc1155_a, "id": 1, "value": 10}  # Alice wants ERC1155 ID 1, amount 10
     
     # Alice approves tokens for escrow
-    env.alice_client.erc20.approve(bid_data, "escrow")
-    
+    await env.alice_client.erc20.approve(bid_data, "escrow")
+
     # Alice creates the buy order for ERC1155
-    buy_result = env.alice_client.erc20.buy_erc1155_for_erc20(bid_data, ask_data, 0)
+    buy_result = await env.alice_client.erc20.buy_erc1155_for_erc20(bid_data, ask_data, 0)
     
     assert not (not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid buy attestation UID"
     

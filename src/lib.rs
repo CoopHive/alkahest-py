@@ -66,9 +66,9 @@ impl PyAlkahestClient {
     pub fn from_client(client: AlkahestClient) -> Self {
         let runtime = std::sync::Arc::new(Runtime::new().expect("Failed to create runtime"));
         Self {
-            erc20: Erc20Client::new(client.erc20.clone(), runtime.clone()),
-            erc721: Erc721Client::new(client.erc721.clone(), runtime.clone()),
-            erc1155: Erc1155Client::new(client.erc1155.clone(), runtime.clone()),
+            erc20: Erc20Client::new(client.erc20.clone()),
+            erc721: Erc721Client::new(client.erc721.clone()),
+            erc1155: Erc1155Client::new(client.erc1155.clone()),
             token_bundle: TokenBundleClient::new(client.token_bundle.clone(), runtime.clone()),
             attestation: AttestationClient::new(client.attestation.clone(), runtime.clone()),
             string_obligation: StringObligationClient::new(
@@ -107,9 +107,9 @@ impl PyAlkahestClient {
 
         let client = Self {
             inner: client.clone(),
-            erc20: Erc20Client::new(client.erc20, runtime.clone()),
-            erc721: Erc721Client::new(client.erc721, runtime.clone()),
-            erc1155: Erc1155Client::new(client.erc1155, runtime.clone()),
+            erc20: Erc20Client::new(client.erc20),
+            erc721: Erc721Client::new(client.erc721),
+            erc1155: Erc1155Client::new(client.erc1155),
             token_bundle: TokenBundleClient::new(client.token_bundle, runtime.clone()),
             attestation: AttestationClient::new(client.attestation, runtime.clone()),
             string_obligation: StringObligationClient::new(

@@ -37,20 +37,20 @@ async def test_pay_erc721_for_erc20():
     }
     
     # Bob approves tokens for escrow and creates buy attestation
-    env.bob_client.erc20.approve(bid_data, "escrow")
-    
-    buy_result = env.bob_client.erc20.buy_erc721_for_erc20(bid_data, ask_data, 0)
-    
+    await env.bob_client.erc20.approve(bid_data, "escrow")
+
+    buy_result = await env.bob_client.erc20.buy_erc721_for_erc20(bid_data, ask_data, 0)
+
     assert not (not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid buy attestation UID"
     
     buy_attestation_uid = buy_result['log']['uid']
     
     # Alice approves her ERC721 token for payment
     erc721_data = {"address": env.mock_addresses.erc721_a, "id": token_id}
-    env.alice_client.erc721.approve(erc721_data, "payment")
+    await env.alice_client.erc721.approve(erc721_data, "payment")
     
     # Alice fulfills Bob's buy attestation with her ERC721
-    pay_result = env.alice_client.erc721.pay_erc721_for_erc20(buy_attestation_uid)
+    pay_result = await env.alice_client.erc721.pay_erc721_for_erc20(buy_attestation_uid)
     
     assert not (not pay_result['log']['uid'] or pay_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid payment attestation UID"
     

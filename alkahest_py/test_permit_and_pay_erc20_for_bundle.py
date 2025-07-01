@@ -83,7 +83,7 @@ async def test_permit_and_pay_erc20_for_bundle():
     # initial_alice_erc1155_balance = mock_erc1155_a.balance_of(env.alice, erc1155_token_id)  # When available
     
     # Step 3: Alice fulfills Bob's bundle escrow using permit (no pre-approval needed)
-    pay_result = env.alice_client.erc20.permit_and_pay_erc20_for_bundle(buy_attestation_uid)
+    pay_result = await env.alice_client.erc20.permit_and_pay_erc20_for_bundle(buy_attestation_uid)
     
     assert not (not pay_result['log']['uid'] or pay_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid payment attestation UID"
     

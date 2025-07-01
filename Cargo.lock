@@ -28,6 +28,7 @@ dependencies = [
  "futures-util",
  "itertools 0.14.0",
  "pyo3",
+ "pyo3-async-runtimes",
  "serde",
  "serde_json",
  "tokio",
@@ -36,7 +37,7 @@ dependencies = [
 [[package]]
 name = "alkahest-rs"
 version = "0.5.0"
-source = "git+https://github.com/CoopHive/alkahest-rs?branch=main#7d49b3faf3adb98364fb5778855e66caeaf2f112"
+source = "git+https://github.com/VAR-META-Tech/alkahest-rs?branch=main#f8aa7d247471c04d60a5ec679470268362da131b"
 dependencies = [
  "alloy",
  "eyre",
@@ -3428,6 +3429,19 @@ dependencies = [
  "pyo3-ffi",
  "pyo3-macros",
  "unindent",
+]
+
+[[package]]
+name = "pyo3-async-runtimes"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d73cc6b1b7d8b3cef02101d37390dbdfe7e450dfea14921cae80a9534ba59ef2"
+dependencies = [
+ "futures",
+ "once_cell",
+ "pin-project-lite",
+ "pyo3",
+ "tokio",
 ]
 
 [[package]]
