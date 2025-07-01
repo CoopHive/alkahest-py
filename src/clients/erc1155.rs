@@ -32,7 +32,12 @@ impl Erc1155Client {
 
 #[pymethods]
 impl Erc1155Client {
-    pub fn approve_all<'py>(&self, py: pyo3::Python<'py>, token_contract: String, purpose: String) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
+    pub fn approve_all<'py>(
+        &self,
+        py: pyo3::Python<'py>,
+        token_contract: String,
+        purpose: String,
+    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let token_contract: Address = token_contract.parse().map_err(map_parse_to_pyerr)?;
@@ -41,12 +46,20 @@ impl Erc1155Client {
                 "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
                 _ => return Err(map_eyre_to_pyerr(eyre::eyre!("Invalid purpose"))),
             };
-            let receipt = inner.approve_all(token_contract, purpose).await.map_err(map_eyre_to_pyerr)?;
+            let receipt = inner
+                .approve_all(token_contract, purpose)
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub fn revoke_all<'py>(&self, py: pyo3::Python<'py>, token_contract: String, purpose: String) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
+    pub fn revoke_all<'py>(
+        &self,
+        py: pyo3::Python<'py>,
+        token_contract: String,
+        purpose: String,
+    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let token_contract: Address = token_contract.parse().map_err(map_parse_to_pyerr)?;
@@ -55,7 +68,10 @@ impl Erc1155Client {
                 "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
                 _ => return Err(map_eyre_to_pyerr(eyre::eyre!("Invalid purpose"))),
             };
-            let receipt = inner.revoke_all(token_contract, purpose).await.map_err(map_eyre_to_pyerr)?;
+            let receipt = inner
+                .revoke_all(token_contract, purpose)
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
@@ -69,16 +85,27 @@ impl Erc1155Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment(buy_attestation.parse().map_err(map_parse_to_pyerr)?, fulfillment.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .collect_payment(
+                    buy_attestation.parse().map_err(map_parse_to_pyerr)?,
+                    fulfillment.parse().map_err(map_parse_to_pyerr)?,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub fn collect_expired<'py>(&self, py: pyo3::Python<'py>, buy_attestation: String) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
+    pub fn collect_expired<'py>(
+        &self,
+        py: pyo3::Python<'py>,
+        buy_attestation: String,
+    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner.collect_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?).await.map_err(map_eyre_to_pyerr)?;
+            let receipt = inner
+                .collect_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
@@ -93,10 +120,18 @@ impl Erc1155Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .buy_with_erc1155(&price.try_into().map_err(map_eyre_to_pyerr)?, &item.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .buy_with_erc1155(
+                    &price.try_into().map_err(map_eyre_to_pyerr)?,
+                    &item.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -113,9 +148,13 @@ impl Erc1155Client {
             let payee: Address = payee.parse().map_err(map_parse_to_pyerr)?;
             let receipt = inner
                 .pay_with_erc1155(&price.try_into().map_err(map_eyre_to_pyerr)?, payee)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -131,10 +170,18 @@ impl Erc1155Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .buy_erc1155_for_erc1155(&bid.try_into().map_err(map_eyre_to_pyerr)?, &ask.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .buy_erc1155_for_erc1155(
+                    &bid.try_into().map_err(map_eyre_to_pyerr)?,
+                    &ask.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -149,9 +196,13 @@ impl Erc1155Client {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
                 .pay_erc1155_for_erc1155(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -167,10 +218,18 @@ impl Erc1155Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .buy_erc20_with_erc1155(&bid.try_into().map_err(map_eyre_to_pyerr)?, &ask.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .buy_erc20_with_erc1155(
+                    &bid.try_into().map_err(map_eyre_to_pyerr)?,
+                    &ask.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -185,9 +244,13 @@ impl Erc1155Client {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
                 .pay_erc1155_for_erc20(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -203,10 +266,18 @@ impl Erc1155Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .buy_erc721_with_erc1155(&bid.try_into().map_err(map_eyre_to_pyerr)?, &ask.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .buy_erc721_with_erc1155(
+                    &bid.try_into().map_err(map_eyre_to_pyerr)?,
+                    &ask.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -221,9 +292,13 @@ impl Erc1155Client {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
                 .pay_erc1155_for_erc721(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -239,10 +314,18 @@ impl Erc1155Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .buy_bundle_with_erc1155(&bid.try_into().map_err(map_eyre_to_pyerr)?, &ask.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .buy_bundle_with_erc1155(
+                    &bid.try_into().map_err(map_eyre_to_pyerr)?,
+                    &ask.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -257,9 +340,13 @@ impl Erc1155Client {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
                 .pay_erc1155_for_bundle(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -311,8 +398,8 @@ impl PyERC1155EscrowObligationStatement {
     pub fn decode(statement_data: Vec<u8>) -> PyResult<PyERC1155EscrowObligationStatement> {
         use alloy::primitives::Bytes;
         let bytes = Bytes::from(statement_data);
-        let decoded =
-            alkahest_rs::clients::erc1155::Erc1155Client::decode_escrow_statement(&bytes).map_err(map_eyre_to_pyerr)?;
+        let decoded = alkahest_rs::clients::erc1155::Erc1155Client::decode_escrow_statement(&bytes)
+            .map_err(map_eyre_to_pyerr)?;
         Ok(decoded.into())
     }
 
@@ -396,7 +483,9 @@ impl PyERC1155PaymentObligationStatement {
     pub fn decode(statement_data: Vec<u8>) -> PyResult<PyERC1155PaymentObligationStatement> {
         use alloy::primitives::Bytes;
         let bytes = Bytes::from(statement_data);
-        let decoded = alkahest_rs::clients::erc1155::Erc1155Client::decode_payment_statement(&bytes).map_err(map_eyre_to_pyerr)?;
+        let decoded =
+            alkahest_rs::clients::erc1155::Erc1155Client::decode_payment_statement(&bytes)
+                .map_err(map_eyre_to_pyerr)?;
         Ok(decoded.into())
     }
 
