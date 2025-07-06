@@ -138,7 +138,7 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
             async def do_fulfillment_and_collection():
                 nonlocal fulfillment_uid, collection_success
                 # Make the fulfillment statement
-                fulfillment_uid = string_client.make_statement(statement_data, escrow_uid)
+                fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
                 assert fulfillment_uid is not None, "Fulfillment UID should not be None"
                 print(f"🔄 Fulfillment thread: Created fulfillment {fulfillment_uid}")
                 

@@ -1,53 +1,21 @@
-use alkahest_rs::clients::token_bundle;
-use pyo3::{pyclass, pymethods, PyErr, PyResult};
+#!/usr/bin/env python3
+"""
+Script to convert all TokenBundleClient methods to async patterns.
+"""
 
-use crate::{
-    get_attested_event,
-    types::{ArbiterData, AttestedLog, LogWithHash, TokenBundleData},
-};
+import re
 
-// Error mapping helpers
-fn map_eyre_to_pyerr(err: eyre::Error) -> PyErr {
-    pyo3::exceptions::PyRuntimeError::new_err(format!("{}", err))
-}
-
-fn map_parse_to_pyerr<T: std::fmt::Display>(err: T) -> PyErr {
-    pyo3::exceptions::PyValueError::new_err(format!("Parse error: {}", err))
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub struct TokenBundleClient {
-    inner: token_bundle::TokenBundleClient,
-}
-
-impl TokenBundleClient {
-    pub fn new(inner: token_bundle::TokenBundleClient) -> Self {
-        Self { inner }
-    }
-}
-
-#[pymethods]
-impl TokenBundleClient {
-    pub fn approve<'py>(&self, py: pyo3::Python<'py>, token: TokenBundleData, purpose: String) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let purpose = match purpose.as_str() {
-                "payment" => alkahest_rs::types::ApprovalPurpose::Payment,
-                "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
-                _ => return Err(map_eyre_to_pyerr(eyre::eyre!("Invalid purpose"))),
-            };
-            let receipts = inner.approve(&token.try_into().map_err(map_eyre_to_pyerr)?, purpose).await.map_err(map_eyre_to_pyerr)?;
-
-            // Return the transaction hash of the last receipt, or empty string if no receipts
-            match receipts.last() {
-                Some(receipt) => Ok(receipt.transaction_hash.to_string()),
-                None => Ok("".to_string()),
-            }
-        })
-    }
-
-    pub fn collect_payment<'py>(
+def fix_token_bundle_methods():
+    # Read the file
+    with open('/Users/thanhngocnguyenduc/Desktop/alkahest-py/src/clients/token_bundle.rs', 'r') as f:
+        content = f.read()
+    
+    # Define method conversion patterns
+    method_conversions = [
+        # collect_payment
+        (
+            r'pub fn collect_payment\(\s*&self,\s*buy_attestation: String,\s*fulfillment: String,\s*\) -> eyre::Result<String> \{\s*self\.runtime\.block_on\(async \{(.*?)\}\)\s*\}',
+            '''pub fn collect_payment<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,
@@ -60,17 +28,23 @@ impl TokenBundleClient {
                 .await.map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
-    }
-
-    pub fn collect_expired<'py>(&self, py: pyo3::Python<'py>, buy_attestation: String) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
+    }'''
+        ),
+        # collect_expired
+        (
+            r'pub fn collect_expired\(&self, buy_attestation: String\) -> eyre::Result<String> \{\s*self\.runtime\.block_on\(async \{(.*?)\}\)\s*\}',
+            '''pub fn collect_expired<'py>(&self, py: pyo3::Python<'py>, buy_attestation: String) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner.collect_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?).await.map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
-    }
-
-    pub fn buy_with_bundle<'py>(
+    }'''
+        ),
+        # buy_with_bundle
+        (
+            r'pub fn buy_with_bundle\(\s*&self,\s*price: TokenBundleData,\s*item: ArbiterData,\s*expiration: u64,\s*\) -> eyre::Result<LogWithHash<AttestedLog>> \{\s*self\.runtime\.block_on\(async \{(.*?)\}\)\s*\}',
+            '''pub fn buy_with_bundle<'py>(
         &self,
         py: pyo3::Python<'py>,
         price: TokenBundleData,
@@ -87,9 +61,12 @@ impl TokenBundleClient {
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
-    }
-
-    pub fn pay_with_bundle<'py>(
+    }'''
+        ),
+        # pay_with_bundle
+        (
+            r'pub fn pay_with_bundle\(\s*&self,\s*price: TokenBundleData,\s*payee: String,\s*\) -> eyre::Result<LogWithHash<AttestedLog>> \{\s*self\.runtime\.block_on\(async \{(.*?)\}\)\s*\}',
+            '''pub fn pay_with_bundle<'py>(
         &self,
         py: pyo3::Python<'py>,
         price: TokenBundleData,
@@ -105,9 +82,12 @@ impl TokenBundleClient {
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
-    }
-
-    pub fn buy_bundle_for_bundle<'py>(
+    }'''
+        ),
+        # buy_bundle_for_bundle
+        (
+            r'pub fn buy_bundle_for_bundle\(\s*&self,\s*bid: TokenBundleData,\s*ask: TokenBundleData,\s*expiration: u64,\s*\) -> eyre::Result<LogWithHash<AttestedLog>> \{\s*self\.runtime\.block_on\(async \{(.*?)\}\)\s*\}',
+            '''pub fn buy_bundle_for_bundle<'py>(
         &self,
         py: pyo3::Python<'py>,
         bid: TokenBundleData,
@@ -124,9 +104,12 @@ impl TokenBundleClient {
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
-    }
-
-    pub fn pay_bundle_for_bundle<'py>(
+    }'''
+        ),
+        # pay_bundle_for_bundle
+        (
+            r'pub fn pay_bundle_for_bundle\(\s*&self,\s*buy_attestation: String,\s*\) -> eyre::Result<LogWithHash<AttestedLog>> \{\s*self\.runtime\.block_on\(async \{(.*?)\}\)\s*\}',
+            '''pub fn pay_bundle_for_bundle<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,
@@ -141,5 +124,20 @@ impl TokenBundleClient {
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
-    }
-}
+    }'''
+        )
+    ]
+    
+    # Apply conversions
+    for pattern, replacement in method_conversions:
+        content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+    
+    # Write back
+    with open('/Users/thanhngocnguyenduc/Desktop/alkahest-py/src/clients/token_bundle.rs', 'w') as f:
+        f.write(content)
+    
+    print("Fixed TokenBundleClient methods")
+
+if __name__ == "__main__":
+    fix_token_bundle_methods()
+    print("All TokenBundleClient fixes applied!")

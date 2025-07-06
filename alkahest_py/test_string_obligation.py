@@ -13,7 +13,7 @@ async def test_string_obligation():
     string_client = env.alice_client.string_obligation
     
     statement_data = StringObligationStatementData(item="Test statement for PyDecodedAttestation<T>")
-    tx_hash = string_client.make_statement(statement_data, None)
+    tx_hash = await string_client.make_statement(statement_data, None)
     
     # Verify transaction hash format
     assert tx_hash.startswith('0x') and len(tx_hash) == 66
@@ -36,42 +36,42 @@ async def test_make_statement_json():
         }
     }
     
-    tx_hash_dict = string_client.make_statement_json(dict_data, None)
+    tx_hash_dict = await string_client.make_statement_json(dict_data, None)
     assert tx_hash_dict.startswith('0x') and len(tx_hash_dict) == 66
     print(f"✅ Dictionary test passed: {tx_hash_dict}")
     
     # Test with list
     list_data = ["item1", "item2", {"nested": "object"}, 123, True]
     
-    tx_hash_list = string_client.make_statement_json(list_data, None)
+    tx_hash_list = await string_client.make_statement_json(list_data, None)
     assert tx_hash_list.startswith('0x') and len(tx_hash_list) == 66
     print(f"✅ List test passed: {tx_hash_list}")
     
     # Test with simple string
     string_data = "Simple string message"
     
-    tx_hash_string = string_client.make_statement_json(string_data, None)
+    tx_hash_string = await string_client.make_statement_json(string_data, None)
     assert tx_hash_string.startswith('0x') and len(tx_hash_string) == 66
     print(f"✅ String test passed: {tx_hash_string}")
     
     # Test with number
     number_data = 12345
     
-    tx_hash_number = string_client.make_statement_json(number_data, None)
+    tx_hash_number = await string_client.make_statement_json(number_data, None)
     assert tx_hash_number.startswith('0x') and len(tx_hash_number) == 66
     print(f"✅ Number test passed: {tx_hash_number}")
     
     # Test with boolean
     bool_data = True
     
-    tx_hash_bool = string_client.make_statement_json(bool_data, None)
+    tx_hash_bool = await string_client.make_statement_json(bool_data, None)
     assert tx_hash_bool.startswith('0x') and len(tx_hash_bool) == 66
     print(f"✅ Boolean test passed: {tx_hash_bool}")
     
     # Test with None
     none_data = None
     
-    tx_hash_none = string_client.make_statement_json(none_data, None)
+    tx_hash_none = await string_client.make_statement_json(none_data, None)
     assert tx_hash_none.startswith('0x') and len(tx_hash_none) == 66
     print(f"✅ None test passed: {tx_hash_none}")
     
@@ -95,7 +95,7 @@ async def test_make_statement_json():
         }
     }
     
-    tx_hash_complex = string_client.make_statement_json(complex_data, None)
+    tx_hash_complex = await string_client.make_statement_json(complex_data, None)
     assert tx_hash_complex.startswith('0x') and len(tx_hash_complex) == 66
     print(f"✅ Complex nested structure test passed: {tx_hash_complex}")
     

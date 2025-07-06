@@ -146,14 +146,14 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
                 
                 # Create bad fulfillment
                 bad_statement = StringObligationStatementData(item="bad2")
-                bad_uid = string_client.make_statement(bad_statement, escrow_uid)
+                bad_uid = await string_client.make_statement(bad_statement, escrow_uid)
                 fulfillment_uids.append(("bad2", bad_uid))
                 print(f"🔄 Created bad fulfillment: {bad_uid}")
                 await asyncio.sleep(0.1)
                 
                 # Create good fulfillment
                 good_statement = StringObligationStatementData(item="good")
-                good_uid = string_client.make_statement(good_statement, escrow_uid)
+                good_uid = await string_client.make_statement(good_statement, escrow_uid)
                 fulfillment_uids.append(("good", good_uid))
                 print(f"🔄 Created good fulfillment: {good_uid}")
                 await asyncio.sleep(0.1)

@@ -47,8 +47,8 @@ async def test_arbitrate_past():
     # Make fulfillment statement
     string_client = env.bob_client.string_obligation
     statement_data = StringObligationStatementData(item="good")
-    fulfillment_uid = string_client.make_statement(statement_data, escrow_uid)
-    
+    fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
+
     # Create filter and fulfillment params
     filter_obj = AttestationFilter(
         attester=env.addresses.string_obligation_addresses.obligation,
