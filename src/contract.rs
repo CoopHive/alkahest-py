@@ -1,4 +1,3 @@
-use alkahest_rs::contracts::IEAS;
 use pyo3::{pyclass, pymethods, IntoPyObject};
 
 // Python bindings for IEAS (Ethereum Attestation Service) types

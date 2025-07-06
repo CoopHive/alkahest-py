@@ -154,7 +154,6 @@ impl Erc20Client {
                     transaction_hash: receipt.transaction_hash.to_string(),
                 }),
                 Err(e) => {
-                    eprintln!("inner.permit_and_buy_with_erc20 failed: {:?}", e);
                     Err(map_eyre_to_pyerr(e))
                 }
             }

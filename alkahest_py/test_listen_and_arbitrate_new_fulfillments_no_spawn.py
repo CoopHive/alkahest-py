@@ -93,7 +93,7 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
                 decision_function,
                 callback_function,
                 options,
-                3  
+                2  
             )
         except Exception as e:
             listen_error = e

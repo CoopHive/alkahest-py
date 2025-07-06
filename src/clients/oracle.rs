@@ -103,27 +103,7 @@ impl OracleClient {
             let py_decisions: Vec<PyDecision> = decisions
                 .into_iter()
                 .map(|decision| {
-                    let attestation = PyOracleAttestation::__new__(
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.uid.as_slice())
-                        ),
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.schema.as_slice())
-                        ),
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.refUID.as_slice())
-                        ),
-                        decision.attestation.time,
-                        decision.attestation.expirationTime,
-                        decision.attestation.revocationTime,
-                        format!("0x{:x}", decision.attestation.recipient),
-                        format!("0x{:x}", decision.attestation.attester),
-                        decision.attestation.revocable,
-                        format!("0x{}", alloy::hex::encode(&decision.attestation.data)),
-                    );
+                    let attestation = PyOracleAttestation::from(&decision.attestation);
                     PyDecision::__new__(
                         attestation,
                         decision.decision,
@@ -220,27 +200,7 @@ impl OracleClient {
             let py_decisions: Vec<PyDecision> = decisions
                 .into_iter()
                 .map(|decision| {
-                    let attestation = PyOracleAttestation::__new__(
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.uid.as_slice())
-                        ),
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.schema.as_slice())
-                        ),
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.refUID.as_slice())
-                        ),
-                        decision.attestation.time,
-                        decision.attestation.expirationTime,
-                        decision.attestation.revocationTime,
-                        format!("0x{:x}", decision.attestation.recipient),
-                        format!("0x{:x}", decision.attestation.attester),
-                        decision.attestation.revocable,
-                        format!("0x{}", alloy::hex::encode(&decision.attestation.data)),
-                    );
+                    let attestation = PyOracleAttestation::from(&decision.attestation);
                     PyDecision::__new__(
                         attestation,
                         decision.decision,
@@ -256,20 +216,7 @@ impl OracleClient {
 
             let py_escrow_attestations: Vec<PyOracleAttestation> = escrow_result
                 .into_iter()
-                .map(|att| {
-                    PyOracleAttestation::__new__(
-                        format!("0x{}", alloy::hex::encode(att.uid.as_slice())),
-                        format!("0x{}", alloy::hex::encode(att.schema.as_slice())),
-                        format!("0x{}", alloy::hex::encode(att.refUID.as_slice())),
-                        att.time,
-                        att.expirationTime,
-                        att.revocationTime,
-                        format!("0x{:x}", att.recipient),
-                        format!("0x{:x}", att.attester),
-                        att.revocable,
-                        format!("0x{}", alloy::hex::encode(&att.data)),
-                    )
-                })
+                .map(|att| PyOracleAttestation::from(&att))
                 .collect();
 
             let py_demands = vec![format!(
@@ -366,27 +313,7 @@ impl OracleClient {
                 .decisions
                 .into_iter()
                 .map(|decision| {
-                    let attestation = PyOracleAttestation::__new__(
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.uid.as_slice())
-                        ),
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.schema.as_slice())
-                        ),
-                        format!(
-                            "0x{}",
-                            alloy::hex::encode(decision.attestation.refUID.as_slice())
-                        ),
-                        decision.attestation.time,
-                        decision.attestation.expirationTime,
-                        decision.attestation.revocationTime,
-                        format!("0x{:x}", decision.attestation.recipient),
-                        format!("0x{:x}", decision.attestation.attester),
-                        decision.attestation.revocable,
-                        format!("0x{}", alloy::hex::encode(&decision.attestation.data)),
-                    );
+                    let attestation = PyOracleAttestation::from(&decision.attestation);
                     PyDecision::__new__(
                         attestation,
                         decision.decision,
@@ -540,7 +467,7 @@ impl OracleClient {
                                 Err(_) => None,
                             },
                         },
-                        Err(e) => None,
+                        Err(_) => None,
                     }
                 })
             };
@@ -555,7 +482,7 @@ impl OracleClient {
                             "Decision: {} for statement: '{}'",
                             decision_info.decision, decision_info.statement.item
                         );
-
+                        
                         if let Err(_e) = py_callback.call1(py, (decision_info_str,)) {}
                     });
                 }
@@ -579,18 +506,7 @@ impl OracleClient {
                 .decisions
                 .into_iter()
                 .map(|decision| {
-                    let py_attestation = PyOracleAttestation {
-                        uid: format!("{:?}", decision.attestation.uid),
-                        schema: format!("{:?}", decision.attestation.schema),
-                        attester: format!("{:?}", decision.attestation.attester),
-                        recipient: format!("{:?}", decision.attestation.recipient),
-                        time: decision.attestation.time,
-                        expiration_time: decision.attestation.expirationTime,
-                        revocation_time: decision.attestation.revocationTime,
-                        ref_uid: format!("{:?}", decision.attestation.refUID),
-                        data: format!("0x{}", alloy::hex::encode(&decision.attestation.data)),
-                        revocable: decision.attestation.revocable,
-                    };
+                    let py_attestation = PyOracleAttestation::from(&decision.attestation);
                     PyDecision::__new__(
                         py_attestation,
                         decision.decision,
@@ -606,18 +522,7 @@ impl OracleClient {
             let py_escrow_attestations: Vec<PyOracleAttestation> = result
                 .escrow_attestations
                 .into_iter()
-                .map(|att| PyOracleAttestation {
-                    uid: format!("{:?}", att.uid),
-                    schema: format!("{:?}", att.schema),
-                    attester: format!("{:?}", att.attester),
-                    recipient: format!("{:?}", att.recipient),
-                    time: att.time,
-                    expiration_time: att.expirationTime,
-                    revocation_time: att.revocationTime,
-                    ref_uid: format!("{:?}", att.refUID),
-                    data: format!("0x{}", alloy::hex::encode(&att.data)),
-                    revocable: att.revocable,
-                })
+                .map(|att| PyOracleAttestation::from(&att))
                 .collect();
 
             let py_escrow_demands = vec![];
@@ -686,7 +591,7 @@ impl OracleClient {
                                 Err(_) => None,
                             },
                         },
-                        Err(e) => None,
+                        Err(_) => None,
                     }
                 })
             };
@@ -702,7 +607,7 @@ impl OracleClient {
                             decision_info.decision, decision_info.statement.item
                         );
 
-                        if let Err(e) = py_callback.call1(py, (decision_info_str,)) {}
+                        if let Err(_) = py_callback.call1(py, (decision_info_str,)) {}
                     });
                 }
 
@@ -1026,6 +931,29 @@ impl PyOracleAttestation {
 
     pub fn __repr__(&self) -> String {
         self.__str__()
+    }
+}
+
+impl From<&alkahest_rs::contracts::IEAS::Attestation> for PyOracleAttestation {
+    fn from(att: &alkahest_rs::contracts::IEAS::Attestation) -> Self {
+        Self::__new__(
+            format!("0x{}", alloy::hex::encode(att.uid.as_slice())),
+            format!("0x{}", alloy::hex::encode(att.schema.as_slice())),
+            format!("0x{}", alloy::hex::encode(att.refUID.as_slice())),
+            att.time,
+            att.expirationTime,
+            att.revocationTime,
+            format!("0x{:x}", att.recipient),
+            format!("0x{:x}", att.attester),
+            att.revocable,
+            format!("0x{}", alloy::hex::encode(&att.data)),
+        )
+    }
+}
+
+impl From<alkahest_rs::contracts::IEAS::Attestation> for PyOracleAttestation {
+    fn from(att: alkahest_rs::contracts::IEAS::Attestation) -> Self {
+        Self::from(&att)
     }
 }
 

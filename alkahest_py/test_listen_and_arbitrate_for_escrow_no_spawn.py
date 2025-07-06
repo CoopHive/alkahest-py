@@ -122,7 +122,7 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
                 decision_function,
                 callback_function,
                 options,
-                3 
+                2
             )
             print("🎧 Listener completed")
         except Exception as e:

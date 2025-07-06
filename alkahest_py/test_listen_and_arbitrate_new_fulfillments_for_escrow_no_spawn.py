@@ -116,7 +116,7 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
                 decision_function,
                 callback_function,
                 options,
-                3  # 3 second timeout
+                2
             )
             print("🎧 Listener thread: Completed successfully")
         except Exception as e:

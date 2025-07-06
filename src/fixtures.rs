@@ -1,5 +1,3 @@
-use alloy::sol;
-
 use crate::{utils::PyWalletProvider, PyAlkahestClient};
 use alkahest_rs::{fixtures::{MockERC1155, MockERC20Permit, MockERC721}, types::WalletProvider};
 use alloy::primitives::{Address, U256};
