@@ -48,7 +48,7 @@ async def test_pay_erc20_for_bundle():
     }
     
     # Step 1: Bob approves his tokens for the bundle escrow
-    env.bob_client.token_bundle.approve(bundle_data, "escrow")
+    await env.bob_client.token_bundle.approve(bundle_data, "escrow")
     
     # Step 2: Bob creates bundle escrow demanding ERC20 from Alice
     # Create proper ABI-encoded payment statement data
@@ -66,7 +66,7 @@ async def test_pay_erc20_for_bundle():
         "demand": demand_bytes
     }
     
-    buy_result = env.bob_client.token_bundle.buy_with_bundle(
+    buy_result = await env.bob_client.token_bundle.buy_with_bundle(
         bundle_data, arbiter_data, expiration
     )
     

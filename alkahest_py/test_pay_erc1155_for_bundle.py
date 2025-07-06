@@ -64,7 +64,7 @@ async def test_pay_erc1155_for_bundle():
     demand_bytes = payment_statement.encode_self()
     
     # Bob approves all tokens for the bundle escrow
-    env.bob_client.token_bundle.approve(bundle_data, "escrow")
+    await env.bob_client.token_bundle.approve(bundle_data, "escrow")
     
     # Bob creates bundle escrow demanding ERC1155 from Alice
     arbiter_data = {
@@ -72,7 +72,7 @@ async def test_pay_erc1155_for_bundle():
         "demand": demand_bytes
     }
     
-    buy_result = env.bob_client.token_bundle.buy_with_bundle(bundle_data, arbiter_data, 0)
+    buy_result = await env.bob_client.token_bundle.buy_with_bundle(bundle_data, arbiter_data, 0)
     
     assert not (not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid buy attestation UID"
     

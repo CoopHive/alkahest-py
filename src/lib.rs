@@ -70,7 +70,7 @@ impl PyAlkahestClient {
             erc721: Erc721Client::new(client.erc721.clone()),
             erc1155: Erc1155Client::new(client.erc1155.clone()),
             token_bundle: TokenBundleClient::new(client.token_bundle.clone()),
-            attestation: AttestationClient::new(client.attestation.clone(), runtime.clone()),
+            attestation: AttestationClient::new(client.attestation.clone()),
             string_obligation: StringObligationClient::new(
                 client.string_obligation.clone(),
             ),
@@ -110,7 +110,7 @@ impl PyAlkahestClient {
             erc721: Erc721Client::new(client.erc721),
             erc1155: Erc1155Client::new(client.erc1155),
             token_bundle: TokenBundleClient::new(client.token_bundle),
-            attestation: AttestationClient::new(client.attestation, runtime.clone()),
+            attestation: AttestationClient::new(client.attestation),
             string_obligation: StringObligationClient::new(
                 client.string_obligation,
             ),
