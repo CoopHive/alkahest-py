@@ -1,22 +1,12 @@
 use alkahest_rs::clients::string_obligation;
 use alloy::primitives::FixedBytes;
 use pyo3::prelude::PyAnyMethods;
-use pyo3::{pyclass, pymethods, types::PyAny, Bound, PyErr, PyResult};
+use pyo3::{pyclass, pymethods, types::PyAny, Bound, PyResult};
 
-use crate::contract::PyDecodedAttestation;
-
-// Error mapping helpers
-fn map_eyre_to_pyerr(err: eyre::Error) -> PyErr {
-    pyo3::exceptions::PyRuntimeError::new_err(format!("{}", err))
-}
-
-fn map_parse_to_pyerr<T: std::fmt::Display>(err: T) -> PyErr {
-    pyo3::exceptions::PyValueError::new_err(format!("Parse error: {}", err))
-}
-
-fn map_serde_to_pyerr(err: serde_json::Error) -> PyErr {
-    pyo3::exceptions::PyValueError::new_err(format!("JSON error: {}", err))
-}
+use crate::{
+    contract::PyDecodedAttestation,
+    error_handling::{map_eyre_to_pyerr, map_parse_to_pyerr, map_serde_to_pyerr},
+};
 
 // Helper function to convert Python object to JSON string
 fn python_to_json_string(py_obj: &Bound<'_, PyAny>) -> eyre::Result<String> {
@@ -73,11 +63,15 @@ impl StringObligationClient {
                 None
             };
 
-            let receipt = inner.make_statement(data, ref_uid).await.map_err(map_eyre_to_pyerr)?;
+            let receipt = inner
+                .make_statement(data, ref_uid)
+                .await
+                .map_err(map_eyre_to_pyerr)?;
 
             // Extract the attestation UID from the receipt instead of returning transaction hash
             use alkahest_rs::AlkahestClient;
-            let attested_event = AlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
+            let attested_event =
+                AlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
             Ok(format!(
                 "0x{}",
                 alloy::hex::encode(attested_event.uid.as_slice())
@@ -94,7 +88,8 @@ impl StringObligationClient {
         let json_string = python_to_json_string(json_data).map_err(map_eyre_to_pyerr)?;
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let json_value: serde_json::Value = serde_json::from_str(&json_string).map_err(map_serde_to_pyerr)?;
+            let json_value: serde_json::Value =
+                serde_json::from_str(&json_string).map_err(map_serde_to_pyerr)?;
 
             let ref_uid = if let Some(ref_uid_str) = ref_uid {
                 Some(ref_uid_str.parse().map_err(map_parse_to_pyerr)?)
@@ -102,11 +97,15 @@ impl StringObligationClient {
                 None
             };
 
-            let receipt = inner.make_statement_json(json_value, ref_uid).await.map_err(map_eyre_to_pyerr)?;
+            let receipt = inner
+                .make_statement_json(json_value, ref_uid)
+                .await
+                .map_err(map_eyre_to_pyerr)?;
 
             // Extract the attestation UID from the receipt instead of returning transaction hash
             use alkahest_rs::AlkahestClient;
-            let attested_event = AlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
+            let attested_event =
+                AlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
             Ok(format!(
                 "0x{}",
                 alloy::hex::encode(attested_event.uid.as_slice())
@@ -150,7 +149,8 @@ impl PyStringObligationStatementData {
         use alloy::primitives::Bytes;
         let bytes = Bytes::from(statement_data);
         let decoded =
-            alkahest_rs::clients::string_obligation::StringObligationClient::decode(&bytes).map_err(map_eyre_to_pyerr)?;
+            alkahest_rs::clients::string_obligation::StringObligationClient::decode(&bytes)
+                .map_err(map_eyre_to_pyerr)?;
         Ok(decoded.into())
     }
 
@@ -159,22 +159,27 @@ impl PyStringObligationStatementData {
         use alloy::primitives::Bytes;
         let bytes = Bytes::from(statement_data);
         let decoded: serde_json::Value =
-            string_obligation::StringObligationClient::decode_json(&bytes).map_err(map_eyre_to_pyerr)?;
+            string_obligation::StringObligationClient::decode_json(&bytes)
+                .map_err(map_eyre_to_pyerr)?;
         Ok(serde_json::to_string(&decoded).map_err(map_serde_to_pyerr)?)
     }
 
     #[staticmethod]
     pub fn encode_json(json_data: String) -> PyResult<Vec<u8>> {
-        let json_value: serde_json::Value = serde_json::from_str(&json_data).map_err(map_serde_to_pyerr)?;
-        let encoded = string_obligation::StringObligationClient::encode_json(json_value).map_err(map_eyre_to_pyerr)?;
+        let json_value: serde_json::Value =
+            serde_json::from_str(&json_data).map_err(map_serde_to_pyerr)?;
+        let encoded = string_obligation::StringObligationClient::encode_json(json_value)
+            .map_err(map_eyre_to_pyerr)?;
         Ok(encoded.to_vec())
     }
 
     #[staticmethod]
     pub fn encode_json_object(json_data: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
         let json_string = python_to_json_string(json_data).map_err(map_eyre_to_pyerr)?;
-        let json_value: serde_json::Value = serde_json::from_str(&json_string).map_err(map_serde_to_pyerr)?;
-        let encoded = string_obligation::StringObligationClient::encode_json(json_value).map_err(map_eyre_to_pyerr)?;
+        let json_value: serde_json::Value =
+            serde_json::from_str(&json_string).map_err(map_serde_to_pyerr)?;
+        let encoded = string_obligation::StringObligationClient::encode_json(json_value)
+            .map_err(map_eyre_to_pyerr)?;
         Ok(encoded.to_vec())
     }
 

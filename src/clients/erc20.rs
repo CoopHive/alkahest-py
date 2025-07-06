@@ -2,19 +2,12 @@ use alkahest_rs::clients::erc20;
 use pyo3::{pyclass, pymethods, PyResult};
 
 use crate::{
+    error_handling::{map_eyre_to_pyerr, map_parse_to_pyerr},
     get_attested_event,
     types::{
         ArbiterData, AttestedLog, Erc1155Data, Erc20Data, Erc721Data, LogWithHash, TokenBundleData,
     },
 };
-
-fn map_eyre_to_pyerr(e: eyre::Error) -> pyo3::PyErr {
-    pyo3::exceptions::PyRuntimeError::new_err(e.to_string())
-}
-
-fn map_parse_to_pyerr<T: std::fmt::Display>(e: T) -> pyo3::PyErr {
-    pyo3::exceptions::PyValueError::new_err(e.to_string())
-}
 
 #[pyclass]
 #[derive(Clone)]

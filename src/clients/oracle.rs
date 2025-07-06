@@ -7,21 +7,11 @@ use alloy::primitives::FixedBytes;
 use pyo3::{pyclass, pymethods, PyObject, PyResult, Python, PyAny};
 use pyo3_async_runtimes::tokio::future_into_py;
 
-use crate::clients::string_obligation::PyStringObligationStatementData;
+use crate::{
+    clients::string_obligation::PyStringObligationStatementData,
+    error_handling::{map_eyre_to_pyerr, map_parse_to_pyerr, map_sol_decode_to_pyerr},
+};
 use alkahest_rs::clients::arbiters::TrustedOracleArbiter;
-
-// Error mapping functions
-fn map_eyre_to_pyerr(e: eyre::Error) -> pyo3::PyErr {
-    pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{}", e))
-}
-
-fn map_parse_to_pyerr(e: impl std::fmt::Display) -> pyo3::PyErr {
-    pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Parse error: {}", e))
-}
-
-fn map_sol_decode_to_pyerr(e: alloy::sol_types::Error) -> pyo3::PyErr {
-    pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Sol decode error: {}", e))
-}
 
 #[pyclass]
 #[derive(Clone)]

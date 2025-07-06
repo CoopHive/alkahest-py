@@ -1,20 +1,12 @@
 use alkahest_rs::clients::attestation;
 use alloy::primitives::{Address, FixedBytes};
-use pyo3::{pyclass, pymethods, PyErr, PyResult};
+use pyo3::{pyclass, pymethods, PyResult};
 
 use crate::{
+    error_handling::{map_eyre_to_pyerr, map_parse_to_pyerr},
     get_attested_event,
     types::{ArbiterData, AttestationRequest, AttestedLog, LogWithHash},
 };
-
-// Error mapping helpers
-fn map_eyre_to_pyerr(err: eyre::Error) -> PyErr {
-    pyo3::exceptions::PyRuntimeError::new_err(format!("{}", err))
-}
-
-fn map_parse_to_pyerr<T: std::fmt::Display>(err: T) -> PyErr {
-    pyo3::exceptions::PyValueError::new_err(format!("Parse error: {}", err))
-}
 
 #[pyclass]
 #[derive(Clone)]

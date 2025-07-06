@@ -15,7 +15,7 @@ use clients::{
 use pyo3::{
     pyclass, pymethods, pymodule,
     types::{PyModule, PyModuleMethods},
-    Bound, PyResult, Python, PyAny,
+    Bound, PyAny, PyResult, Python,
 };
 use tokio::runtime::Runtime;
 use types::{AddressConfig, EscowClaimedLog};
@@ -44,6 +44,7 @@ use crate::{
 
 pub mod clients;
 pub mod contract;
+pub mod error_handling;
 pub mod fixtures;
 pub mod types;
 pub mod utils;
@@ -69,9 +70,7 @@ impl PyAlkahestClient {
             erc1155: Erc1155Client::new(client.erc1155.clone()),
             token_bundle: TokenBundleClient::new(client.token_bundle.clone()),
             attestation: AttestationClient::new(client.attestation.clone()),
-            string_obligation: StringObligationClient::new(
-                client.string_obligation.clone(),
-            ),
+            string_obligation: StringObligationClient::new(client.string_obligation.clone()),
             oracle: OracleClient::new(client.oracle.clone()),
             inner: client,
         }
@@ -108,9 +107,7 @@ impl PyAlkahestClient {
             erc1155: Erc1155Client::new(client.erc1155),
             token_bundle: TokenBundleClient::new(client.token_bundle),
             attestation: AttestationClient::new(client.attestation),
-            string_obligation: StringObligationClient::new(
-                client.string_obligation,
-            ),
+            string_obligation: StringObligationClient::new(client.string_obligation),
             oracle: OracleClient::new(client.oracle),
         };
 
@@ -162,14 +159,18 @@ impl PyAlkahestClient {
     ) -> PyResult<pyo3::Bound<'py, PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let contract_address: Address = contract_address.parse()
-                .map_err(|e| pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Parse error: {}", e)))?;
-            let buy_attestation: FixedBytes<32> = buy_attestation.parse()
-                .map_err(|e| pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Parse error: {}", e)))?;
+            let contract_address: Address = contract_address.parse().map_err(|e| {
+                pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Parse error: {}", e))
+            })?;
+            let buy_attestation: FixedBytes<32> = buy_attestation.parse().map_err(|e| {
+                pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Parse error: {}", e))
+            })?;
             let res = inner
                 .wait_for_fulfillment(contract_address, buy_attestation, from_block)
                 .await
-                .map_err(|e| pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{}", e)))?;
+                .map_err(|e| {
+                    pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{}", e))
+                })?;
             let result: EscowClaimedLog = res.data.into();
             Ok(result)
         })
