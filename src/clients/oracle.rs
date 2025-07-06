@@ -82,16 +82,15 @@ impl OracleClient {
                     Python::with_gil(|py| {
                         let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
 
-                        match decision_func.call1(py, (py_statement,)) {
-                            Ok(result) => match result.extract::<bool>(py) {
-                                Ok(decision) => Some(decision),
-                                Err(_) => match result.is_truthy(py) {
-                                    Ok(truthy) => Some(truthy),
-                                    Err(_) => None,
-                                },
-                            },
-                            Err(_) => None,
-                        }
+                        decision_func
+                            .call1(py, (py_statement,))
+                            .ok()
+                            .and_then(|result| {
+                                result
+                                    .extract::<bool>(py)
+                                    .or_else(|_| result.is_truthy(py))
+                                    .ok()
+                            })
                     })
                 };
 
@@ -174,16 +173,15 @@ impl OracleClient {
 
                     let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
 
-                    match decision_func.call1(py, (py_statement, demand_py)) {
-                        Ok(result) => match result.extract::<bool>(py) {
-                            Ok(decision) => Some(decision),
-                            Err(_) => match result.is_truthy(py) {
-                                Ok(truthy) => Some(truthy),
-                                Err(_) => None,
-                            },
-                        },
-                        Err(_) => None,
-                    }
+                    decision_func
+                        .call1(py, (py_statement, demand_py))
+                        .ok()
+                        .and_then(|result| {
+                            result
+                                .extract::<bool>(py)
+                                .or_else(|_| result.is_truthy(py))
+                                .ok()
+                        })
                 })
             };
 
@@ -267,16 +265,15 @@ impl OracleClient {
                     Python::with_gil(|py| {
                         let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
 
-                        match decision_func.call1(py, (py_statement,)) {
-                            Ok(result) => match result.extract::<bool>(py) {
-                                Ok(decision) => Some(decision),
-                                Err(_) => match result.is_truthy(py) {
-                                    Ok(truthy) => Some(truthy),
-                                    Err(_) => None,
-                                },
-                            },
-                            Err(_) => None,
-                        }
+                        decision_func
+                            .call1(py, (py_statement,))
+                            .ok()
+                            .and_then(|result| {
+                                result
+                                    .extract::<bool>(py)
+                                    .or_else(|_| result.is_truthy(py))
+                                    .ok()
+                            })
                     })
                 };
 
@@ -291,7 +288,9 @@ impl OracleClient {
                             decision.decision, decision.statement.item
                         );
 
-                        if let Err(_e) = py_callback.call1(py, (decision_info,)) {}
+                        if let Err(e) = py_callback.call1(py, (decision_info,)) {
+                            panic!("Python callback failed: {}", e);
+                        }
                     });
                 }
 
@@ -365,16 +364,15 @@ impl OracleClient {
                     Python::with_gil(|py| {
                         let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
 
-                        match decision_func.call1(py, (py_statement,)) {
-                            Ok(result) => match result.extract::<bool>(py) {
-                                Ok(decision) => Some(decision),
-                                Err(_) => match result.is_truthy(py) {
-                                    Ok(truthy) => Some(truthy),
-                                    Err(_) => None,
-                                },
-                            },
-                            Err(_) => None,
-                        }
+                        decision_func
+                            .call1(py, (py_statement,))
+                            .ok()
+                            .and_then(|result| {
+                                result
+                                    .extract::<bool>(py)
+                                    .or_else(|_| result.is_truthy(py))
+                                    .ok()
+                            })
                     })
                 };
 
@@ -389,7 +387,9 @@ impl OracleClient {
                             decision.decision, decision.statement.item
                         );
 
-                        if let Err(_e) = py_callback.call1(py, (decision_info,)) {}
+                        if let Err(e) = py_callback.call1(py, (decision_info,)) {
+                            panic!("Python callback failed: {}", e);
+                        }
                     });
                 }
 
@@ -459,16 +459,15 @@ impl OracleClient {
 
                     let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
 
-                    match decision_func.call1(py, (py_statement, demand_py)) {
-                        Ok(result) => match result.extract::<bool>(py) {
-                            Ok(decision) => Some(decision),
-                            Err(_) => match result.is_truthy(py) {
-                                Ok(truthy) => Some(truthy),
-                                Err(_) => None,
-                            },
-                        },
-                        Err(_) => None,
-                    }
+                    decision_func
+                        .call1(py, (py_statement, demand_py))
+                        .ok()
+                        .and_then(|result| {
+                            result
+                                .extract::<bool>(py)
+                                .or_else(|_| result.is_truthy(py))
+                                .ok()
+                        })
                 })
             };
 
@@ -482,8 +481,10 @@ impl OracleClient {
                             "Decision: {} for statement: '{}'",
                             decision_info.decision, decision_info.statement.item
                         );
-                        
-                        if let Err(_e) = py_callback.call1(py, (decision_info_str,)) {}
+
+                        if let Err(e) = py_callback.call1(py, (decision_info_str,)) {
+                            panic!("Python callback failed: {}", e);
+                        }
                     });
                 }
 
@@ -583,16 +584,15 @@ impl OracleClient {
 
                     let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
 
-                    match decision_func.call1(py, (py_statement, demand_py)) {
-                        Ok(result) => match result.extract::<bool>(py) {
-                            Ok(decision) => Some(decision),
-                            Err(_) => match result.is_truthy(py) {
-                                Ok(truthy) => Some(truthy),
-                                Err(_) => None,
-                            },
-                        },
-                        Err(_) => None,
-                    }
+                    decision_func
+                        .call1(py, (py_statement, demand_py))
+                        .ok()
+                        .and_then(|result| {
+                            result
+                                .extract::<bool>(py)
+                                .or_else(|_| result.is_truthy(py))
+                                .ok()
+                        })
                 })
             };
 
@@ -607,7 +607,9 @@ impl OracleClient {
                             decision_info.decision, decision_info.statement.item
                         );
 
-                        if let Err(_) = py_callback.call1(py, (decision_info_str,)) {}
+                        if let Err(e) = py_callback.call1(py, (decision_info_str,)) {
+                            panic!("Python callback failed: {}", e);
+                        }
                     });
                 }
 
