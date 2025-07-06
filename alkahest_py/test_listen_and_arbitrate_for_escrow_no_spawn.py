@@ -1,7 +1,6 @@
 import asyncio
 import pytest
 import time
-import threading
 from alkahest_py import (
     EnvTestManager,
     StringObligationStatementData,
@@ -113,11 +112,11 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
     string_client = env.bob_client.string_obligation
     
     # Function to run the listener in background (no fulfillments exist yet)
-    def run_listener():
+    async def run_listener():
         nonlocal listen_result, listen_error
         try:
             print("🎧 Starting listener in background...")
-            listen_result = oracle_client.listen_and_arbitrate_for_escrow_no_spawn(
+            listen_result = await oracle_client.listen_and_arbitrate_for_escrow_no_spawn(
                 escrow_params,
                 fulfillment_params,
                 decision_function,
@@ -131,67 +130,52 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
             listen_error = e
     
     # Function to create fulfillments AFTER listener starts (matching Rust test)
-    def create_fulfillments_during_listen():
+    async def create_fulfillments_during_listen():
         nonlocal fulfillment_uids, collection_success
         try:
-            # Create new event loop for this thread
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Small delay to let listener start
+            await asyncio.sleep(0.1)
+            print("🔄 Creating fulfillments while listener is running...")
             
-            async def do_fulfillments():
-                nonlocal fulfillment_uids, collection_success
-                # Small delay to let listener start
-                await asyncio.sleep(0.1)
-                print("🔄 Creating fulfillments while listener is running...")
-                
-                # Create bad fulfillment
-                bad_statement = StringObligationStatementData(item="bad2")
-                bad_uid = await string_client.make_statement(bad_statement, escrow_uid)
-                fulfillment_uids.append(("bad2", bad_uid))
-                print(f"🔄 Created bad fulfillment: {bad_uid}")
-                await asyncio.sleep(0.1)
-                
-                # Create good fulfillment
-                good_statement = StringObligationStatementData(item="good")
-                good_uid = await string_client.make_statement(good_statement, escrow_uid)
-                fulfillment_uids.append(("good", good_uid))
-                print(f"🔄 Created good fulfillment: {good_uid}")
-                await asyncio.sleep(0.1)
-                
-                # Wait for decisions to be processed
-                await asyncio.sleep(0.5)
-                print("💰 Attempting to collect payment for good fulfillment...")
-                
-                # Try to collect payment for good fulfillment
-                try:
-                    collection_receipt = await env.bob_client.erc20.collect_payment(escrow_uid, good_uid)
-                    print(f"💰 Collection receipt: {collection_receipt}")
-                    if collection_receipt and collection_receipt.startswith('0x'):
-                        collection_success = True
-                        print("✅ Payment collection successful!")
-                    else:
-                        print(f"⚠️ Unexpected collection result: {collection_receipt}")
-                except Exception as e:
-                    print(f"❌ Payment collection failed: {e}")
+            # Create bad fulfillment
+            bad_statement = StringObligationStatementData(item="bad2")
+            bad_uid = await string_client.make_statement(bad_statement, escrow_uid)
+            fulfillment_uids.append(("bad2", bad_uid))
+            print(f"🔄 Created bad fulfillment: {bad_uid}")
+            await asyncio.sleep(0.1)
             
+            # Create good fulfillment
+            good_statement = StringObligationStatementData(item="good")
+            good_uid = await string_client.make_statement(good_statement, escrow_uid)
+            fulfillment_uids.append(("good", good_uid))
+            print(f"🔄 Created good fulfillment: {good_uid}")
+            await asyncio.sleep(0.1)
+            
+            # Wait for decisions to be processed
+            await asyncio.sleep(0.5)
+            print("💰 Attempting to collect payment for good fulfillment...")
+            
+            # Try to collect payment for good fulfillment
             try:
-                loop.run_until_complete(do_fulfillments())
-            finally:
-                loop.close()
+                collection_receipt = await env.bob_client.erc20.collect_payment(escrow_uid, good_uid)
+                print(f"💰 Collection receipt: {collection_receipt}")
+                if collection_receipt and collection_receipt.startswith('0x'):
+                    collection_success = True
+                    print("✅ Payment collection successful!")
+                else:
+                    print(f"⚠️ Unexpected collection result: {collection_receipt}")
+            except Exception as e:
+                print(f"❌ Payment collection failed: {e}")
                 
         except Exception as e:
             print(f"❌ Fulfillment creation failed: {e}")
     
-    # Start listener first, then create fulfillments (matching Rust pattern)
-    listener_thread = threading.Thread(target=run_listener)
-    fulfillment_thread = threading.Thread(target=create_fulfillments_during_listen)
+    # Start both async tasks concurrently
+    listener_task = asyncio.create_task(run_listener())
+    fulfillment_task = asyncio.create_task(create_fulfillments_during_listen())
     
-    listener_thread.start()
-    fulfillment_thread.start()
-    
-    # Wait for both threads to complete
-    listener_thread.join()
-    fulfillment_thread.join()
+    # Wait for both tasks to complete
+    await asyncio.gather(listener_task, fulfillment_task)
     
     # Assert no errors occurred in the listener thread
     if listen_error:

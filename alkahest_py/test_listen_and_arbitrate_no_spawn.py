@@ -1,7 +1,6 @@
 import asyncio
 import pytest
 import time
-import threading
 from alkahest_py import (
     EnvTestManager,
     StringObligationStatementData,
@@ -86,11 +85,11 @@ async def test_listen_and_arbitrate_no_spawn():
     string_client = env.bob_client.string_obligation
     
     # Function to run the listener in background
-    def run_listener():
+    async def run_listener():
         nonlocal listen_result, listen_error
         try:
             print("🎧 Listener thread: Starting listen_and_arbitrate_no_spawn...")
-            listen_result = oracle_client.listen_and_arbitrate_no_spawn(
+            listen_result = await oracle_client.listen_and_arbitrate_no_spawn(
                 fulfillment_params,
                 decision_function,
                 callback_function,
@@ -101,56 +100,43 @@ async def test_listen_and_arbitrate_no_spawn():
             listen_error = e
         
     # Function to make the fulfillment statement while listener is active
-    def make_fulfillment_during_listen():
+    async def make_fulfillment_during_listen():
         nonlocal fulfillment_uid, collection_success
         try:
             # Wait for listener to start, then make statement during listening period
-            time.sleep(0.1)  # Give listener time to start actively listening
+            await asyncio.sleep(0.1)  # Give listener time to start actively listening
             print("🔄 Fulfillment thread: Making statement while listener is active...")
             
             statement_data = StringObligationStatementData(item="good")
             
-            # Need to run async code in the thread
-            async def do_fulfillment_and_collection():
-                nonlocal fulfillment_uid, collection_success
-                # Make the fulfillment statement
-                fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
-                assert fulfillment_uid is not None, "Fulfillment UID should not be None"
-                
-                # Wait a moment for arbitration to process, then collect payment
-                await asyncio.sleep(0.5)  # Give time for arbitration processing
-                
-                try:
-                    collection_receipt = await env.bob_client.erc20.collect_payment(
-                        escrow_uid, fulfillment_uid
-                    )
-                    
-                    if collection_receipt and collection_receipt.startswith('0x'):
-                        collection_success = True
-                except Exception:
-                    # Collection might fail due to timing, but that's not the main test focus
-                    pass
+            # Make the fulfillment statement
+            fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
+            assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             
-            # Create new event loop for this thread
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Wait a moment for arbitration to process, then collect payment
+            await asyncio.sleep(0.5)  # Give time for arbitration processing
+            
             try:
-                loop.run_until_complete(do_fulfillment_and_collection())
-            finally:
-                loop.close()
+                collection_receipt = await env.bob_client.erc20.collect_payment(
+                    escrow_uid, fulfillment_uid
+                )
+                
+                if collection_receipt and collection_receipt.startswith('0x'):
+                    collection_success = True
+            except Exception:
+                # Collection might fail due to timing, but that's not the main test focus
+                pass
+                
         except Exception as e:
             pytest.fail(f"Fulfillment thread failed: {e}")
     
-    # Start both threads concurrently - listener in background, fulfillment during listening
-    listener_thread = threading.Thread(target=run_listener)
-    fulfillment_thread = threading.Thread(target=make_fulfillment_during_listen)
+    # Start both async tasks concurrently
+    listener_task = asyncio.create_task(run_listener())
+    fulfillment_task = asyncio.create_task(make_fulfillment_during_listen())
     
-    listener_thread.start()
-    fulfillment_thread.start()
+    # Wait for both tasks to complete
+    await asyncio.gather(listener_task, fulfillment_task)
     
-    # Wait for both threads to complete
-    listener_thread.join()
-    fulfillment_thread.join()
     
     # Assert no errors occurred in the listener thread
     if listen_error:

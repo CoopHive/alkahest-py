@@ -77,7 +77,7 @@ async def test_arbitrate_past():
         return statement_str == "good"
     
     # Call arbitrate_past
-    result = oracle_client.arbitrate_past(
+    result = await oracle_client.arbitrate_past(
         fulfillment_params,
         decision_function,
         options

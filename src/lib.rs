@@ -15,7 +15,7 @@ use clients::{
 use pyo3::{
     pyclass, pymethods, pymodule,
     types::{PyModule, PyModuleMethods},
-    Bound, PyResult,
+    Bound, PyResult, Python, PyAny,
 };
 use tokio::runtime::Runtime;
 use types::{AddressConfig, EscowClaimedLog};
@@ -59,12 +59,10 @@ pub struct PyAlkahestClient {
     attestation: AttestationClient,
     string_obligation: StringObligationClient,
     oracle: OracleClient,
-    runtime: std::sync::Arc<tokio::runtime::Runtime>,
 }
 
 impl PyAlkahestClient {
     pub fn from_client(client: AlkahestClient) -> Self {
-        let runtime = std::sync::Arc::new(Runtime::new().expect("Failed to create runtime"));
         Self {
             erc20: Erc20Client::new(client.erc20.clone()),
             erc721: Erc721Client::new(client.erc721.clone()),
@@ -74,9 +72,8 @@ impl PyAlkahestClient {
             string_obligation: StringObligationClient::new(
                 client.string_obligation.clone(),
             ),
-            oracle: OracleClient::new(client.oracle.clone(), runtime.clone()),
+            oracle: OracleClient::new(client.oracle.clone()),
             inner: client,
-            runtime: runtime,
         }
     }
 }
@@ -114,8 +111,7 @@ impl PyAlkahestClient {
             string_obligation: StringObligationClient::new(
                 client.string_obligation,
             ),
-            oracle: OracleClient::new(client.oracle, runtime.clone()),
-            runtime: runtime,
+            oracle: OracleClient::new(client.oracle),
         };
 
         Ok(client)
@@ -157,20 +153,25 @@ impl PyAlkahestClient {
     }
 
     #[pyo3(signature = (contract_address, buy_attestation, from_block=None))]
-    pub fn wait_for_fulfillment(
+    pub fn wait_for_fulfillment<'py>(
         &self,
+        py: Python<'py>,
         contract_address: String,
         buy_attestation: String,
         from_block: Option<u64>,
-    ) -> eyre::Result<EscowClaimedLog> {
-        self.runtime.block_on(async {
-            let contract_address: Address = contract_address.parse()?;
-            let buy_attestation: FixedBytes<32> = buy_attestation.parse()?;
-            let res = self
-                .inner
+    ) -> PyResult<pyo3::Bound<'py, PyAny>> {
+        let inner = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let contract_address: Address = contract_address.parse()
+                .map_err(|e| pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Parse error: {}", e)))?;
+            let buy_attestation: FixedBytes<32> = buy_attestation.parse()
+                .map_err(|e| pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Parse error: {}", e)))?;
+            let res = inner
                 .wait_for_fulfillment(contract_address, buy_attestation, from_block)
-                .await?;
-            Ok(res.data.into())
+                .await
+                .map_err(|e| pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{}", e)))?;
+            let result: EscowClaimedLog = res.data.into();
+            Ok(result)
         })
     }
 }
@@ -219,7 +220,6 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyERC1155PaymentObligationStatement>()?;
     m.add_class::<PyStringObligationStatementData>()?;
     m.add_class::<PyErc20Data>()?;
-    // Note: PyDecodedAttestation is now IntoPyObject, not a class, so it converts to dict automatically
 
     // IEAS (Ethereum Attestation Service) Types from contract.rs
     m.add_class::<PyAttestation>()?;

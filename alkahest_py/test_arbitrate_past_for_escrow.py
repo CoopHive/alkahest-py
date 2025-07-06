@@ -88,7 +88,7 @@ async def test_arbitrate_past_for_escrow():
     
     # Call arbitrate_past_for_escrow
     oracle_client = env.bob_client.oracle
-    result = oracle_client.arbitrate_past_for_escrow(
+    result = await oracle_client.arbitrate_past_for_escrow(
         escrow_params,
         fulfillment_params,
         decision_function,
