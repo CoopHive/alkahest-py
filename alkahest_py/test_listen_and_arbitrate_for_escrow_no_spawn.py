@@ -134,7 +134,6 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
         nonlocal fulfillment_uids, collection_success
         try:
             # Small delay to let listener start
-            await asyncio.sleep(0.1)
             print("🔄 Creating fulfillments while listener is running...")
             
             # Create bad fulfillment
@@ -142,17 +141,14 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
             bad_uid = await string_client.make_statement(bad_statement, escrow_uid)
             fulfillment_uids.append(("bad2", bad_uid))
             print(f"🔄 Created bad fulfillment: {bad_uid}")
-            await asyncio.sleep(0.1)
             
             # Create good fulfillment
             good_statement = StringObligationStatementData(item="good")
             good_uid = await string_client.make_statement(good_statement, escrow_uid)
             fulfillment_uids.append(("good", good_uid))
             print(f"🔄 Created good fulfillment: {good_uid}")
-            await asyncio.sleep(0.1)
             
             # Wait for decisions to be processed
-            await asyncio.sleep(0.5)
             print("💰 Attempting to collect payment for good fulfillment...")
             
             # Try to collect payment for good fulfillment

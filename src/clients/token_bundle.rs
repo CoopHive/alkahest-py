@@ -21,7 +21,12 @@ impl TokenBundleClient {
 
 #[pymethods]
 impl TokenBundleClient {
-    pub fn approve<'py>(&self, py: pyo3::Python<'py>, token: TokenBundleData, purpose: String) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
+    pub fn approve<'py>(
+        &self,
+        py: pyo3::Python<'py>,
+        token: TokenBundleData,
+        purpose: String,
+    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let purpose = match purpose.as_str() {
@@ -29,7 +34,10 @@ impl TokenBundleClient {
                 "escrow" => alkahest_rs::types::ApprovalPurpose::Escrow,
                 _ => return Err(map_eyre_to_pyerr(eyre::eyre!("Invalid purpose"))),
             };
-            let receipts = inner.approve(&token.try_into().map_err(map_eyre_to_pyerr)?, purpose).await.map_err(map_eyre_to_pyerr)?;
+            let receipts = inner
+                .approve(&token.try_into().map_err(map_eyre_to_pyerr)?, purpose)
+                .await
+                .map_err(map_eyre_to_pyerr)?;
 
             // Return the transaction hash of the last receipt, or empty string if no receipts
             match receipts.last() {
@@ -48,16 +56,27 @@ impl TokenBundleClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment(buy_attestation.parse().map_err(map_parse_to_pyerr)?, fulfillment.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .collect_payment(
+                    buy_attestation.parse().map_err(map_parse_to_pyerr)?,
+                    fulfillment.parse().map_err(map_parse_to_pyerr)?,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub fn collect_expired<'py>(&self, py: pyo3::Python<'py>, buy_attestation: String) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
+    pub fn collect_expired<'py>(
+        &self,
+        py: pyo3::Python<'py>,
+        buy_attestation: String,
+    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner.collect_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?).await.map_err(map_eyre_to_pyerr)?;
+            let receipt = inner
+                .collect_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
@@ -72,10 +91,18 @@ impl TokenBundleClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .buy_with_bundle(&price.try_into().map_err(map_eyre_to_pyerr)?, &item.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .buy_with_bundle(
+                    &price.try_into().map_err(map_eyre_to_pyerr)?,
+                    &item.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -90,10 +117,17 @@ impl TokenBundleClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .pay_with_bundle(&price.try_into().map_err(map_eyre_to_pyerr)?, payee.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .pay_with_bundle(
+                    &price.try_into().map_err(map_eyre_to_pyerr)?,
+                    payee.parse().map_err(map_parse_to_pyerr)?,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -109,10 +143,18 @@ impl TokenBundleClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .buy_bundle_for_bundle(&bid.try_into().map_err(map_eyre_to_pyerr)?, &ask.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .buy_bundle_for_bundle(
+                    &bid.try_into().map_err(map_eyre_to_pyerr)?,
+                    &ask.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -127,9 +169,13 @@ impl TokenBundleClient {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
                 .pay_bundle_for_bundle(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })

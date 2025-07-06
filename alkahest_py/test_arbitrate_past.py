@@ -90,9 +90,6 @@ async def test_arbitrate_past():
     decision = result.decisions[0]
     assert not (not decision.decision or decision.statement_data != "good"), "Decision incorrect: {decision.decision}, statement: {decision.statement_data}"
     
-    # Wait for arbitration transactions to be processed
-    time.sleep(2)
-    
     # Collect payment
     collection_receipt = await env.bob_client.erc20.collect_payment(
         escrow_uid, fulfillment_uid

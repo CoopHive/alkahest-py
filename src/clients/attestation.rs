@@ -35,7 +35,8 @@ impl AttestationClient {
             let resolver: Address = resolver.parse().map_err(map_parse_to_pyerr)?;
             let receipt = inner
                 .register_schema(schema.to_string(), resolver, revocable)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
@@ -47,9 +48,15 @@ impl AttestationClient {
     ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner.attest(attestation.try_into().map_err(map_eyre_to_pyerr)?).await.map_err(map_eyre_to_pyerr)?;
+            let receipt = inner
+                .attest(attestation.try_into().map_err(map_eyre_to_pyerr)?)
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -64,8 +71,12 @@ impl AttestationClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment(buy_attestation.parse().map_err(map_parse_to_pyerr)?, fulfillment.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .collect_payment(
+                    buy_attestation.parse().map_err(map_parse_to_pyerr)?,
+                    fulfillment.parse().map_err(map_parse_to_pyerr)?,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
@@ -79,8 +90,12 @@ impl AttestationClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment_2(buy_attestation.parse().map_err(map_parse_to_pyerr)?, fulfillment.parse().map_err(map_parse_to_pyerr)?)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .collect_payment_2(
+                    buy_attestation.parse().map_err(map_parse_to_pyerr)?,
+                    fulfillment.parse().map_err(map_parse_to_pyerr)?,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
@@ -95,10 +110,18 @@ impl AttestationClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .create_escrow(attestation.try_into().map_err(map_eyre_to_pyerr)?, demand.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .create_escrow(
+                    attestation.try_into().map_err(map_eyre_to_pyerr)?,
+                    demand.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -114,10 +137,18 @@ impl AttestationClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .create_escrow_2(attestation.parse().map_err(map_parse_to_pyerr)?, demand.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .create_escrow_2(
+                    attestation.parse().map_err(map_parse_to_pyerr)?,
+                    demand.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
@@ -130,14 +161,21 @@ impl AttestationClient {
         demand: ArbiterData,
         expiration: u64,
     ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        // TODO: might be bugged; return value could be Attested from the created attestation rather than the escrow obligation
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .attest_and_create_escrow(attestation.try_into().map_err(map_eyre_to_pyerr)?, demand.try_into().map_err(map_eyre_to_pyerr)?, expiration)
-                .await.map_err(map_eyre_to_pyerr)?;
+                .attest_and_create_escrow(
+                    attestation.try_into().map_err(map_eyre_to_pyerr)?,
+                    demand.try_into().map_err(map_eyre_to_pyerr)?,
+                    expiration,
+                )
+                .await
+                .map_err(map_eyre_to_pyerr)?;
             Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone()).map_err(map_eyre_to_pyerr)?.data.into(),
+                log: get_attested_event(receipt.clone())
+                    .map_err(map_eyre_to_pyerr)?
+                    .data
+                    .into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })

@@ -104,7 +104,6 @@ async def test_listen_and_arbitrate_no_spawn():
         nonlocal fulfillment_uid, collection_success
         try:
             # Wait for listener to start, then make statement during listening period
-            await asyncio.sleep(0.1)  # Give listener time to start actively listening
             print("🔄 Fulfillment thread: Making statement while listener is active...")
             
             statement_data = StringObligationStatementData(item="good")
@@ -113,8 +112,6 @@ async def test_listen_and_arbitrate_no_spawn():
             fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
             assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             
-            # Wait a moment for arbitration to process, then collect payment
-            await asyncio.sleep(0.5)  # Give time for arbitration processing
             
             try:
                 collection_receipt = await env.bob_client.erc20.collect_payment(
