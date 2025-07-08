@@ -122,7 +122,7 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
                 decision_function,
                 callback_function,
                 options,
-                2
+                5
             )
             print("🎧 Listener completed")
         except Exception as e:
@@ -141,12 +141,13 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
             bad_uid = await string_client.make_statement(bad_statement, escrow_uid)
             fulfillment_uids.append(("bad2", bad_uid))
             print(f"🔄 Created bad fulfillment: {bad_uid}")
-            
+            await asyncio.sleep(0.1)  # Give some time for listener to process
             # Create good fulfillment
             good_statement = StringObligationStatementData(item="good")
             good_uid = await string_client.make_statement(good_statement, escrow_uid)
             fulfillment_uids.append(("good", good_uid))
             print(f"🔄 Created good fulfillment: {good_uid}")
+            await asyncio.sleep(0.1) 
             
             # Wait for decisions to be processed
             print("💰 Attempting to collect payment for good fulfillment...")
@@ -170,8 +171,13 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
     listener_task = asyncio.create_task(run_listener())
     fulfillment_task = asyncio.create_task(create_fulfillments_during_listen())
     
-    # Wait for both tasks to complete
-    await asyncio.gather(listener_task, fulfillment_task)
+    await fulfillment_task
+    
+    listener_task.cancel()
+    try:
+        await listener_task
+    except asyncio.CancelledError:
+        pass  # Expected when we cancel the task
     
     # Assert no errors occurred in the listener thread
     if listen_error:

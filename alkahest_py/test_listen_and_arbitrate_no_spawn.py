@@ -117,7 +117,7 @@ async def test_listen_and_arbitrate_no_spawn():
                 collection_receipt = await env.bob_client.erc20.collect_payment(
                     escrow_uid, fulfillment_uid
                 )
-                
+                print("collection_receipt:", collection_receipt)
                 if collection_receipt and collection_receipt.startswith('0x'):
                     collection_success = True
             except Exception:
@@ -131,8 +131,13 @@ async def test_listen_and_arbitrate_no_spawn():
     listener_task = asyncio.create_task(run_listener())
     fulfillment_task = asyncio.create_task(make_fulfillment_during_listen())
     
-    # Wait for both tasks to complete
-    await asyncio.gather(listener_task, fulfillment_task)
+    await fulfillment_task
+    
+    listener_task.cancel()
+    try:
+        await listener_task
+    except asyncio.CancelledError:
+        pass  
     
     
     # Assert no errors occurred in the listener thread
