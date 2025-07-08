@@ -15,7 +15,7 @@ client = AlkahestClient(
 )
 
 async def main():
-    hash =  client.erc20.approve(
+    hash = await client.erc20.approve(
         {"address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e", "value": 100},
         "escrow",
     )

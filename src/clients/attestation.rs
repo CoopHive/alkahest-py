@@ -1,9 +1,9 @@
 use alkahest_rs::clients::attestation;
 use alloy::primitives::{Address, FixedBytes};
-use pyo3::{pyclass, pymethods, PyResult};
+use pyo3::{pyclass, pymethods};
+use tokio::runtime::Runtime;
 
 use crate::{
-    error_handling::{map_eyre_to_pyerr, map_parse_to_pyerr},
     get_attested_event,
     types::{ArbiterData, AttestationRequest, AttestedLog, LogWithHash},
 };
@@ -22,160 +22,114 @@ impl AttestationClient {
 
 #[pymethods]
 impl AttestationClient {
-    pub fn register_schema<'py>(
+    pub async fn register_schema(
         &self,
-        py: pyo3::Python<'py>,
         schema: String,
         resolver: String,
         revocable: bool,
-    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let schema: FixedBytes<32> = schema.parse().map_err(map_parse_to_pyerr)?;
-            let resolver: Address = resolver.parse().map_err(map_parse_to_pyerr)?;
-            let receipt = inner
+    ) -> eyre::Result<String> {
+        Runtime::new()?.block_on(async {
+            let schema: FixedBytes<32> = schema.parse()?;
+            let resolver: Address = resolver.parse()?;
+            let receipt = self
+                .inner
                 .register_schema(schema.to_string(), resolver, revocable)
-                .await
-                .map_err(map_eyre_to_pyerr)?;
+                .await?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub fn attest<'py>(
+    pub async fn attest(
         &self,
-        py: pyo3::Python<'py>,
         attestation: AttestationRequest,
-    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner
-                .attest(attestation.try_into().map_err(map_eyre_to_pyerr)?)
-                .await
-                .map_err(map_eyre_to_pyerr)?;
-            Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone())
-                    .map_err(map_eyre_to_pyerr)?
-                    .data
-                    .into(),
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        Runtime::new()?.block_on(async {
+            let receipt = self.inner.attest(attestation.try_into()?).await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
     }
 
-    pub fn collect_payment<'py>(
+    pub async fn collect_payment(
         &self,
-        py: pyo3::Python<'py>,
         buy_attestation: String,
         fulfillment: String,
-    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner
-                .collect_payment(
-                    buy_attestation.parse().map_err(map_parse_to_pyerr)?,
-                    fulfillment.parse().map_err(map_parse_to_pyerr)?,
-                )
-                .await
-                .map_err(map_eyre_to_pyerr)?;
+    ) -> eyre::Result<String> {
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .collect_payment(buy_attestation.parse()?, fulfillment.parse()?)
+                .await?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub fn collect_payment_2<'py>(
+    pub async fn collect_payment_2(
         &self,
-        py: pyo3::Python<'py>,
         buy_attestation: String,
         fulfillment: String,
-    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner
-                .collect_payment_2(
-                    buy_attestation.parse().map_err(map_parse_to_pyerr)?,
-                    fulfillment.parse().map_err(map_parse_to_pyerr)?,
-                )
-                .await
-                .map_err(map_eyre_to_pyerr)?;
+    ) -> eyre::Result<String> {
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .collect_payment_2(buy_attestation.parse()?, fulfillment.parse()?)
+                .await?;
             Ok(receipt.transaction_hash.to_string())
         })
     }
 
-    pub fn create_escrow<'py>(
+    pub async fn create_escrow(
         &self,
-        py: pyo3::Python<'py>,
         attestation: AttestationRequest,
         demand: ArbiterData,
         expiration: u64,
-    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner
-                .create_escrow(
-                    attestation.try_into().map_err(map_eyre_to_pyerr)?,
-                    demand.try_into().map_err(map_eyre_to_pyerr)?,
-                    expiration,
-                )
-                .await
-                .map_err(map_eyre_to_pyerr)?;
-            Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone())
-                    .map_err(map_eyre_to_pyerr)?
-                    .data
-                    .into(),
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
+                .await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
     }
 
-    pub fn create_escrow_2<'py>(
+    pub async fn create_escrow_2(
         &self,
-        py: pyo3::Python<'py>,
         attestation: String,
         demand: ArbiterData,
         expiration: u64,
-    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner
-                .create_escrow_2(
-                    attestation.parse().map_err(map_parse_to_pyerr)?,
-                    demand.try_into().map_err(map_eyre_to_pyerr)?,
-                    expiration,
-                )
-                .await
-                .map_err(map_eyre_to_pyerr)?;
-            Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone())
-                    .map_err(map_eyre_to_pyerr)?
-                    .data
-                    .into(),
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .create_escrow_2(attestation.parse()?, demand.try_into()?, expiration)
+                .await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })
     }
 
-    pub fn attest_and_create_escrow<'py>(
+    pub async fn attest_and_create_escrow(
         &self,
-        py: pyo3::Python<'py>,
         attestation: AttestationRequest,
         demand: ArbiterData,
         expiration: u64,
-    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let receipt = inner
-                .attest_and_create_escrow(
-                    attestation.try_into().map_err(map_eyre_to_pyerr)?,
-                    demand.try_into().map_err(map_eyre_to_pyerr)?,
-                    expiration,
-                )
-                .await
-                .map_err(map_eyre_to_pyerr)?;
-            Ok(LogWithHash::<AttestedLog> {
-                log: get_attested_event(receipt.clone())
-                    .map_err(map_eyre_to_pyerr)?
-                    .data
-                    .into(),
+    ) -> eyre::Result<LogWithHash<AttestedLog>> {
+        // TODO: might be bugged; return value could be Attested from the created attestation rather than the escrow obligation
+        Runtime::new()?.block_on(async {
+            let receipt = self
+                .inner
+                .attest_and_create_escrow(attestation.try_into()?, demand.try_into()?, expiration)
+                .await?;
+            Ok(LogWithHash {
+                log: get_attested_event(receipt.clone())?.data.into(),
                 transaction_hash: receipt.transaction_hash.to_string(),
             })
         })

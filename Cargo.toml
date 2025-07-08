@@ -9,22 +9,8 @@ name = "alkahest_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.25.0", features = ["extension-module", "experimental-async", "eyre"] }
-pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
-alkahest-rs = { git = "https://github.com/CoopHive/alkahest-rs", branch = "main" }
-futures-util = "0.3"
-tokio = { version = "1.44", features = ["full"] }
-alloy = { version = "0.15", features = [
-    "full",
-    "node-bindings",
-    "signers",
-    "rlp",
-    "eip712",
-] }
-
-# misc
-eyre = "0.6"
-serde = "1.0"
-serde_json = "1.0"
-futures = "0.3.31"
-itertools = "0.14.0"
+alkahest-rs = { version = "0.2.0" }                                      # , path = "../alkahest-rs" }
+alloy = "0.9.2"
+eyre = "0.6.12"
+pyo3 = { version = "0.23.3", features = ["experimental-async", "eyre"] }
+tokio = "1.43.0"
