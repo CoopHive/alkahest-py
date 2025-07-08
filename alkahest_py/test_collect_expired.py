@@ -36,8 +36,8 @@ async def test_collect_expired():
     # Alice approves token for escrow
     await env.alice_client.erc721.approve(bid_data, "escrow")
     
-    # Alice makes escrow with a short expiration (current time + 1 seconds)
-    expiration = int(time.time()) + 1
+    # Alice makes escrow with a short expiration (current time + 15 seconds)
+    expiration = int(time.time()) + 15
     buy_result = await env.alice_client.erc721.buy_erc_721_for_erc_721(bid_data, ask_data, expiration)
     
     assert not (not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid buy attestation UID"
@@ -51,9 +51,7 @@ async def test_collect_expired():
     
     assert not (current_owner.lower() != escrow_address.lower()), "Token should be in escrow at {escrow_address}, but owned by {current_owner}"
     
-    # Wait for expiration (adding buffer time)
-    print("Waiting for escrow to expire...")
-    time.sleep(2)
+    await env.god_wallet_provider.anvil_increase_time(20)
     
     # Alice collects expired funds
     collect_result = await env.alice_client.erc721.collect_expired(buy_attestation_uid)

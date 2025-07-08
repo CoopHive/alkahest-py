@@ -37,7 +37,7 @@ dependencies = [
 [[package]]
 name = "alkahest-rs"
 version = "0.5.0"
-source = "git+https://github.com/CoopHive/alkahest-rs?branch=main#7d49b3faf3adb98364fb5778855e66caeaf2f112"
+source = "git+https://github.com/CoopHive/alkahest-rs?branch=main#b4ed2ccecf081db363d8925c82829ed3657235cb"
 dependencies = [
  "alloy",
  "eyre",
@@ -47,6 +47,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -257,9 +258,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-hardforks"
-version = "0.2.11"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ce138b29a2f8e7ed97c064af8359dfa6559c12cba5e821ae4eb93081a56557e"
+checksum = "819a3620fe125e0fff365363315ee5e24c23169173b19747dfd6deba33db8990"
 dependencies = [
  "alloy-chains",
  "alloy-eip2124",
@@ -2465,9 +2466,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc2fdfdbff08affe55bb779f33b053aa1fe5dd5b54c257343c17edfa55711bdb"
+checksum = "7f66d5bd4c6f02bf0542fad85d626775bab9258cf795a4256dcaf3161114d1df"
 dependencies = [
  "base64",
  "bytes",

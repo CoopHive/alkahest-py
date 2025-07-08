@@ -43,8 +43,8 @@ async def test_erc1155_collect_expired():
     # Check initial balance
     initial_alice_balance = mock_erc1155_a.balance_of(env.alice, 1)
 
-    # Alice makes escrow with a short expiration (current time + 1 second)
-    expiration = int(time.time()) + 1
+    # Alice makes escrow with a short expiration (current time + 15 second)
+    expiration = int(time.time()) + 15
     buy_result = await env.alice_client.erc1155.buy_erc1155_for_erc1155(bid_data, ask_data, expiration)
     
     assert not (not buy_result['log']['uid'] or buy_result['log']['uid'] == "0x0000000000000000000000000000000000000000000000000000000000000000"), "Invalid buy attestation UID"
@@ -61,9 +61,7 @@ async def test_erc1155_collect_expired():
     
     print(f"ERC1155 tokens {bid_data['value']} in escrow at: {env.addresses.erc1155_addresses.escrow_obligation}")
     
-    # Wait for expiration (wait 20 seconds to be safe)
-    print("Waiting for escrow to expire...")
-    time.sleep(2)
+    await env.god_wallet_provider.anvil_increase_time(20)
     
     # Alice collects expired funds
     collect_result = await env.alice_client.erc1155.collect_expired(buy_attestation_uid)

@@ -1,7 +1,4 @@
-use crate::{
-    types::PyAddressConfig,
-    PyAlkahestClient,
-};
+use crate::{types::PyAddressConfig, PyAlkahestClient};
 use alkahest_rs::{
     types::WalletProvider,
     utils::{setup_test_environment, MockAddresses, TestContext},
@@ -14,6 +11,28 @@ use pyo3::{pyclass, pymethods, PyResult};
 pub struct PyWalletProvider {
     pub inner: WalletProvider,
 }
+#[pymethods]
+impl PyWalletProvider {
+    pub fn anvil_increase_time<'py>(
+        &self,
+        py: pyo3::Python<'py>,
+        seconds: u64,
+    ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
+        use alloy::providers::ext::AnvilApi;
+        use pyo3_async_runtimes::tokio::future_into_py;
+
+        let provider = self.inner.clone();
+
+        future_into_py(py, async move {
+            provider
+                .anvil_increase_time(seconds)
+                .await
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            Ok(())
+        })
+    }
+}
+
 #[pyclass]
 #[derive(Clone)]
 pub struct PyMockAddresses {
@@ -95,5 +114,3 @@ impl EnvTestManager {
         })
     }
 }
-
-
