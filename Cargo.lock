@@ -37,7 +37,7 @@ dependencies = [
 [[package]]
 name = "alkahest-rs"
 version = "0.5.0"
-source = "git+https://github.com/CoopHive/alkahest-rs?branch=main#b4ed2ccecf081db363d8925c82829ed3657235cb"
+source = "git+https://github.com/VAR-META-TECH/alkahest-rs?branch=main#5ded12b918e343b717b74fb7e4cb08a8ae40802a"
 dependencies = [
  "alloy",
  "eyre",
@@ -1242,9 +1242,9 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-runtime"
-version = "1.8.3"
+version = "1.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14302f06d1d5b7d333fd819943075b13d27c7700b414f574c3c35859bfb55d5e"
+checksum = "c3aaec682eb189e43c8a19c3dab2fe54590ad5f2cc2d26ab27608a20f2acf81c"
 dependencies = [
  "aws-smithy-async",
  "aws-smithy-http",
@@ -1265,9 +1265,9 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-runtime-api"
-version = "1.8.1"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd8531b6d8882fd8f48f82a9754e682e29dd44cff27154af51fa3eb730f59efb"
+checksum = "9852b9226cb60b78ce9369022c0df678af1cac231c882d5da97a0c4e03be6e67"
 dependencies = [
  "aws-smithy-async",
  "aws-smithy-types",
@@ -3819,9 +3819,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.28"
+version = "0.23.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7160e3e10bf4535308537f3c4e1641468cd0e485175d6163087c0393c7d46643"
+checksum = "2491382039b29b9b11ff08b76ff6c97cf287671dbb74f0be44bda389fffe9bd1"
 dependencies = [
  "log",
  "once_cell",
@@ -3855,9 +3855,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.3"
+version = "0.103.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4a72fe2bcf7a6ac6fd7d0b9e5cb68aeb7d4c0a0271730218b3e92d43b4eb435"
+checksum = "0a17884ae0c1b773f1ccd2bd4a8c72f16da897310a98b0e84bf349ad5ead92fc"
 dependencies = [
  "ring",
  "rustls-pki-types",

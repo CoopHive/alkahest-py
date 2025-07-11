@@ -71,7 +71,7 @@ impl AttestationClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment(
+                .collect_escrow(
                     buy_attestation.parse().map_err(map_parse_to_pyerr)?,
                     fulfillment.parse().map_err(map_parse_to_pyerr)?,
                 )
@@ -90,7 +90,7 @@ impl AttestationClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment_2(
+                .collect_escrow_2(
                     buy_attestation.parse().map_err(map_parse_to_pyerr)?,
                     fulfillment.parse().map_err(map_parse_to_pyerr)?,
                 )

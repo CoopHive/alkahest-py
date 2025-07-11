@@ -38,7 +38,7 @@ impl StringObligationClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let uid: FixedBytes<32> = uid.parse().map_err(map_parse_to_pyerr)?;
-            let statement = inner.get_statement(uid).await.map_err(map_eyre_to_pyerr)?;
+            let statement = inner.get_obligation(uid).await.map_err(map_eyre_to_pyerr)?;
             Ok(PyDecodedAttestation::<PyStringObligationStatementData>::from(statement))
         })
     }
@@ -53,7 +53,7 @@ impl StringObligationClient {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             use alkahest_rs::contracts::StringObligation;
 
-            let data = StringObligation::StatementData {
+            let data = StringObligation::ObligationData {
                 item: statement_data.item.clone(),
             };
 
@@ -64,7 +64,7 @@ impl StringObligationClient {
             };
 
             let receipt = inner
-                .make_statement(data, ref_uid)
+                .do_obligation(data, ref_uid)
                 .await
                 .map_err(map_eyre_to_pyerr)?;
 
@@ -98,7 +98,7 @@ impl StringObligationClient {
             };
 
             let receipt = inner
-                .make_statement_json(json_value, ref_uid)
+                .do_obligation_json(json_value, ref_uid)
                 .await
                 .map_err(map_eyre_to_pyerr)?;
 
@@ -137,7 +137,7 @@ impl PyStringObligationStatementData {
         use alkahest_rs::contracts::StringObligation;
         use alloy::sol_types::SolValue;
 
-        let statement_data = StringObligation::StatementData {
+        let statement_data = StringObligation::ObligationData {
             item: obligation.item.clone(),
         };
 
@@ -188,10 +188,10 @@ impl PyStringObligationStatementData {
     }
 }
 
-impl From<alkahest_rs::contracts::StringObligation::StatementData>
+impl From<alkahest_rs::contracts::StringObligation::ObligationData>
     for PyStringObligationStatementData
 {
-    fn from(data: alkahest_rs::contracts::StringObligation::StatementData) -> Self {
+    fn from(data: alkahest_rs::contracts::StringObligation::ObligationData) -> Self {
         Self { item: data.item }
     }
 }

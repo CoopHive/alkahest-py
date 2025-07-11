@@ -56,7 +56,7 @@ impl TokenBundleClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment(
+                .collect_escrow(
                     buy_attestation.parse().map_err(map_parse_to_pyerr)?,
                     fulfillment.parse().map_err(map_parse_to_pyerr)?,
                 )
@@ -74,7 +74,7 @@ impl TokenBundleClient {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
+                .reclaim_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
                 .await
                 .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())

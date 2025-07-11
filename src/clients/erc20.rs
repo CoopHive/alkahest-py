@@ -76,7 +76,7 @@ impl Erc20Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment(
+                .collect_escrow(
                     buy_attestation.parse().map_err(map_parse_to_pyerr)?,
                     fulfillment.parse().map_err(map_parse_to_pyerr)?,
                 )
@@ -94,7 +94,7 @@ impl Erc20Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
+                .reclaim_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
                 .await
                 .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
@@ -640,7 +640,7 @@ impl PyERC20EscrowObligationStatement {
     pub fn decode(statement_data: Vec<u8>) -> eyre::Result<PyERC20EscrowObligationStatement> {
         use alloy::primitives::Bytes;
         let bytes = Bytes::from(statement_data);
-        let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_escrow_statement(&bytes)?;
+        let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_escrow_obligation(&bytes)?;
         Ok(decoded.into())
     }
 
@@ -657,7 +657,7 @@ impl PyERC20EscrowObligationStatement {
         let arbiter: Address = obligation.arbiter.parse()?;
         let demand = Bytes::from(obligation.demand.clone());
 
-        let statement_data = ERC20EscrowObligation::StatementData {
+        let statement_data = ERC20EscrowObligation::ObligationData {
             token,
             amount,
             arbiter,
@@ -672,10 +672,10 @@ impl PyERC20EscrowObligationStatement {
     }
 }
 
-impl From<alkahest_rs::contracts::ERC20EscrowObligation::StatementData>
+impl From<alkahest_rs::contracts::ERC20EscrowObligation::ObligationData>
     for PyERC20EscrowObligationStatement
 {
-    fn from(data: alkahest_rs::contracts::ERC20EscrowObligation::StatementData) -> Self {
+    fn from(data: alkahest_rs::contracts::ERC20EscrowObligation::ObligationData) -> Self {
         Self {
             token: format!("{:?}", data.token),
             amount: data.amount.try_into().unwrap_or(0), // Handle potential overflow
@@ -726,7 +726,7 @@ impl PyERC20PaymentObligationStatement {
         let amount: U256 = U256::from(obligation.amount);
         let payee: Address = obligation.payee.parse().map_err(map_parse_to_pyerr)?;
 
-        let statement_data = ERC20PaymentObligation::StatementData {
+        let statement_data = ERC20PaymentObligation::ObligationData {
             token,
             amount,
             payee,
@@ -739,7 +739,7 @@ impl PyERC20PaymentObligationStatement {
     pub fn decode(statement_data: Vec<u8>) -> eyre::Result<PyERC20PaymentObligationStatement> {
         use alloy::primitives::Bytes;
         let bytes = Bytes::from(statement_data);
-        let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_payment_statement(&bytes)?;
+        let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_payment_obligation(&bytes)?;
         Ok(decoded.into())
     }
 
@@ -748,10 +748,10 @@ impl PyERC20PaymentObligationStatement {
     }
 }
 
-impl From<alkahest_rs::contracts::ERC20PaymentObligation::StatementData>
+impl From<alkahest_rs::contracts::ERC20PaymentObligation::ObligationData>
     for PyERC20PaymentObligationStatement
 {
-    fn from(data: alkahest_rs::contracts::ERC20PaymentObligation::StatementData) -> Self {
+    fn from(data: alkahest_rs::contracts::ERC20PaymentObligation::ObligationData) -> Self {
         Self {
             token: format!("{:?}", data.token),
             amount: data.amount.try_into().unwrap_or(0), // Handle potential overflow
