@@ -62,7 +62,7 @@ impl AttestationClient {
         })
     }
 
-    pub fn collect_payment<'py>(
+    pub fn collect_escrow<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,
@@ -81,7 +81,7 @@ impl AttestationClient {
         })
     }
 
-    pub fn collect_payment_2<'py>(
+    pub fn collect_escrow_2<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,

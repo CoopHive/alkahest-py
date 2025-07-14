@@ -7,7 +7,7 @@ import pytest
 import time
 from alkahest_py import (
     EnvTestManager,
-    StringObligationStatementData,
+    StringObligationData,
     AttestationFilter,
     FulfillmentParams,
     ArbitrateOptions,
@@ -44,10 +44,10 @@ async def test_arbitrate_past():
     )
     escrow_uid = escrow_receipt['log']['uid']
     
-    # Make fulfillment statement
+    # Make fulfillment obligation
     string_client = env.bob_client.string_obligation
-    statement_data = StringObligationStatementData(item="good")
-    fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
+    obligation_data = StringObligationData(item="good")
+    fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
 
     # Create filter and fulfillment params
     filter_obj = AttestationFilter(
@@ -60,9 +60,9 @@ async def test_arbitrate_past():
         to_block=None,
     )
     
-    statement_abi = StringObligationStatementData(item="")
+    obligation_abi = StringObligationData(item="")
     fulfillment_params = FulfillmentParams(
-        statement_abi=statement_abi,
+        obligation_abi=obligation_abi,
         filter=filter_obj
     )
     
@@ -71,10 +71,10 @@ async def test_arbitrate_past():
         skip_arbitrated=False
     )
     
-    # Decision function that approves "good" statements
-    def decision_function(statement_str):
-        print(f"Decision function called with statement: {statement_str}")
-        return statement_str == "good"
+    # Decision function that approves "good" obligations
+    def decision_function(obligation_str):
+        print(f"Decision function called with obligation: {obligation_str}")
+        return obligation_str == "good"
     
     # Call arbitrate_past
     result = await oracle_client.arbitrate_past(
@@ -88,10 +88,10 @@ async def test_arbitrate_past():
     
     # Verify decision details
     decision = result.decisions[0]
-    assert not (not decision.decision or decision.statement_data != "good"), "Decision incorrect: {decision.decision}, statement: {decision.statement_data}"
+    assert not (not decision.decision or decision.obligation_data != "good"), "Decision incorrect: {decision.decision}, obligation: {decision.obligation_data}"
     
     # Collect payment
-    collection_receipt = await env.bob_client.erc20.collect_payment(
+    collection_receipt = await env.bob_client.erc20.collect_escrow(
         escrow_uid, fulfillment_uid
     )
     

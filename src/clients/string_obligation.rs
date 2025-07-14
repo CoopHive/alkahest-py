@@ -30,23 +30,23 @@ impl StringObligationClient {
 
 #[pymethods]
 impl StringObligationClient {
-    pub fn get_statement<'py>(
+    pub fn get_obligation<'py>(
         &self,
         py: pyo3::Python<'py>,
         uid: String,
     ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
-        let inner = self.inner.clone();
+        let inner: string_obligation::StringObligationClient = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let uid: FixedBytes<32> = uid.parse().map_err(map_parse_to_pyerr)?;
-            let statement = inner.get_obligation(uid).await.map_err(map_eyre_to_pyerr)?;
-            Ok(PyDecodedAttestation::<PyStringObligationStatementData>::from(statement))
+            let obligation = inner.get_obligation(uid).await.map_err(map_eyre_to_pyerr)?;
+            Ok(PyDecodedAttestation::<PyStringObligationData>::from(obligation))
         })
     }
 
-    pub fn make_statement<'py>(
+    pub fn do_obligation<'py>(
         &self,
         py: pyo3::Python<'py>,
-        statement_data: PyStringObligationStatementData,
+        obligation_data: PyStringObligationData,
         ref_uid: Option<String>,
     ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
@@ -54,7 +54,7 @@ impl StringObligationClient {
             use alkahest_rs::contracts::StringObligation;
 
             let data = StringObligation::ObligationData {
-                item: statement_data.item.clone(),
+                item: obligation_data.item.clone(),
             };
 
             let ref_uid = if let Some(ref_uid_str) = ref_uid {
@@ -79,7 +79,7 @@ impl StringObligationClient {
         })
     }
 
-    pub fn make_statement_json<'py>(
+    pub fn do_obligation_json<'py>(
         &self,
         py: pyo3::Python<'py>,
         json_data: &Bound<'_, PyAny>,
@@ -116,38 +116,38 @@ impl StringObligationClient {
 
 #[pyclass]
 #[derive(Clone, Debug)]
-pub struct PyStringObligationStatementData {
+pub struct PyStringObligationData {
     #[pyo3(get)]
     pub item: String,
 }
 
 #[pymethods]
-impl PyStringObligationStatementData {
+impl PyStringObligationData {
     #[new]
     pub fn new(item: String) -> Self {
         Self { item }
     }
 
     fn __repr__(&self) -> String {
-        format!("PyStringObligationStatementData(item='{}')", self.item)
+        format!("PyStringObligationData(item='{}')", self.item)
     }
 
     #[staticmethod]
-    pub fn encode(obligation: &PyStringObligationStatementData) -> PyResult<Vec<u8>> {
+    pub fn encode(obligation: &PyStringObligationData) -> PyResult<Vec<u8>> {
         use alkahest_rs::contracts::StringObligation;
         use alloy::sol_types::SolValue;
 
-        let statement_data = StringObligation::ObligationData {
+        let obligation_data = StringObligation::ObligationData {
             item: obligation.item.clone(),
         };
 
-        Ok(statement_data.abi_encode())
+        Ok(obligation_data.abi_encode())
     }
 
     #[staticmethod]
-    pub fn decode(statement_data: Vec<u8>) -> PyResult<PyStringObligationStatementData> {
+    pub fn decode(obligation_data: Vec<u8>) -> PyResult<PyStringObligationData> {
         use alloy::primitives::Bytes;
-        let bytes = Bytes::from(statement_data);
+        let bytes = Bytes::from(obligation_data);
         let decoded =
             alkahest_rs::clients::string_obligation::StringObligationClient::decode(&bytes)
                 .map_err(map_eyre_to_pyerr)?;
@@ -155,9 +155,9 @@ impl PyStringObligationStatementData {
     }
 
     #[staticmethod]
-    pub fn decode_json(statement_data: Vec<u8>) -> PyResult<String> {
+    pub fn decode_json(obligation_data: Vec<u8>) -> PyResult<String> {
         use alloy::primitives::Bytes;
-        let bytes = Bytes::from(statement_data);
+        let bytes = Bytes::from(obligation_data);
         let decoded: serde_json::Value =
             string_obligation::StringObligationClient::decode_json(&bytes)
                 .map_err(map_eyre_to_pyerr)?;
@@ -184,12 +184,12 @@ impl PyStringObligationStatementData {
     }
 
     pub fn encode_self(&self) -> PyResult<Vec<u8>> {
-        PyStringObligationStatementData::encode(self)
+        PyStringObligationData::encode(self)
     }
 }
 
 impl From<alkahest_rs::contracts::StringObligation::ObligationData>
-    for PyStringObligationStatementData
+    for PyStringObligationData
 {
     fn from(data: alkahest_rs::contracts::StringObligation::ObligationData) -> Self {
         Self { item: data.item }

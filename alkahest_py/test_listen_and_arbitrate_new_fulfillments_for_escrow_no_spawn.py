@@ -8,7 +8,7 @@ import time
 import asyncio
 from alkahest_py import (
     EnvTestManager,
-    StringObligationStatementData,
+    StringObligationData,
     AttestationFilter,
     FulfillmentParamsWithoutRefUid,
     ArbitrateOptions,
@@ -73,9 +73,9 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
         to_block=None,
     )
     
-    statement_abi = StringObligationStatementData(item="")
+    obligation_abi = StringObligationData(item="")
     fulfillment_params = FulfillmentParamsWithoutRefUid(
-        statement_abi=statement_abi,
+        obligation_abi=obligation_abi,
         filter=filter_obj
     )
     
@@ -84,12 +84,12 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
         skip_arbitrated=False
     )
     
-    # Decision function that approves "good" statements
+    # Decision function that approves "good" obligations
     decisions_made = []
-    def decision_function(statement_str, demand_data):
-        print(f"🔍 Decision function called with statement: '{statement_str}' and oracle: {demand_data.oracle}")
-        decision = statement_str == "good"
-        decisions_made.append((statement_str, decision))
+    def decision_function(obligation_str, demand_data):
+        print(f"🔍 Decision function called with obligation: '{obligation_str}' and oracle: {demand_data.oracle}")
+        decision = obligation_str == "good"
+        decisions_made.append((obligation_str, decision))
         return decision
     
     # Callback function to verify callback is called during live event processing
@@ -123,22 +123,22 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
             listen_error = e
             print(f"❌ Listener thread error: {e}")
     
-    # Function to make the fulfillment statement while listener is active
+    # Function to make the fulfillment obligation while listener is active
     async def make_fulfillment_during_listen():
         nonlocal fulfillment_uid, collection_success
         try:
-            print("🔄 Fulfillment thread: Making statement while listener is active...")
+            print("🔄 Fulfillment thread: Making obligation while listener is active...")
             
-            statement_data = StringObligationStatementData(item="good")
+            obligation_data = StringObligationData(item="good")
             
-            # Make the fulfillment statement
-            fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
+            # Make the fulfillment obligation
+            fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
             assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             print(f"🔄 Fulfillment thread: Created fulfillment {fulfillment_uid}")
             
             
             try:
-                collection_receipt = await env.bob_client.erc20.collect_payment(
+                collection_receipt = await env.bob_client.erc20.collect_escrow(
                     escrow_uid, fulfillment_uid
                 )
                 print("collection_receipt:", collection_receipt)
@@ -180,9 +180,9 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
     assert len(decisions_made) > 0, "Decision function should have been called at least once"
     
     # Assert that decisions were made correctly
-    for statement, decision in decisions_made:
-        if statement == "good":
-            assert decision is True, f"Decision for 'good' statement should be True, got {decision}"
+    for obligation, decision in decisions_made:
+        if obligation == "good":
+            assert decision is True, f"Decision for 'good' obligation should be True, got {decision}"
     
     # Note: This method focuses on new fulfillments for escrow,
     # so we mainly test the function execution and decision callbacks

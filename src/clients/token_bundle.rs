@@ -47,7 +47,7 @@ impl TokenBundleClient {
         })
     }
 
-    pub fn collect_payment<'py>(
+    pub fn collect_escrow<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,

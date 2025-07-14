@@ -67,7 +67,7 @@ impl Erc20Client {
         })
     }
 
-    pub fn collect_payment<'py>(
+    pub fn collect_escrow<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,
@@ -607,7 +607,7 @@ impl Erc20Client {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyERC20EscrowObligationStatement {
+pub struct PyERC20EscrowObligationData {
     #[pyo3(get)]
     pub token: String,
     #[pyo3(get)]
@@ -619,7 +619,7 @@ pub struct PyERC20EscrowObligationStatement {
 }
 
 #[pymethods]
-impl PyERC20EscrowObligationStatement {
+impl PyERC20EscrowObligationData {
     #[new]
     pub fn new(token: String, amount: u64, arbiter: String, demand: Vec<u8>) -> Self {
         Self {
@@ -632,20 +632,20 @@ impl PyERC20EscrowObligationStatement {
 
     fn __repr__(&self) -> String {
         format!(
-            "PyERC20EscrowObligationStatement(token='{}', amount={}, arbiter='{}', demand={:?})",
+            "PyERC20EscrowObligationData(token='{}', amount={}, arbiter='{}', demand={:?})",
             self.token, self.amount, self.arbiter, self.demand
         )
     }
     #[staticmethod]
-    pub fn decode(statement_data: Vec<u8>) -> eyre::Result<PyERC20EscrowObligationStatement> {
+    pub fn decode(obligation_data: Vec<u8>) -> eyre::Result<PyERC20EscrowObligationData> {
         use alloy::primitives::Bytes;
-        let bytes = Bytes::from(statement_data);
+        let bytes = Bytes::from(obligation_data);
         let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_escrow_obligation(&bytes)?;
         Ok(decoded.into())
     }
 
     #[staticmethod]
-    pub fn encode(obligation: &PyERC20EscrowObligationStatement) -> eyre::Result<Vec<u8>> {
+    pub fn encode(obligation: &PyERC20EscrowObligationData) -> eyre::Result<Vec<u8>> {
         use alkahest_rs::contracts::ERC20EscrowObligation;
         use alloy::{
             primitives::{Address, Bytes, U256},
@@ -657,23 +657,23 @@ impl PyERC20EscrowObligationStatement {
         let arbiter: Address = obligation.arbiter.parse()?;
         let demand = Bytes::from(obligation.demand.clone());
 
-        let statement_data = ERC20EscrowObligation::ObligationData {
+        let obligation_data = ERC20EscrowObligation::ObligationData {
             token,
             amount,
             arbiter,
             demand,
         };
 
-        Ok(statement_data.abi_encode())
+        Ok(obligation_data.abi_encode())
     }
 
     pub fn encode_self(&self) -> eyre::Result<Vec<u8>> {
-        PyERC20EscrowObligationStatement::encode(self)
+        PyERC20EscrowObligationData::encode(self)
     }
 }
 
 impl From<alkahest_rs::contracts::ERC20EscrowObligation::ObligationData>
-    for PyERC20EscrowObligationStatement
+    for PyERC20EscrowObligationData
 {
     fn from(data: alkahest_rs::contracts::ERC20EscrowObligation::ObligationData) -> Self {
         Self {
@@ -687,7 +687,7 @@ impl From<alkahest_rs::contracts::ERC20EscrowObligation::ObligationData>
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyERC20PaymentObligationStatement {
+pub struct PyERC20PaymentObligationData {
     #[pyo3(get)]
     pub token: String,
     #[pyo3(get)]
@@ -697,7 +697,7 @@ pub struct PyERC20PaymentObligationStatement {
 }
 
 #[pymethods]
-impl PyERC20PaymentObligationStatement {
+impl PyERC20PaymentObligationData {
     #[new]
     pub fn new(token: String, amount: u64, payee: String) -> Self {
         Self {
@@ -709,13 +709,13 @@ impl PyERC20PaymentObligationStatement {
 
     fn __repr__(&self) -> String {
         format!(
-            "PyERC20PaymentObligationStatement(token='{}', amount={}, payee='{}')",
+            "PyERC20PaymentObligationData(token='{}', amount={}, payee='{}')",
             self.token, self.amount, self.payee
         )
     }
 
     #[staticmethod]
-    pub fn encode(obligation: &PyERC20PaymentObligationStatement) -> eyre::Result<Vec<u8>> {
+    pub fn encode(obligation: &PyERC20PaymentObligationData) -> eyre::Result<Vec<u8>> {
         use alkahest_rs::contracts::ERC20PaymentObligation;
         use alloy::{
             primitives::{Address, U256},
@@ -726,30 +726,30 @@ impl PyERC20PaymentObligationStatement {
         let amount: U256 = U256::from(obligation.amount);
         let payee: Address = obligation.payee.parse().map_err(map_parse_to_pyerr)?;
 
-        let statement_data = ERC20PaymentObligation::ObligationData {
+        let obligation_data = ERC20PaymentObligation::ObligationData {
             token,
             amount,
             payee,
         };
 
-        Ok(statement_data.abi_encode())
+        Ok(obligation_data.abi_encode())
     }
 
     #[staticmethod]
-    pub fn decode(statement_data: Vec<u8>) -> eyre::Result<PyERC20PaymentObligationStatement> {
+    pub fn decode(obligation_data: Vec<u8>) -> eyre::Result<PyERC20PaymentObligationData> {
         use alloy::primitives::Bytes;
-        let bytes = Bytes::from(statement_data);
+        let bytes = Bytes::from(obligation_data);
         let decoded = alkahest_rs::clients::erc20::Erc20Client::decode_payment_obligation(&bytes)?;
         Ok(decoded.into())
     }
 
     pub fn encode_self(&self) -> eyre::Result<Vec<u8>> {
-        PyERC20PaymentObligationStatement::encode(self)
+        PyERC20PaymentObligationData::encode(self)
     }
 }
 
 impl From<alkahest_rs::contracts::ERC20PaymentObligation::ObligationData>
-    for PyERC20PaymentObligationStatement
+    for PyERC20PaymentObligationData
 {
     fn from(data: alkahest_rs::contracts::ERC20PaymentObligation::ObligationData) -> Self {
         Self {

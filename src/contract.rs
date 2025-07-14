@@ -454,7 +454,7 @@ impl
         alkahest_rs::types::DecodedAttestation<
             alkahest_rs::contracts::StringObligation::ObligationData,
         >,
-    > for PyDecodedAttestation<crate::clients::string_obligation::PyStringObligationStatementData>
+    > for PyDecodedAttestation<crate::clients::string_obligation::PyStringObligationData>
 {
     fn from(
         decoded: alkahest_rs::types::DecodedAttestation<
@@ -463,7 +463,7 @@ impl
     ) -> Self {
         Self {
             attestation: PyAttestation::from(decoded.attestation),
-            data: crate::clients::string_obligation::PyStringObligationStatementData {
+            data: crate::clients::string_obligation::PyStringObligationData {
                 item: decoded.data.item,
             },
         }

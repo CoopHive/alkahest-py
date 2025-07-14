@@ -3,7 +3,7 @@ import pytest
 import time
 from alkahest_py import (
     EnvTestManager,
-    StringObligationStatementData,
+    StringObligationData,
     AttestationFilter,
     FulfillmentParams,
     ArbitrateOptions,
@@ -52,9 +52,9 @@ async def test_listen_and_arbitrate_no_spawn():
         to_block=None,
     )
     
-    statement_abi = StringObligationStatementData(item="")
+    obligation_abi = StringObligationData(item="")
     fulfillment_params = FulfillmentParams(
-        statement_abi=statement_abi,
+        obligation_abi=obligation_abi,
         filter=filter_obj
     )
     
@@ -63,12 +63,12 @@ async def test_listen_and_arbitrate_no_spawn():
         skip_arbitrated=False
     )
     
-    # Decision function that approves "good" statements
+    # Decision function that approves "good" obligations
     decisions_made = []
-    def decision_function(statement_str):
-        print(f"🔍 Decision function called with statement: {statement_str}")
-        decision = statement_str == "good"
-        decisions_made.append((statement_str, decision))
+    def decision_function(obligation_str):
+        print(f"🔍 Decision function called with obligation: {obligation_str}")
+        decision = obligation_str == "good"
+        decisions_made.append((obligation_str, decision))
         return decision
     
     # Callback function to verify callback is called during live event processing
@@ -99,22 +99,22 @@ async def test_listen_and_arbitrate_no_spawn():
         except Exception as e:
             listen_error = e
         
-    # Function to make the fulfillment statement while listener is active
+    # Function to make the fulfillment obligation while listener is active
     async def make_fulfillment_during_listen():
         nonlocal fulfillment_uid, collection_success
         try:
-            # Wait for listener to start, then make statement during listening period
-            print("🔄 Fulfillment thread: Making statement while listener is active...")
+            # Wait for listener to start, then make obligation during listening period
+            print("🔄 Fulfillment thread: Making obligation while listener is active...")
             
-            statement_data = StringObligationStatementData(item="good")
+            obligation_data = StringObligationData(item="good")
             
-            # Make the fulfillment statement
-            fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
+            # Make the fulfillment obligation
+            fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
             assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             
             
             try:
-                collection_receipt = await env.bob_client.erc20.collect_payment(
+                collection_receipt = await env.bob_client.erc20.collect_escrow(
                     escrow_uid, fulfillment_uid
                 )
                 print("collection_receipt:", collection_receipt)
@@ -151,9 +151,9 @@ async def test_listen_and_arbitrate_no_spawn():
     assert len(decisions_made) > 0, "Decision function should have been called at least once"
     
     # Assert that decisions were made correctly
-    for statement, decision in decisions_made:
-        if statement == "good":
-            assert decision is True, f"Decision for 'good' statement should be True, got {decision}"
+    for obligation, decision in decisions_made:
+        if obligation == "good":
+            assert decision is True, f"Decision for 'good' obligation should be True, got {decision}"
     
     # If we have listen results, verify them
     if listen_result and len(listen_result) > 0:
@@ -162,7 +162,7 @@ async def test_listen_and_arbitrate_no_spawn():
         # Verify the first decision result
         result_decision = listen_result[0]
         assert result_decision.decision is True, f"Result decision should be True, got {result_decision.decision}"
-        assert result_decision.statement_data == "good", f"Statement data should be 'good', got {result_decision.statement_data}"
+        assert result_decision.obligation_data == "good", f"obligation data should be 'good', got {result_decision.obligation_data}"
         assert result_decision.transaction_hash is not None, "Transaction hash should not be None"
         assert result_decision.attestation.uid is not None, "Attestation UID should not be None"
     
