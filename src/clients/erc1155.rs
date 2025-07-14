@@ -87,7 +87,7 @@ impl Erc1155Client {
         })
     }
 
-    pub fn collect_expired<'py>(
+    pub fn reclaim_expired<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,

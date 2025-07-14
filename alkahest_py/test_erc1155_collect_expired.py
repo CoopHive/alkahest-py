@@ -3,10 +3,10 @@ import time
 from alkahest_py import EnvTestManager, MockERC1155
 
 @pytest.mark.asyncio
-async def test_erc1155_collect_expired():
+async def test_erc1155_reclaim_expired():
     """
     Test collecting expired escrowed ERC1155 tokens with time-based expiration.
-    This corresponds to test_collect_expired() in main.rs for ERC1155
+    This corresponds to test_reclaim_expired() in main.rs for ERC1155
     
     Flow: 
     1. Mint ERC1155 tokens to Alice
@@ -64,7 +64,7 @@ async def test_erc1155_collect_expired():
     await env.god_wallet_provider.anvil_increase_time(20)
     
     # Alice collects expired funds
-    collect_result = await env.alice_client.erc1155.collect_expired(buy_attestation_uid)
+    collect_result = await env.alice_client.erc1155.reclaim_expired(buy_attestation_uid)
     print(f"Collected expired escrow, transaction: {collect_result}")
     
     # Verify tokens returned to Alice
