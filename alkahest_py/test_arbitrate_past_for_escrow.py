@@ -7,7 +7,7 @@ import pytest
 import time
 from alkahest_py import (
     EnvTestManager,
-    StringObligationStatementData,
+    StringObligationData,
     AttestationFilter,
     FulfillmentParams,
     ArbitrateOptions,
@@ -49,10 +49,10 @@ async def test_arbitrate_past_for_escrow():
     )
     escrow_uid = escrow_receipt['log']['uid']
     
-    # Make fulfillment statement
+    # Make fulfillment obligation
     string_client = env.bob_client.string_obligation
-    statement_data = StringObligationStatementData(item="good")
-    fulfillment_uid = await string_client.make_statement(statement_data, escrow_uid)
+    obligation_data = StringObligationData(item="good")
+    fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
     
     # Setup escrow parameters for arbitration
     escrow_filter = AttestationFilter(
@@ -76,15 +76,15 @@ async def test_arbitrate_past_for_escrow():
         from_block=0,
         to_block=None
     )
-    fulfillment_params = FulfillmentParams(statement_data, fulfillment_filter)
+    fulfillment_params = FulfillmentParams(obligation_data, fulfillment_filter)
     
     # Setup arbitration options
     options = ArbitrateOptions(require_oracle=True, skip_arbitrated=False)
     
-    # Define decision function that receives both statement and demand data
-    def decision_function(statement_str, demand_data):
-        print(f"Decision function called with statement: '{statement_str}' and oracle: {demand_data.oracle}")
-        return statement_str == "good"
+    # Define decision function that receives both obligation and demand data
+    def decision_function(obligation_str, demand_data):
+        print(f"Decision function called with obligation: '{obligation_str}' and oracle: {demand_data.oracle}")
+        return obligation_str == "good"
     
     # Call arbitrate_past_for_escrow
     oracle_client = env.bob_client.oracle
@@ -106,7 +106,7 @@ async def test_arbitrate_past_for_escrow():
     assert len(positive_decisions) > 0, "Should have positive arbitration decisions"
     
     # Collect payment for Bob
-    collection_receipt = await env.bob_client.erc20.collect_payment(escrow_uid, fulfillment_uid)
+    collection_receipt = await env.bob_client.erc20.collect_escrow(escrow_uid, fulfillment_uid)
     print(f"Payment collected successfully: {collection_receipt}")
     
     # Verify Bob received payment

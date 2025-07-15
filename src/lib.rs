@@ -22,16 +22,16 @@ use types::{AddressConfig, EscowClaimedLog};
 
 use crate::{
     clients::{
-        erc1155::{PyERC1155EscrowObligationStatement, PyERC1155PaymentObligationStatement},
-        erc20::{PyERC20EscrowObligationStatement, PyERC20PaymentObligationStatement},
-        erc721::{PyERC721EscrowObligationStatement, PyERC721PaymentObligationStatement},
+        erc1155::{PyERC1155EscrowObligationData, PyERC1155PaymentObligationData},
+        erc20::{PyERC20EscrowObligationData, PyERC20PaymentObligationData},
+        erc721::{PyERC721EscrowObligationData, PyERC721PaymentObligationData},
         oracle::{
             PyArbitrateOptions, PyArbitrationResult, PyAttestationFilter, PyDecision,
             PyEscrowArbitrationResult, PyEscrowParams, PyFulfillmentParams,
             PyFulfillmentParamsWithoutRefUid, PyOracleAddresses, PyOracleAttestation,
             PySubscriptionResult, PyTrustedOracleArbiterDemandData,
         },
-        string_obligation::PyStringObligationStatementData,
+        string_obligation::PyStringObligationData,
     },
     contract::{
         PyAttestation, PyAttestationRequest, PyAttestationRequestData, PyAttested,
@@ -213,13 +213,13 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMockERC20>()?;
     m.add_class::<PyMockERC721>()?;
     m.add_class::<PyMockERC1155>()?;
-    m.add_class::<PyERC20EscrowObligationStatement>()?;
-    m.add_class::<PyERC20PaymentObligationStatement>()?;
-    m.add_class::<PyERC721EscrowObligationStatement>()?;
-    m.add_class::<PyERC721PaymentObligationStatement>()?;
-    m.add_class::<PyERC1155EscrowObligationStatement>()?;
-    m.add_class::<PyERC1155PaymentObligationStatement>()?;
-    m.add_class::<PyStringObligationStatementData>()?;
+    m.add_class::<PyERC20EscrowObligationData>()?;
+    m.add_class::<PyERC20PaymentObligationData>()?;
+    m.add_class::<PyERC721EscrowObligationData>()?;
+    m.add_class::<PyERC721PaymentObligationData>()?;
+    m.add_class::<PyERC1155EscrowObligationData>()?;
+    m.add_class::<PyERC1155PaymentObligationData>()?;
+    m.add_class::<PyStringObligationData>()?;
     m.add_class::<PyErc20Data>()?;
 
     // IEAS (Ethereum Attestation Service) Types from contract.rs

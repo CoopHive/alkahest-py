@@ -1,5 +1,5 @@
 import pytest
-from alkahest_py import EnvTestManager, MockERC20, MockERC721, MockERC1155, ERC20PaymentObligationStatement
+from alkahest_py import EnvTestManager, MockERC20, MockERC721, MockERC1155, ERC20PaymentObligationData
 
 @pytest.mark.asyncio
 async def test_pay_erc20_for_bundle():
@@ -51,15 +51,15 @@ async def test_pay_erc20_for_bundle():
     await env.bob_client.token_bundle.approve(bundle_data, "escrow")
     
     # Step 2: Bob creates bundle escrow demanding ERC20 from Alice
-    # Create proper ABI-encoded payment statement data
-    payment_statement = ERC20PaymentObligationStatement(
+    # Create proper ABI-encoded payment obligation data
+    payment_obligation = ERC20PaymentObligationData(
         token=env.mock_addresses.erc20_a,
         amount=erc20_amount,
         payee=env.bob
     )
     
-    # Encode the payment statement for the demand field
-    demand_bytes = payment_statement.encode_self()
+    # Encode the payment obligation for the demand field
+    demand_bytes = payment_obligation.encode_self()
     
     arbiter_data = {
         "arbiter": env.addresses.erc20_addresses.payment_obligation,

@@ -3,7 +3,7 @@ import pytest
 import time
 from alkahest_py import (
     EnvTestManager,
-    StringObligationStatementData,
+    StringObligationData,
     AttestationFilter,
     FulfillmentParams,
     EscrowParams,
@@ -79,9 +79,9 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
     print(f"🔍 Fulfillment filter - attester: {env.addresses.string_obligation_addresses.obligation}")
     print(f"🔍 Fulfillment filter - recipient: {env.bob}")
     
-    statement_abi = StringObligationStatementData(item="")
+    obligation_abi = StringObligationData(item="")
     fulfillment_params = FulfillmentParamsWithoutRefUid(
-        statement_abi=statement_abi,
+        obligation_abi=obligation_abi,
         filter=fulfillment_filter
     )
     
@@ -90,12 +90,12 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
         skip_arbitrated=False
     )
     
-    # Decision function that approves "good" statements (matching Rust signature for escrow)
+    # Decision function that approves "good" obligations (matching Rust signature for escrow)
     decisions_made = []
-    def decision_function(statement_str, demand_data):
-        print(f"🔍 Decision function called with statement: {statement_str}, demand: {demand_data}")
-        decision = statement_str == "good"
-        decisions_made.append((statement_str, demand_data, decision))
+    def decision_function(obligation_str, demand_data):
+        print(f"🔍 Decision function called with obligation: {obligation_str}, demand: {demand_data}")
+        decision = obligation_str == "good"
+        decisions_made.append((obligation_str, demand_data, decision))
         return decision
     
     # Callback function to verify callback is called during live event processing
@@ -122,7 +122,7 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
                 decision_function,
                 callback_function,
                 options,
-                2
+                5
             )
             print("🎧 Listener completed")
         except Exception as e:
@@ -137,23 +137,24 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
             print("🔄 Creating fulfillments while listener is running...")
             
             # Create bad fulfillment
-            bad_statement = StringObligationStatementData(item="bad2")
-            bad_uid = await string_client.make_statement(bad_statement, escrow_uid)
+            bad_obligation = StringObligationData(item="bad2")
+            bad_uid = await string_client.do_obligation(bad_obligation, escrow_uid)
             fulfillment_uids.append(("bad2", bad_uid))
             print(f"🔄 Created bad fulfillment: {bad_uid}")
-            
+            await asyncio.sleep(0.1)  # Give some time for listener to process
             # Create good fulfillment
-            good_statement = StringObligationStatementData(item="good")
-            good_uid = await string_client.make_statement(good_statement, escrow_uid)
+            good_obligation = StringObligationData(item="good")
+            good_uid = await string_client.do_obligation(good_obligation, escrow_uid)
             fulfillment_uids.append(("good", good_uid))
             print(f"🔄 Created good fulfillment: {good_uid}")
+            await asyncio.sleep(0.1) 
             
             # Wait for decisions to be processed
             print("💰 Attempting to collect payment for good fulfillment...")
             
             # Try to collect payment for good fulfillment
             try:
-                collection_receipt = await env.bob_client.erc20.collect_payment(escrow_uid, good_uid)
+                collection_receipt = await env.bob_client.erc20.collect_escrow(escrow_uid, good_uid)
                 print(f"💰 Collection receipt: {collection_receipt}")
                 if collection_receipt and collection_receipt.startswith('0x'):
                     collection_success = True
@@ -170,8 +171,13 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
     listener_task = asyncio.create_task(run_listener())
     fulfillment_task = asyncio.create_task(create_fulfillments_during_listen())
     
-    # Wait for both tasks to complete
-    await asyncio.gather(listener_task, fulfillment_task)
+    await fulfillment_task
+    
+    listener_task.cancel()
+    try:
+        await listener_task
+    except asyncio.CancelledError:
+        pass  # Expected when we cancel the task
     
     # Assert no errors occurred in the listener thread
     if listen_error:
@@ -186,11 +192,11 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
     print(f"Created {len(fulfillment_uids)} fulfillments")
     # If decisions were made, verify they were correct
     if len(decisions_made) > 0:
-        for statement, demand_data, decision in decisions_made:
-            if statement == "good":
-                assert decision is True, f"Decision for 'good' statement should be True, got {decision}"
-            elif statement.startswith("bad"):
-                assert decision is False, f"Decision for '{statement}' statement should be False, got {decision}"
+        for obligation, demand_data, decision in decisions_made:
+            if obligation == "good":
+                assert decision is True, f"Decision for 'good' obligation should be True, got {decision}"
+            elif obligation.startswith("bad"):
+                assert decision is False, f"Decision for '{obligation}' obligation should be False, got {decision}"
     
     print(f"Callback function was called {len(callback_calls)} times")
     
@@ -200,7 +206,7 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
         
         # Verify decision results
         for result_decision in listen_result.decisions:
-            print(f"Decision result: {result_decision.statement_data} -> {result_decision.decision}")
+            print(f"Decision result: {result_decision.obligation_data} -> {result_decision.decision}")
             assert result_decision.transaction_hash is not None, "Transaction hash should not be None"
         
         # Verify escrow attestations are present

@@ -92,7 +92,7 @@ impl Erc721Client {
         })
     }
 
-    pub fn collect_payment<'py>(
+    pub fn collect_escrow<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,
@@ -101,7 +101,7 @@ impl Erc721Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_payment(
+                .collect_escrow(
                     buy_attestation.parse().map_err(map_parse_to_pyerr)?,
                     fulfillment.parse().map_err(map_parse_to_pyerr)?,
                 )
@@ -111,7 +111,7 @@ impl Erc721Client {
         })
     }
 
-    pub fn collect_expired<'py>(
+    pub fn reclaim_expired<'py>(
         &self,
         py: pyo3::Python<'py>,
         buy_attestation: String,
@@ -119,7 +119,7 @@ impl Erc721Client {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let receipt = inner
-                .collect_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
+                .reclaim_expired(buy_attestation.parse().map_err(map_parse_to_pyerr)?)
                 .await
                 .map_err(map_eyre_to_pyerr)?;
             Ok(receipt.transaction_hash.to_string())
@@ -373,7 +373,7 @@ impl Erc721Client {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyERC721EscrowObligationStatement {
+pub struct PyERC721EscrowObligationData {
     #[pyo3(get)]
     pub token: String,
     #[pyo3(get)]
@@ -385,7 +385,7 @@ pub struct PyERC721EscrowObligationStatement {
 }
 
 #[pymethods]
-impl PyERC721EscrowObligationStatement {
+impl PyERC721EscrowObligationData {
     #[new]
     pub fn new(token: String, token_id: String, arbiter: String, demand: Vec<u8>) -> Self {
         Self {
@@ -398,22 +398,22 @@ impl PyERC721EscrowObligationStatement {
 
     pub fn __repr__(&self) -> String {
         format!(
-            "PyERC721EscrowObligationStatement(token='{}', token_id='{}', arbiter='{}', demand={:?})",
+            "PyERC721EscrowObligationData(token='{}', token_id='{}', arbiter='{}', demand={:?})",
             self.token, self.token_id, self.arbiter, self.demand
         )
     }
 
     #[staticmethod]
-    pub fn decode(statement_data: Vec<u8>) -> PyResult<PyERC721EscrowObligationStatement> {
+    pub fn decode(obligation_data: Vec<u8>) -> PyResult<PyERC721EscrowObligationData> {
         use alloy::primitives::Bytes;
-        let bytes = Bytes::from(statement_data);
-        let decoded = alkahest_rs::clients::erc721::Erc721Client::decode_escrow_statement(&bytes)
+        let bytes = Bytes::from(obligation_data);
+        let decoded = alkahest_rs::clients::erc721::Erc721Client::decode_escrow_obligation(&bytes)
             .map_err(map_eyre_to_pyerr)?;
         Ok(decoded.into())
     }
 
     #[staticmethod]
-    pub fn encode(obligation: &PyERC721EscrowObligationStatement) -> PyResult<Vec<u8>> {
+    pub fn encode(obligation: &PyERC721EscrowObligationData) -> PyResult<Vec<u8>> {
         use alkahest_rs::contracts::ERC721EscrowObligation;
         use alloy::{
             primitives::{Address, Bytes, U256},
@@ -425,25 +425,25 @@ impl PyERC721EscrowObligationStatement {
         let arbiter: Address = obligation.arbiter.parse().map_err(map_parse_to_pyerr)?;
         let demand = Bytes::from(obligation.demand.clone());
 
-        let statement_data = ERC721EscrowObligation::StatementData {
+        let obligation_data = ERC721EscrowObligation::ObligationData {
             token,
             tokenId: token_id,
             arbiter,
             demand,
         };
 
-        Ok(statement_data.abi_encode())
+        Ok(obligation_data.abi_encode())
     }
 
     pub fn encode_self(&self) -> PyResult<Vec<u8>> {
-        PyERC721EscrowObligationStatement::encode(self)
+        PyERC721EscrowObligationData::encode(self)
     }
 }
 
-impl From<alkahest_rs::contracts::ERC721EscrowObligation::StatementData>
-    for PyERC721EscrowObligationStatement
+impl From<alkahest_rs::contracts::ERC721EscrowObligation::ObligationData>
+    for PyERC721EscrowObligationData
 {
-    fn from(data: alkahest_rs::contracts::ERC721EscrowObligation::StatementData) -> Self {
+    fn from(data: alkahest_rs::contracts::ERC721EscrowObligation::ObligationData) -> Self {
         Self {
             token: format!("{:?}", data.token),
             token_id: data.tokenId.to_string(),
@@ -455,7 +455,7 @@ impl From<alkahest_rs::contracts::ERC721EscrowObligation::StatementData>
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyERC721PaymentObligationStatement {
+pub struct PyERC721PaymentObligationData {
     #[pyo3(get)]
     pub token: String,
     #[pyo3(get)]
@@ -465,7 +465,7 @@ pub struct PyERC721PaymentObligationStatement {
 }
 
 #[pymethods]
-impl PyERC721PaymentObligationStatement {
+impl PyERC721PaymentObligationData {
     #[new]
     pub fn new(token: String, token_id: String, payee: String) -> Self {
         Self {
@@ -477,22 +477,22 @@ impl PyERC721PaymentObligationStatement {
 
     pub fn __repr__(&self) -> String {
         format!(
-            "PyERC721PaymentObligationStatement(token='{}', token_id='{}', payee='{}')",
+            "PyERC721PaymentObligationData(token='{}', token_id='{}', payee='{}')",
             self.token, self.token_id, self.payee
         )
     }
 
     #[staticmethod]
-    pub fn decode(statement_data: Vec<u8>) -> PyResult<PyERC721PaymentObligationStatement> {
+    pub fn decode(obligation_data: Vec<u8>) -> PyResult<PyERC721PaymentObligationData> {
         use alloy::primitives::Bytes;
-        let bytes = Bytes::from(statement_data);
-        let decoded = alkahest_rs::clients::erc721::Erc721Client::decode_payment_statement(&bytes)
+        let bytes = Bytes::from(obligation_data);
+        let decoded = alkahest_rs::clients::erc721::Erc721Client::decode_payment_obligation(&bytes)
             .map_err(map_eyre_to_pyerr)?;
         Ok(decoded.into())
     }
 
     #[staticmethod]
-    pub fn encode(obligation: &PyERC721PaymentObligationStatement) -> PyResult<Vec<u8>> {
+    pub fn encode(obligation: &PyERC721PaymentObligationData) -> PyResult<Vec<u8>> {
         use alkahest_rs::contracts::ERC721PaymentObligation;
         use alloy::{
             primitives::{Address, U256},
@@ -503,24 +503,24 @@ impl PyERC721PaymentObligationStatement {
         let token_id: U256 = obligation.token_id.parse().map_err(map_parse_to_pyerr)?;
         let payee: Address = obligation.payee.parse().map_err(map_parse_to_pyerr)?;
 
-        let statement_data = ERC721PaymentObligation::StatementData {
+        let obligation_data = ERC721PaymentObligation::ObligationData {
             token,
             tokenId: token_id,
             payee,
         };
 
-        Ok(statement_data.abi_encode())
+        Ok(obligation_data.abi_encode())
     }
 
     pub fn encode_self(&self) -> PyResult<Vec<u8>> {
-        PyERC721PaymentObligationStatement::encode(self)
+        PyERC721PaymentObligationData::encode(self)
     }
 }
 
-impl From<alkahest_rs::contracts::ERC721PaymentObligation::StatementData>
-    for PyERC721PaymentObligationStatement
+impl From<alkahest_rs::contracts::ERC721PaymentObligation::ObligationData>
+    for PyERC721PaymentObligationData
 {
-    fn from(data: alkahest_rs::contracts::ERC721PaymentObligation::StatementData) -> Self {
+    fn from(data: alkahest_rs::contracts::ERC721PaymentObligation::ObligationData) -> Self {
         Self {
             token: format!("{:?}", data.token),
             token_id: data.tokenId.to_string(),

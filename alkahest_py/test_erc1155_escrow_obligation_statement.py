@@ -1,11 +1,11 @@
 import pytest
-from alkahest_py import EnvTestManager, ERC1155EscrowObligationStatement
+from alkahest_py import EnvTestManager, ERC1155EscrowObligationData
 
 @pytest.mark.asyncio
 async def test_basic_encode_decode():
     env = EnvTestManager()
     
-    obligation = ERC1155EscrowObligationStatement(
+    obligation = ERC1155EscrowObligationData(
     token=env.mock_addresses.erc1155_a,
     token_id="54321",
     amount="250",
@@ -13,8 +13,8 @@ async def test_basic_encode_decode():
     demand=[1, 2, 3, 4, 5]
     )
     
-    encoded_data = ERC1155EscrowObligationStatement.encode(obligation)
-    decoded_obligation = ERC1155EscrowObligationStatement.decode(encoded_data)
+    encoded_data = ERC1155EscrowObligationData.encode(obligation)
+    decoded_obligation = ERC1155EscrowObligationData.decode(encoded_data)
 
     assert obligation.token_id == decoded_obligation.token_id, "Token ID mismatch"
     assert obligation.amount == decoded_obligation.amount, "Amount mismatch"

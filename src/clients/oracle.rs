@@ -8,7 +8,7 @@ use pyo3::{pyclass, pymethods, PyAny, PyObject, PyResult, Python};
 use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::{
-    clients::string_obligation::PyStringObligationStatementData,
+    clients::string_obligation::PyStringObligationData,
     error_handling::{map_eyre_to_pyerr, map_parse_to_pyerr, map_sol_decode_to_pyerr},
 };
 use alkahest_rs::clients::arbiters::TrustedOracleArbiter;
@@ -68,7 +68,7 @@ impl OracleClient {
                 .map_err(|e| map_eyre_to_pyerr(eyre::eyre!("Failed to convert filter: {}", e)))?;
 
             let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
-                _statement_data: PhantomData::<StringObligation::StatementData>,
+                _obligation_data: PhantomData::<StringObligation::ObligationData>,
                 filter: rust_filter,
             };
 
@@ -78,12 +78,12 @@ impl OracleClient {
             };
 
             let arbitrate_func =
-                |statement_data: &StringObligation::StatementData| -> Option<bool> {
+                |obligation_data: &StringObligation::ObligationData| -> Option<bool> {
                     Python::with_gil(|py| {
-                        let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+                        let py_obligation = pyo3::types::PyString::new(py, &obligation_data.item);
 
                         decision_func
-                            .call1(py, (py_statement,))
+                            .call1(py, (py_obligation,))
                             .ok()
                             .and_then(|result| {
                                 result
@@ -110,7 +110,7 @@ impl OracleClient {
                             "0x{}",
                             alloy::hex::encode(decision.receipt.transaction_hash.as_slice())
                         ),
-                        Some(decision.statement.item),
+                        Some(decision.obligation.item),
                         None,
                     )
                 })
@@ -161,20 +161,20 @@ impl OracleClient {
             };
 
             let fulfillment = alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
-                _statement_data: PhantomData::<StringObligation::StatementData>,
+                _obligation_data: PhantomData::<StringObligation::ObligationData>,
                 filter: rust_filter,
             };
 
-            let arbitrate_func = |statement_data: &StringObligation::StatementData,
+            let arbitrate_func = |obligation_data: &StringObligation::ObligationData,
                                   demand_data: &TrustedOracleArbiter::DemandData|
              -> Option<bool> {
                 Python::with_gil(|py| {
-                    let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+                    let py_obligation = pyo3::types::PyString::new(py, &obligation_data.item);
 
                     let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
 
                     decision_func
-                        .call1(py, (py_statement, demand_py))
+                        .call1(py, (py_obligation, demand_py))
                         .ok()
                         .and_then(|result| {
                             result
@@ -206,7 +206,7 @@ impl OracleClient {
                             "0x{}",
                             alloy::hex::encode(decision.receipt.transaction_hash.as_slice())
                         ),
-                        Some(decision.statement.item),
+                        Some(decision.obligation.item),
                         None,
                     )
                 })
@@ -251,7 +251,7 @@ impl OracleClient {
                 .map_err(|e| map_eyre_to_pyerr(eyre::eyre!("Failed to convert filter: {}", e)))?;
 
             let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
-                _statement_data: PhantomData::<StringObligation::StatementData>,
+                _obligation_data: PhantomData::<StringObligation::ObligationData>,
                 filter: rust_filter,
             };
 
@@ -261,12 +261,12 @@ impl OracleClient {
             };
 
             let arbitrate_func =
-                |statement_data: &StringObligation::StatementData| -> Option<bool> {
+                |obligation_data: &StringObligation::ObligationData| -> Option<bool> {
                     Python::with_gil(|py| {
-                        let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+                        let py_obligation = pyo3::types::PyString::new(py, &obligation_data.item);
 
                         decision_func
-                            .call1(py, (py_statement,))
+                            .call1(py, (py_obligation,))
                             .ok()
                             .and_then(|result| {
                                 result
@@ -278,14 +278,14 @@ impl OracleClient {
                 };
 
             let callback = |decision: &alkahest_rs::clients::oracle::Decision<
-                StringObligation::StatementData,
+                StringObligation::ObligationData,
                 (),
             >| {
                 if let Some(ref py_callback) = callback_func {
                     Python::with_gil(|py| {
                         let decision_info = format!(
-                            "Decision: {} for statement: '{}'",
-                            decision.decision, decision.statement.item
+                            "Decision: {} for obligation: '{}'",
+                            decision.decision, decision.obligation.item
                         );
 
                         if let Err(e) = py_callback.call1(py, (decision_info,)) {
@@ -320,7 +320,7 @@ impl OracleClient {
                             "0x{}",
                             alloy::hex::encode(decision.receipt.transaction_hash.as_slice())
                         ),
-                        Some(decision.statement.item),
+                        Some(decision.obligation.item),
                         None,
                     )
                 })
@@ -350,7 +350,7 @@ impl OracleClient {
                 .map_err(|e| map_eyre_to_pyerr(eyre::eyre!("Failed to convert filter: {}", e)))?;
 
             let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
-                _statement_data: PhantomData::<StringObligation::StatementData>,
+                _obligation_data: PhantomData::<StringObligation::ObligationData>,
                 filter: rust_filter,
             };
 
@@ -360,12 +360,12 @@ impl OracleClient {
             };
 
             let arbitrate_func =
-                |statement_data: &StringObligation::StatementData| -> Option<bool> {
+                |obligation_data: &StringObligation::ObligationData| -> Option<bool> {
                     Python::with_gil(|py| {
-                        let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+                        let py_obligation = pyo3::types::PyString::new(py, &obligation_data.item);
 
                         decision_func
-                            .call1(py, (py_statement,))
+                            .call1(py, (py_obligation,))
                             .ok()
                             .and_then(|result| {
                                 result
@@ -377,14 +377,14 @@ impl OracleClient {
                 };
 
             let callback = |decision: &alkahest_rs::clients::oracle::Decision<
-                StringObligation::StatementData,
+                StringObligation::ObligationData,
                 (),
             >| {
                 if let Some(ref py_callback) = callback_func {
                     Python::with_gil(|py| {
                         let decision_info = format!(
-                            "Decision: {} for statement: '{}'",
-                            decision.decision, decision.statement.item
+                            "Decision: {} for obligation: '{}'",
+                            decision.decision, decision.obligation.item
                         );
 
                         if let Err(e) = py_callback.call1(py, (decision_info,)) {
@@ -447,20 +447,20 @@ impl OracleClient {
             };
 
             let fulfillment = alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
-                _statement_data: PhantomData::<StringObligation::StatementData>,
+                _obligation_data: PhantomData::<StringObligation::ObligationData>,
                 filter: rust_filter,
             };
 
-            let arbitrate_func = |statement_data: &StringObligation::StatementData,
+            let arbitrate_func = |obligation_data: &StringObligation::ObligationData,
                                   demand_data: &TrustedOracleArbiter::DemandData|
              -> Option<bool> {
                 Python::with_gil(|py| {
-                    let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+                    let py_obligation = pyo3::types::PyString::new(py, &obligation_data.item);
 
                     let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
 
                     decision_func
-                        .call1(py, (py_statement, demand_py))
+                        .call1(py, (py_obligation, demand_py))
                         .ok()
                         .and_then(|result| {
                             result
@@ -472,14 +472,14 @@ impl OracleClient {
             };
 
             let callback = |decision_info: &alkahest_rs::clients::oracle::Decision<
-                StringObligation::StatementData,
+                StringObligation::ObligationData,
                 TrustedOracleArbiter::DemandData,
             >| {
                 if let Some(ref py_callback) = callback_func {
                     Python::with_gil(|py| {
                         let decision_info_str = format!(
-                            "Decision: {} for statement: '{}'",
-                            decision_info.decision, decision_info.statement.item
+                            "Decision: {} for obligation: '{}'",
+                            decision_info.decision, decision_info.obligation.item
                         );
 
                         if let Err(e) = py_callback.call1(py, (decision_info_str,)) {
@@ -512,7 +512,7 @@ impl OracleClient {
                         py_attestation,
                         decision.decision,
                         format!("{:?}", decision.receipt.transaction_hash),
-                        Some(decision.statement.item.clone()),
+                        Some(decision.obligation.item.clone()),
                         decision
                             .demand
                             .map(|d| PyTrustedOracleArbiterDemandData::from(d).oracle),
@@ -572,20 +572,20 @@ impl OracleClient {
             };
 
             let fulfillment = alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
-                _statement_data: PhantomData::<StringObligation::StatementData>,
+                _obligation_data: PhantomData::<StringObligation::ObligationData>,
                 filter: rust_filter,
             };
 
-            let arbitrate_func = |statement_data: &StringObligation::StatementData,
+            let arbitrate_func = |obligation_data: &StringObligation::ObligationData,
                                   demand_data: &TrustedOracleArbiter::DemandData|
              -> Option<bool> {
                 Python::with_gil(|py| {
-                    let py_statement = pyo3::types::PyString::new(py, &statement_data.item);
+                    let py_obligation = pyo3::types::PyString::new(py, &obligation_data.item);
 
                     let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
 
                     decision_func
-                        .call1(py, (py_statement, demand_py))
+                        .call1(py, (py_obligation, demand_py))
                         .ok()
                         .and_then(|result| {
                             result
@@ -597,14 +597,14 @@ impl OracleClient {
             };
 
             let callback = |decision_info: &alkahest_rs::clients::oracle::Decision<
-                StringObligation::StatementData,
+                StringObligation::ObligationData,
                 TrustedOracleArbiter::DemandData,
             >| {
                 if let Some(ref py_callback) = callback_func {
                     Python::with_gil(|py| {
                         let decision_info_str = format!(
-                            "Decision: {} for statement: '{}'",
-                            decision_info.decision, decision_info.statement.item
+                            "Decision: {} for obligation: '{}'",
+                            decision_info.decision, decision_info.obligation.item
                         );
 
                         if let Err(e) = py_callback.call1(py, (decision_info_str,)) {
@@ -775,7 +775,7 @@ impl Default for PyArbitrateOptions {
 #[derive(Clone)]
 pub struct PyFulfillmentParams {
     #[pyo3(get, set)]
-    pub statement_abi: PyStringObligationStatementData,
+    pub obligation_abi: PyStringObligationData,
     #[pyo3(get, set)]
     pub filter: PyAttestationFilter,
 }
@@ -784,19 +784,19 @@ pub struct PyFulfillmentParams {
 impl PyFulfillmentParams {
     #[new]
     pub fn __new__(
-        statement_abi: PyStringObligationStatementData,
+        obligation_abi: PyStringObligationData,
         filter: PyAttestationFilter,
     ) -> Self {
         Self {
-            statement_abi,
+            obligation_abi,
             filter,
         }
     }
 
     pub fn __str__(&self) -> String {
         format!(
-            "PyFulfillmentParams(statement_abi={:?}, filter={})",
-            self.statement_abi,
+            "PyFulfillmentParams(obligation_abi={:?}, filter={})",
+            self.obligation_abi,
             self.filter.__str__()
         )
     }
@@ -810,7 +810,7 @@ impl PyFulfillmentParams {
 #[derive(Clone)]
 pub struct PyFulfillmentParamsWithoutRefUid {
     #[pyo3(get, set)]
-    pub statement_abi: PyStringObligationStatementData,
+    pub obligation_abi: PyStringObligationData,
     #[pyo3(get, set)]
     pub filter: PyAttestationFilter,
 }
@@ -819,19 +819,19 @@ pub struct PyFulfillmentParamsWithoutRefUid {
 impl PyFulfillmentParamsWithoutRefUid {
     #[new]
     pub fn __new__(
-        statement_abi: PyStringObligationStatementData,
+        obligation_abi: PyStringObligationData,
         filter: PyAttestationFilter,
     ) -> Self {
         Self {
-            statement_abi,
+            obligation_abi,
             filter,
         }
     }
 
     pub fn __str__(&self) -> String {
         format!(
-            "PyFulfillmentParamsWithoutRefUid(statement_abi={:?}, filter={})",
-            self.statement_abi,
+            "PyFulfillmentParamsWithoutRefUid(obligation_abi={:?}, filter={})",
+            self.obligation_abi,
             self.filter.__str__()
         )
     }
@@ -969,7 +969,7 @@ pub struct PyDecision {
     #[pyo3(get)]
     pub transaction_hash: String,
     #[pyo3(get)]
-    pub statement_data: Option<String>,
+    pub obligation_data: Option<String>,
     #[pyo3(get)]
     pub demand_data: Option<String>,
 }
@@ -977,19 +977,19 @@ pub struct PyDecision {
 #[pymethods]
 impl PyDecision {
     #[new]
-    #[pyo3(signature = (attestation, decision, transaction_hash, statement_data=None, demand_data=None))]
+    #[pyo3(signature = (attestation, decision, transaction_hash, obligation_data=None, demand_data=None))]
     pub fn __new__(
         attestation: PyOracleAttestation,
         decision: bool,
         transaction_hash: String,
-        statement_data: Option<String>,
+        obligation_data: Option<String>,
         demand_data: Option<String>,
     ) -> Self {
         Self {
             attestation,
             decision,
             transaction_hash,
-            statement_data,
+            obligation_data,
             demand_data,
         }
     }
