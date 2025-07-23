@@ -60,7 +60,9 @@ async def test_listen_and_arbitrate_no_spawn():
     
     options = ArbitrateOptions(
         require_oracle=True,
-        skip_arbitrated=False
+        skip_arbitrated=False,
+        require_request=False,
+        only_new=False
     )
     
     # Decision function that approves "good" obligations

@@ -69,9 +69,9 @@ impl StringObligationClient {
                 .map_err(map_eyre_to_pyerr)?;
 
             // Extract the attestation UID from the receipt instead of returning transaction hash
-            use alkahest_rs::AlkahestClient;
+            use alkahest_rs::DefaultAlkahestClient;
             let attested_event =
-                AlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
+                DefaultAlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
             Ok(format!(
                 "0x{}",
                 alloy::hex::encode(attested_event.uid.as_slice())
@@ -103,9 +103,9 @@ impl StringObligationClient {
                 .map_err(map_eyre_to_pyerr)?;
 
             // Extract the attestation UID from the receipt instead of returning transaction hash
-            use alkahest_rs::AlkahestClient;
+            use alkahest_rs::DefaultAlkahestClient;
             let attested_event =
-                AlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
+                DefaultAlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
             Ok(format!(
                 "0x{}",
                 alloy::hex::encode(attested_event.uid.as_slice())

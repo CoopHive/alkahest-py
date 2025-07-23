@@ -1,6 +1,13 @@
 use std::str::FromStr;
 
-use alkahest_rs::{contracts::IEAS::Attested, AlkahestClient};
+use alkahest_rs::{
+    contracts::IEAS::Attested,
+    extensions::{
+        HasAttestation, HasErc1155, HasErc20, HasErc721, HasOracle, HasStringObligation,
+        HasTokenBundle,
+    },
+    AlkahestClient,
+};
 use alloy::{
     primitives::{Address, FixedBytes, Log},
     rpc::types::TransactionReceipt,
@@ -18,7 +25,7 @@ use pyo3::{
     Bound, PyAny, PyResult, Python,
 };
 use tokio::runtime::Runtime;
-use types::{AddressConfig, EscowClaimedLog};
+use types::{EscowClaimedLog, ExtensionAddresses};
 
 use crate::{
     clients::{
@@ -27,9 +34,8 @@ use crate::{
         erc721::{PyERC721EscrowObligationData, PyERC721PaymentObligationData},
         oracle::{
             PyArbitrateOptions, PyArbitrationResult, PyAttestationFilter, PyDecision,
-            PyEscrowArbitrationResult, PyEscrowParams, PyFulfillmentParams,
-            PyFulfillmentParamsWithoutRefUid, PyOracleAddresses, PyOracleAttestation,
-            PySubscriptionResult, PyTrustedOracleArbiterDemandData,
+            PyEscrowArbitrationResult, PyEscrowParams, PyFulfillmentParams, PyOracleAddresses,
+            PyOracleAttestation, PySubscriptionResult, PyTrustedOracleArbiterDemandData,
         },
         string_obligation::PyStringObligationData,
     },
@@ -65,13 +71,15 @@ pub struct PyAlkahestClient {
 impl PyAlkahestClient {
     pub fn from_client(client: AlkahestClient) -> Self {
         Self {
-            erc20: Erc20Client::new(client.erc20.clone()),
-            erc721: Erc721Client::new(client.erc721.clone()),
-            erc1155: Erc1155Client::new(client.erc1155.clone()),
-            token_bundle: TokenBundleClient::new(client.token_bundle.clone()),
-            attestation: AttestationClient::new(client.attestation.clone()),
-            string_obligation: StringObligationClient::new(client.string_obligation.clone()),
-            oracle: OracleClient::new(client.oracle.clone()),
+            erc20: Erc20Client::new(client.extensions.erc20().clone()),
+            erc721: Erc721Client::new(client.extensions.erc721().clone()),
+            erc1155: Erc1155Client::new(client.extensions.erc1155().clone()),
+            token_bundle: TokenBundleClient::new(client.extensions.token_bundle().clone()),
+            attestation: AttestationClient::new(client.extensions.attestation().clone()),
+            string_obligation: StringObligationClient::new(
+                client.extensions.string_obligation().clone(),
+            ),
+            oracle: OracleClient::new(client.extensions.oracle().clone()),
             inner: client,
         }
     }
@@ -84,7 +92,7 @@ impl PyAlkahestClient {
     pub fn __new__(
         private_key: String,
         rpc_url: String,
-        address_config: Option<AddressConfig>,
+        address_config: Option<ExtensionAddresses>,
     ) -> PyResult<Self> {
         let address_config = address_config.map(|x| x.try_into()).transpose()?;
 
@@ -102,13 +110,15 @@ impl PyAlkahestClient {
 
         let client = Self {
             inner: client.clone(),
-            erc20: Erc20Client::new(client.erc20),
-            erc721: Erc721Client::new(client.erc721),
-            erc1155: Erc1155Client::new(client.erc1155),
-            token_bundle: TokenBundleClient::new(client.token_bundle),
-            attestation: AttestationClient::new(client.attestation),
-            string_obligation: StringObligationClient::new(client.string_obligation),
-            oracle: OracleClient::new(client.oracle),
+            erc20: Erc20Client::new(client.extensions.erc20().clone()),
+            erc721: Erc721Client::new(client.extensions.erc721().clone()),
+            erc1155: Erc1155Client::new(client.extensions.erc1155().clone()),
+            token_bundle: TokenBundleClient::new(client.extensions.token_bundle().clone()),
+            attestation: AttestationClient::new(client.extensions.attestation().clone()),
+            string_obligation: StringObligationClient::new(
+                client.extensions.string_obligation().clone(),
+            ),
+            oracle: OracleClient::new(client.extensions.oracle().clone()),
         };
 
         Ok(client)
@@ -201,7 +211,6 @@ fn alkahest_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyOracleAttestation>()?;
     m.add_class::<PyDecision>()?;
     m.add_class::<PyFulfillmentParams>()?;
-    m.add_class::<PyFulfillmentParamsWithoutRefUid>()?;
     m.add_class::<PyArbitrateOptions>()?;
     m.add_class::<PyArbitrationResult>()?;
     m.add_class::<PySubscriptionResult>()?;

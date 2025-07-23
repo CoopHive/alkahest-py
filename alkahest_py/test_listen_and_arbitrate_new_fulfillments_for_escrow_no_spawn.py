@@ -10,7 +10,7 @@ from alkahest_py import (
     EnvTestManager,
     StringObligationData,
     AttestationFilter,
-    FulfillmentParamsWithoutRefUid,
+    FulfillmentParams,
     ArbitrateOptions,
     MockERC20,
     TrustedOracleArbiterDemandData,
@@ -74,14 +74,16 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
     )
     
     obligation_abi = StringObligationData(item="")
-    fulfillment_params = FulfillmentParamsWithoutRefUid(
+    fulfillment_params = FulfillmentParams(
         obligation_abi=obligation_abi,
         filter=filter_obj
     )
     
     options = ArbitrateOptions(
         require_oracle=True,
-        skip_arbitrated=False
+        skip_arbitrated=False,
+        require_request=False,
+        only_new=True
     )
     
     # Decision function that approves "good" obligations
@@ -110,7 +112,7 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
         nonlocal listen_result, listen_error
         try:
             print("🎧 Listener thread: Starting listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn...")
-            listen_result = await oracle_client.listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn(
+            listen_result = await oracle_client.listen_and_arbitrate_for_escrow_no_spawn(
                 escrow_params,
                 fulfillment_params,
                 decision_function,

@@ -60,7 +60,9 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
     
     options = ArbitrateOptions(
         require_oracle=True,
-        skip_arbitrated=False
+        skip_arbitrated=False,
+        require_request=False,
+        only_new=True
     )
     
     # Decision function that approves "good" obligations
@@ -88,7 +90,7 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
     async def run_listener():
         nonlocal listen_result, listen_error
         try:
-            listen_result = await oracle_client.listen_and_arbitrate_new_fulfillments_no_spawn(
+            listen_result = await oracle_client.listen_and_arbitrate_no_spawn(
                 fulfillment_params,
                 decision_function,
                 callback_function,

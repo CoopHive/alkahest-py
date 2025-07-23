@@ -7,7 +7,7 @@ from alkahest_py import (
     AttestationFilter,
     FulfillmentParams,
     EscrowParams,
-    FulfillmentParamsWithoutRefUid,
+    FulfillmentParams,
     ArbitrateOptions,
     MockERC20,
     TrustedOracleArbiterDemandData,
@@ -71,7 +71,7 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
         recipient=env.bob,
         schema_uid=None,
         uid=None,
-        ref_uid=None,  # No ref_uid for FulfillmentParamsWithoutRefUid
+        ref_uid=None,  # No ref_uid for FulfillmentParams
         from_block=0,
         to_block=None,
     )
@@ -80,14 +80,16 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
     print(f"🔍 Fulfillment filter - recipient: {env.bob}")
     
     obligation_abi = StringObligationData(item="")
-    fulfillment_params = FulfillmentParamsWithoutRefUid(
+    fulfillment_params = FulfillmentParams(
         obligation_abi=obligation_abi,
         filter=fulfillment_filter
     )
     
     options = ArbitrateOptions(
         require_oracle=True,
-        skip_arbitrated=False
+        skip_arbitrated=False,
+        require_request=False,
+        only_new=False
     )
     
     # Decision function that approves "good" obligations (matching Rust signature for escrow)
