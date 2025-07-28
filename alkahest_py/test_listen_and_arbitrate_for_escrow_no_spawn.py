@@ -139,14 +139,12 @@ async def test_listen_and_arbitrate_for_escrow_no_spawn():
             print("🔄 Creating fulfillments while listener is running...")
             
             # Create bad fulfillment
-            bad_obligation = StringObligationData(item="bad2")
-            bad_uid = await string_client.do_obligation(bad_obligation, escrow_uid)
+            bad_uid = await string_client.do_obligation("bad2", escrow_uid)
             fulfillment_uids.append(("bad2", bad_uid))
             print(f"🔄 Created bad fulfillment: {bad_uid}")
             await asyncio.sleep(0.1)  # Give some time for listener to process
             # Create good fulfillment
-            good_obligation = StringObligationData(item="good")
-            good_uid = await string_client.do_obligation(good_obligation, escrow_uid)
+            good_uid = await string_client.do_obligation("good", escrow_uid)
             fulfillment_uids.append(("good", good_uid))
             print(f"🔄 Created good fulfillment: {good_uid}")
             await asyncio.sleep(0.1) 

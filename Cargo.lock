@@ -37,7 +37,7 @@ dependencies = [
 [[package]]
 name = "alkahest-rs"
 version = "0.5.0"
-source = "git+https://github.com/var-meta-tech/alkahest-rs?branch=main#fc964d4b748171d2ec46418c6d2c9608785efe6a"
+source = "git+https://github.com/var-meta-tech/alkahest-rs?branch=main#a14fc183234bd02ebf6032588d730c9747b2c2f2"
 dependencies = [
  "alloy",
  "eyre",

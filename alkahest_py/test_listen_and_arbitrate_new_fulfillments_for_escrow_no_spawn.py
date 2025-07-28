@@ -131,10 +131,9 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
         try:
             print("🔄 Fulfillment thread: Making obligation while listener is active...")
             
-            obligation_data = StringObligationData(item="good")
             
             # Make the fulfillment obligation
-            fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
+            fulfillment_uid = await string_client.do_obligation("good", escrow_uid)
             assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             print(f"🔄 Fulfillment thread: Created fulfillment {fulfillment_uid}")
             

@@ -12,8 +12,7 @@ async def test_string_obligation():
     env = EnvTestManager()
     string_client = env.alice_client.string_obligation
     
-    obligation_data = StringObligationData(item="Test obligation for PyDecodedAttestation<T>")
-    tx_hash = await string_client.do_obligation(obligation_data, None)
+    tx_hash = await string_client.do_obligation("Test obligation for PyDecodedAttestation<T>", None)
     
     # Verify transaction hash format
     assert tx_hash.startswith('0x') and len(tx_hash) == 66

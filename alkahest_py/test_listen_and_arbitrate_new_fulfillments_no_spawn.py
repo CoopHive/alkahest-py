@@ -105,10 +105,8 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
         nonlocal fulfillment_uid, collection_success
         try:
             
-            obligation_data = StringObligationData(item="good")
-            
             # Make the fulfillment obligation
-            fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
+            fulfillment_uid = await string_client.do_obligation("good", escrow_uid)
             assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             
             
