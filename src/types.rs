@@ -104,7 +104,7 @@ impl TryFrom<StringObligationAddresses>
 }
 
 #[derive(FromPyObject)]
-pub struct ExtensionAddresses {
+pub struct DefaultExtensionConfig {
     pub erc20_addresses: Option<Erc20Addresses>,
     pub erc721_addresses: Option<Erc721Addresses>,
     pub erc1155_addresses: Option<Erc1155Addresses>,
@@ -177,10 +177,10 @@ impl TryFrom<AttestationAddresses> for alkahest_rs::clients::attestation::Attest
     }
 }
 
-impl TryFrom<ExtensionAddresses> for alkahest_rs::extensions::ExtensionAddresses {
+impl TryFrom<DefaultExtensionConfig> for alkahest_rs::DefaultExtensionConfig {
     type Error = PyErr;
 
-    fn try_from(value: ExtensionAddresses) -> PyResult<Self> {
+    fn try_from(value: DefaultExtensionConfig) -> PyResult<Self> {
         Ok(Self {
             erc20_addresses: value.erc20_addresses.and_then(|x| x.try_into().ok()),
             erc721_addresses: value.erc721_addresses.and_then(|x| x.try_into().ok()),
@@ -505,7 +505,7 @@ pub struct LogWithHash<T> {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyExtensionAddresses {
+pub struct PyDefaultExtensionConfig {
     #[pyo3(get)]
     pub erc20_addresses: Option<PyErc20Addresses>,
     #[pyo3(get)]
@@ -522,8 +522,8 @@ pub struct PyExtensionAddresses {
     pub string_obligation_addresses: Option<PyStringObligationAddresses>,
 }
 
-impl From<&alkahest_rs::extensions::ExtensionAddresses> for PyExtensionAddresses {
-    fn from(data: &alkahest_rs::extensions::ExtensionAddresses) -> Self {
+impl From<&alkahest_rs::DefaultExtensionConfig> for PyDefaultExtensionConfig {
+    fn from(data: &alkahest_rs::DefaultExtensionConfig) -> Self {
         Self {
             erc20_addresses: data.erc20_addresses.as_ref().map(PyErc20Addresses::from),
             erc721_addresses: data.erc721_addresses.as_ref().map(PyErc721Addresses::from),

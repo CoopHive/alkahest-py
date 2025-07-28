@@ -51,7 +51,7 @@ impl OracleClient {
         format!("{:?}", self.inner.addresses.trusted_oracle_arbiter)
     }
 
-    pub fn arbitrate_past<'py>(
+    pub fn arbitrate_past_sync<'py>(
         &self,
         py: Python<'py>,
         fulfillment_params: PyFulfillmentParams,
@@ -97,7 +97,7 @@ impl OracleClient {
                 };
 
             let decisions = inner
-                .arbitrate_past(&fulfillment, &arbitrate_func, &arbitrate_options)
+                .arbitrate_past_sync(&fulfillment, &arbitrate_func, &arbitrate_options)
                 .await
                 .map_err(map_eyre_to_pyerr)?;
 
@@ -129,7 +129,7 @@ impl OracleClient {
         })
     }
 
-    pub fn arbitrate_past_for_escrow<'py>(
+    pub fn arbitrate_past_for_escrow_sync<'py>(
         &self,
         py: Python<'py>,
         escrow_params: PyEscrowParams,
@@ -196,7 +196,7 @@ impl OracleClient {
             };
 
             let (decisions, escrow_result, _) = inner
-                .arbitrate_past_for_escrow(
+                .arbitrate_past_for_escrow_sync(
                     &escrow,
                     &fulfillment,
                     arbitrate_func,

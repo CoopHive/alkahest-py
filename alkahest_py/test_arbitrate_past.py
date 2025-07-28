@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test the Oracle arbitrate_past functionality with complete escrow, arbitration, and payment flow
+Test the Oracle arbitrate_past_sync functionality with complete escrow, arbitration, and payment flow
 """
 
 import pytest
@@ -16,8 +16,8 @@ from alkahest_py import (
 )
 
 @pytest.mark.asyncio
-async def test_arbitrate_past():
-    """Test complete arbitrate_past flow: escrow → fulfillment → arbitration → payment collection"""
+async def test_arbitrate_past_sync():
+    """Test complete arbitrate_past_sync flow: escrow → fulfillment → arbitration → payment collection"""
     # Setup test environment
     env = EnvTestManager()
     
@@ -77,8 +77,8 @@ async def test_arbitrate_past():
         print(f"Decision function called with obligation: {obligation_str}")
         return obligation_str == "good"
     
-    # Call arbitrate_past
-    result = await oracle_client.arbitrate_past(
+    # Call arbitrate_past_sync
+    result = await oracle_client.arbitrate_past_sync(
         fulfillment_params,
         decision_function,
         options
@@ -101,6 +101,6 @@ async def test_arbitrate_past():
     
     # For compatibility with run_all_tests.py
 @pytest.mark.asyncio
-async def test_fixed_arbitrate_past():
+async def test_fixed_arbitrate_past_sync():
     """Alias for the main test function to maintain compatibility"""
-    return await test_arbitrate_past()
+    return await test_arbitrate_past_sync()

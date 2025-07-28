@@ -25,7 +25,7 @@ use pyo3::{
     Bound, PyAny, PyResult, Python,
 };
 use tokio::runtime::Runtime;
-use types::{EscowClaimedLog, ExtensionAddresses};
+use types::{DefaultExtensionConfig, EscowClaimedLog};
 
 use crate::{
     clients::{
@@ -92,7 +92,7 @@ impl PyAlkahestClient {
     pub fn __new__(
         private_key: String,
         rpc_url: String,
-        address_config: Option<ExtensionAddresses>,
+        address_config: Option<DefaultExtensionConfig>,
     ) -> PyResult<Self> {
         let address_config = address_config.map(|x| x.try_into()).transpose()?;
 
