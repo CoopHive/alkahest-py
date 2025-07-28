@@ -30,6 +30,14 @@ from .alkahest_py import (
     PyEscrowParams as EscrowParams,
     PyEscrowArbitrationResult as EscrowArbitrationResult,
     PyErc20Data as Erc20Data,
+    # Address Configuration Classes
+    PyErc20Addresses as Erc20Addresses,
+    PyErc721Addresses as Erc721Addresses,
+    PyErc1155Addresses as Erc1155Addresses,
+    PyTokenBundleAddresses as TokenBundleAddresses,
+    PyAttestationAddresses as AttestationAddresses,
+    PyStringObligationAddresses as StringObligationAddresses,
+    PyArbitersAddresses as ArbitersAddresses,
     # IEAS Types
     PyAttestation as Attestation,
     PyAttestationRequest as AttestationRequest,
@@ -70,6 +78,14 @@ __all__ = [
     "EscrowParams",
     "EscrowArbitrationResult",
     "Erc20Data",
+    # Address Configuration Classes
+    "Erc20Addresses",
+    "Erc721Addresses", 
+    "Erc1155Addresses",
+    "TokenBundleAddresses",
+    "AttestationAddresses",
+    "StringObligationAddresses",
+    "ArbitersAddresses",
     # IEAS Types
     "Attestation",
     "AttestationRequest",
