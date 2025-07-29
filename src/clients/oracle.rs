@@ -51,7 +51,7 @@ impl OracleClient {
         format!("{:?}", self.inner.addresses.trusted_oracle_arbiter)
     }
 
-    pub fn arbitrate_past<'py>(
+    pub fn arbitrate_past_sync<'py>(
         &self,
         py: Python<'py>,
         fulfillment_params: PyFulfillmentParams,
@@ -75,6 +75,8 @@ impl OracleClient {
             let arbitrate_options = alkahest_rs::clients::oracle::ArbitrateOptions {
                 require_oracle: opts.require_oracle,
                 skip_arbitrated: opts.skip_arbitrated,
+                require_request: opts.require_request,
+                only_new: opts.only_new,
             };
 
             let arbitrate_func =
@@ -95,7 +97,7 @@ impl OracleClient {
                 };
 
             let decisions = inner
-                .arbitrate_past(&fulfillment, &arbitrate_func, &arbitrate_options)
+                .arbitrate_past_sync(&fulfillment, &arbitrate_func, &arbitrate_options)
                 .await
                 .map_err(map_eyre_to_pyerr)?;
 
@@ -127,7 +129,7 @@ impl OracleClient {
         })
     }
 
-    pub fn arbitrate_past_for_escrow<'py>(
+    pub fn arbitrate_past_for_escrow_sync<'py>(
         &self,
         py: Python<'py>,
         escrow_params: PyEscrowParams,
@@ -136,6 +138,7 @@ impl OracleClient {
         options: Option<PyArbitrateOptions>,
     ) -> PyResult<pyo3::Bound<'py, PyAny>> {
         let inner = self.inner.clone();
+
         future_into_py(py, async move {
             let opts = options.unwrap_or_default();
 
@@ -160,9 +163,16 @@ impl OracleClient {
                 _demand_data: PhantomData::<TrustedOracleArbiter::DemandData>,
             };
 
-            let fulfillment = alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
+            let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
                 _obligation_data: PhantomData::<StringObligation::ObligationData>,
                 filter: rust_filter,
+            };
+
+            let arbitrate_options = alkahest_rs::clients::oracle::ArbitrateOptions {
+                require_oracle: opts.require_oracle,
+                skip_arbitrated: opts.skip_arbitrated,
+                require_request: opts.require_request,
+                only_new: opts.only_new,
             };
 
             let arbitrate_func = |obligation_data: &StringObligation::ObligationData,
@@ -186,11 +196,11 @@ impl OracleClient {
             };
 
             let (decisions, escrow_result, _) = inner
-                .arbitrate_past_for_escrow(
+                .arbitrate_past_for_escrow_sync(
                     &escrow,
                     &fulfillment,
                     arbitrate_func,
-                    Some(opts.skip_arbitrated),
+                    &arbitrate_options,
                 )
                 .await
                 .map_err(map_eyre_to_pyerr)?;
@@ -258,6 +268,8 @@ impl OracleClient {
             let arbitrate_options = alkahest_rs::clients::oracle::ArbitrateOptions {
                 require_oracle: opts.require_oracle,
                 skip_arbitrated: opts.skip_arbitrated,
+                require_request: opts.require_request,
+                only_new: opts.only_new,
             };
 
             let arbitrate_func =
@@ -330,92 +342,11 @@ impl OracleClient {
         })
     }
 
-    pub fn listen_and_arbitrate_new_fulfillments_no_spawn<'py>(
-        &self,
-        py: Python<'py>,
-        fulfillment_params: PyFulfillmentParams,
-        decision_func: PyObject,
-        callback_func: Option<PyObject>,
-        options: Option<PyArbitrateOptions>,
-        timeout_seconds: Option<f64>,
-    ) -> PyResult<pyo3::Bound<'py, PyAny>> {
-        let inner = self.inner.clone();
-        future_into_py(py, async move {
-            let opts = options.unwrap_or_default();
-            let timeout = timeout_seconds.map(|secs| std::time::Duration::from_secs_f64(secs));
-
-            let rust_filter = fulfillment_params
-                .filter
-                .try_into()
-                .map_err(|e| map_eyre_to_pyerr(eyre::eyre!("Failed to convert filter: {}", e)))?;
-
-            let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
-                _obligation_data: PhantomData::<StringObligation::ObligationData>,
-                filter: rust_filter,
-            };
-
-            let arbitrate_options = alkahest_rs::clients::oracle::ArbitrateOptions {
-                require_oracle: opts.require_oracle,
-                skip_arbitrated: opts.skip_arbitrated,
-            };
-
-            let arbitrate_func =
-                |obligation_data: &StringObligation::ObligationData| -> Option<bool> {
-                    Python::with_gil(|py| {
-                        let py_obligation = pyo3::types::PyString::new(py, &obligation_data.item);
-
-                        decision_func
-                            .call1(py, (py_obligation,))
-                            .ok()
-                            .and_then(|result| {
-                                result
-                                    .extract::<bool>(py)
-                                    .or_else(|_| result.is_truthy(py))
-                                    .ok()
-                            })
-                    })
-                };
-
-            let callback = |decision: &alkahest_rs::clients::oracle::Decision<
-                StringObligation::ObligationData,
-                (),
-            >| {
-                if let Some(ref py_callback) = callback_func {
-                    Python::with_gil(|py| {
-                        let decision_info = format!(
-                            "Decision: {} for obligation: '{}'",
-                            decision.decision, decision.obligation.item
-                        );
-
-                        if let Err(e) = py_callback.call1(py, (decision_info,)) {
-                            panic!("Python callback failed: {}", e);
-                        }
-                    });
-                }
-
-                Box::pin(async {})
-            };
-
-            inner
-                .listen_and_arbitrate_new_fulfillments_no_spawn(
-                    &fulfillment,
-                    &arbitrate_func,
-                    callback,
-                    &arbitrate_options,
-                    timeout,
-                )
-                .await
-                .map_err(map_eyre_to_pyerr)?;
-
-            Ok(())
-        })
-    }
-
     pub fn listen_and_arbitrate_for_escrow_no_spawn<'py>(
         &self,
         py: Python<'py>,
         escrow_params: PyEscrowParams,
-        fulfillment_params: PyFulfillmentParamsWithoutRefUid,
+        fulfillment_params: PyFulfillmentParams,
         decision_func: PyObject,
         callback_func: Option<PyObject>,
         options: Option<PyArbitrateOptions>,
@@ -446,9 +377,16 @@ impl OracleClient {
                 _demand_data: PhantomData::<TrustedOracleArbiter::DemandData>,
             };
 
-            let fulfillment = alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
+            let fulfillment = alkahest_rs::clients::oracle::FulfillmentParams {
                 _obligation_data: PhantomData::<StringObligation::ObligationData>,
                 filter: rust_filter,
+            };
+
+            let arbitrate_options = alkahest_rs::clients::oracle::ArbitrateOptions {
+                require_oracle: opts.require_oracle,
+                skip_arbitrated: opts.skip_arbitrated,
+                require_request: opts.require_request,
+                only_new: opts.only_new,
             };
 
             let arbitrate_func = |obligation_data: &StringObligation::ObligationData,
@@ -497,7 +435,7 @@ impl OracleClient {
                     &fulfillment,
                     &arbitrate_func,
                     callback,
-                    Some(opts.skip_arbitrated),
+                    &arbitrate_options,
                     timeout,
                 )
                 .await
@@ -533,102 +471,6 @@ impl OracleClient {
                 py_escrow_attestations,
                 py_escrow_demands,
             ))
-        })
-    }
-
-    pub fn listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn<'py>(
-        &self,
-        py: Python<'py>,
-        escrow_params: PyEscrowParams,
-        fulfillment_params: PyFulfillmentParamsWithoutRefUid,
-        decision_func: PyObject,
-        callback_func: Option<PyObject>,
-        options: Option<PyArbitrateOptions>,
-        timeout_secs: Option<u64>,
-    ) -> PyResult<pyo3::Bound<'py, PyAny>> {
-        let inner = self.inner.clone();
-        future_into_py(py, async move {
-            let opts = options.unwrap_or_default();
-            let timeout = timeout_secs.map(std::time::Duration::from_secs);
-
-            let escrow_filter = escrow_params.filter.try_into().map_err(|e| {
-                map_eyre_to_pyerr(eyre::eyre!("Failed to convert escrow filter: {}", e))
-            })?;
-
-            let rust_filter = fulfillment_params.filter.try_into().map_err(|e| {
-                map_eyre_to_pyerr(eyre::eyre!("Failed to convert fulfillment filter: {}", e))
-            })?;
-
-            use alloy::primitives::Bytes;
-            use alloy::sol_types::SolValue;
-
-            let demand_bytes = Bytes::from(escrow_params.demand_abi.clone());
-            let _demand_abi = TrustedOracleArbiter::DemandData::abi_decode(&demand_bytes)
-                .map_err(map_sol_decode_to_pyerr)?;
-
-            let escrow = alkahest_rs::clients::oracle::EscrowParams {
-                filter: escrow_filter,
-                _demand_data: PhantomData::<TrustedOracleArbiter::DemandData>,
-            };
-
-            let fulfillment = alkahest_rs::clients::oracle::FulfillmentParamsWithoutRefUid {
-                _obligation_data: PhantomData::<StringObligation::ObligationData>,
-                filter: rust_filter,
-            };
-
-            let arbitrate_func = |obligation_data: &StringObligation::ObligationData,
-                                  demand_data: &TrustedOracleArbiter::DemandData|
-             -> Option<bool> {
-                Python::with_gil(|py| {
-                    let py_obligation = pyo3::types::PyString::new(py, &obligation_data.item);
-
-                    let demand_py = PyTrustedOracleArbiterDemandData::from(demand_data.clone());
-
-                    decision_func
-                        .call1(py, (py_obligation, demand_py))
-                        .ok()
-                        .and_then(|result| {
-                            result
-                                .extract::<bool>(py)
-                                .or_else(|_| result.is_truthy(py))
-                                .ok()
-                        })
-                })
-            };
-
-            let callback = |decision_info: &alkahest_rs::clients::oracle::Decision<
-                StringObligation::ObligationData,
-                TrustedOracleArbiter::DemandData,
-            >| {
-                if let Some(ref py_callback) = callback_func {
-                    Python::with_gil(|py| {
-                        let decision_info_str = format!(
-                            "Decision: {} for obligation: '{}'",
-                            decision_info.decision, decision_info.obligation.item
-                        );
-
-                        if let Err(e) = py_callback.call1(py, (decision_info_str,)) {
-                            panic!("Python callback failed: {}", e);
-                        }
-                    });
-                }
-
-                Box::pin(async {})
-            };
-
-            inner
-                .listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn(
-                    &escrow,
-                    &fulfillment,
-                    &arbitrate_func,
-                    callback,
-                    Some(opts.skip_arbitrated),
-                    timeout,
-                )
-                .await
-                .map_err(map_eyre_to_pyerr)?;
-
-            Ok(())
         })
     }
 }
@@ -737,23 +579,34 @@ pub struct PyArbitrateOptions {
     pub require_oracle: bool,
     #[pyo3(get, set)]
     pub skip_arbitrated: bool,
+    #[pyo3(get, set)]
+    pub require_request: bool,
+    #[pyo3(get, set)]
+    pub only_new: bool,
 }
 
 #[pymethods]
 impl PyArbitrateOptions {
     #[new]
-    #[pyo3(signature = (require_oracle=false, skip_arbitrated=false))]
-    pub fn __new__(require_oracle: bool, skip_arbitrated: bool) -> Self {
+    #[pyo3(signature = (require_oracle=false, skip_arbitrated=false, require_request=false, only_new=false))]
+    pub fn __new__(
+        require_oracle: bool,
+        skip_arbitrated: bool,
+        require_request: bool,
+        only_new: bool,
+    ) -> Self {
         Self {
             require_oracle,
             skip_arbitrated,
+            require_request,
+            only_new,
         }
     }
 
     pub fn __str__(&self) -> String {
         format!(
-            "PyArbitrateOptions(require_oracle={}, skip_arbitrated={})",
-            self.require_oracle, self.skip_arbitrated
+            "PyArbitrateOptions(require_oracle={}, skip_arbitrated={}, require_request={}, only_new={})",
+            self.require_oracle, self.skip_arbitrated, self.require_request, self.only_new
         )
     }
 
@@ -767,6 +620,8 @@ impl Default for PyArbitrateOptions {
         Self {
             require_oracle: false,
             skip_arbitrated: false,
+            require_request: false,
+            only_new: false,
         }
     }
 }
@@ -783,10 +638,7 @@ pub struct PyFulfillmentParams {
 #[pymethods]
 impl PyFulfillmentParams {
     #[new]
-    pub fn __new__(
-        obligation_abi: PyStringObligationData,
-        filter: PyAttestationFilter,
-    ) -> Self {
+    pub fn __new__(obligation_abi: PyStringObligationData, filter: PyAttestationFilter) -> Self {
         Self {
             obligation_abi,
             filter,
@@ -796,41 +648,6 @@ impl PyFulfillmentParams {
     pub fn __str__(&self) -> String {
         format!(
             "PyFulfillmentParams(obligation_abi={:?}, filter={})",
-            self.obligation_abi,
-            self.filter.__str__()
-        )
-    }
-
-    pub fn __repr__(&self) -> String {
-        self.__str__()
-    }
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub struct PyFulfillmentParamsWithoutRefUid {
-    #[pyo3(get, set)]
-    pub obligation_abi: PyStringObligationData,
-    #[pyo3(get, set)]
-    pub filter: PyAttestationFilter,
-}
-
-#[pymethods]
-impl PyFulfillmentParamsWithoutRefUid {
-    #[new]
-    pub fn __new__(
-        obligation_abi: PyStringObligationData,
-        filter: PyAttestationFilter,
-    ) -> Self {
-        Self {
-            obligation_abi,
-            filter,
-        }
-    }
-
-    pub fn __str__(&self) -> String {
-        format!(
-            "PyFulfillmentParamsWithoutRefUid(obligation_abi={:?}, filter={})",
             self.obligation_abi,
             self.filter.__str__()
         )
@@ -1277,24 +1094,6 @@ impl TryFrom<PyAttestationFilter> for alkahest_rs::clients::oracle::AttestationF
             uid,
             ref_uid,
         })
-    }
-}
-
-impl TryFrom<PyAttestationFilter> for alkahest_rs::clients::oracle::AttestationFilterWithoutRefUid {
-    type Error = eyre::Error;
-
-    fn try_from(py_filter: PyAttestationFilter) -> eyre::Result<Self> {
-        let full_filter: alkahest_rs::clients::oracle::AttestationFilter = py_filter.try_into()?;
-
-        Ok(
-            alkahest_rs::clients::oracle::AttestationFilterWithoutRefUid {
-                block_option: full_filter.block_option,
-                attester: full_filter.attester,
-                recipient: full_filter.recipient,
-                schema_uid: full_filter.schema_uid,
-                uid: full_filter.uid,
-            },
-        )
     }
 }
 

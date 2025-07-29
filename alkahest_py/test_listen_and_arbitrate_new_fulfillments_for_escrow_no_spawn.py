@@ -10,7 +10,7 @@ from alkahest_py import (
     EnvTestManager,
     StringObligationData,
     AttestationFilter,
-    FulfillmentParamsWithoutRefUid,
+    FulfillmentParams,
     ArbitrateOptions,
     MockERC20,
     TrustedOracleArbiterDemandData,
@@ -74,14 +74,16 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
     )
     
     obligation_abi = StringObligationData(item="")
-    fulfillment_params = FulfillmentParamsWithoutRefUid(
+    fulfillment_params = FulfillmentParams(
         obligation_abi=obligation_abi,
         filter=filter_obj
     )
     
     options = ArbitrateOptions(
         require_oracle=True,
-        skip_arbitrated=False
+        skip_arbitrated=False,
+        require_request=False,
+        only_new=True
     )
     
     # Decision function that approves "good" obligations
@@ -110,7 +112,7 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
         nonlocal listen_result, listen_error
         try:
             print("🎧 Listener thread: Starting listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn...")
-            listen_result = await oracle_client.listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn(
+            listen_result = await oracle_client.listen_and_arbitrate_for_escrow_no_spawn(
                 escrow_params,
                 fulfillment_params,
                 decision_function,
@@ -129,10 +131,9 @@ async def test_listen_and_arbitrate_new_fulfillments_for_escrow_no_spawn():
         try:
             print("🔄 Fulfillment thread: Making obligation while listener is active...")
             
-            obligation_data = StringObligationData(item="good")
             
             # Make the fulfillment obligation
-            fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
+            fulfillment_uid = await string_client.do_obligation("good", escrow_uid)
             assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             print(f"🔄 Fulfillment thread: Created fulfillment {fulfillment_uid}")
             

@@ -60,7 +60,9 @@ async def test_listen_and_arbitrate_no_spawn():
     
     options = ArbitrateOptions(
         require_oracle=True,
-        skip_arbitrated=False
+        skip_arbitrated=False,
+        require_request=False,
+        only_new=False
     )
     
     # Decision function that approves "good" obligations
@@ -106,10 +108,8 @@ async def test_listen_and_arbitrate_no_spawn():
             # Wait for listener to start, then make obligation during listening period
             print("🔄 Fulfillment thread: Making obligation while listener is active...")
             
-            obligation_data = StringObligationData(item="good")
-            
             # Make the fulfillment obligation
-            fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
+            fulfillment_uid = await string_client.do_obligation("good", escrow_uid)
             assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             
             

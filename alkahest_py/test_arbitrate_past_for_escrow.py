@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test the Oracle arbitrate_past_for_escrow functionality with complete escrow, arbitration, and payment flow
+Test the Oracle arbitrate_past_for_escrow_sync functionality with complete escrow, arbitration, and payment flow
 """
 
 import pytest
@@ -19,8 +19,8 @@ from alkahest_py import (
 from eth_abi import encode
 
 @pytest.mark.asyncio
-async def test_arbitrate_past_for_escrow():
-    """Test complete arbitrate_past_for_escrow flow: escrow → fulfillment → arbitration → payment collection"""
+async def test_arbitrate_past_for_escrow_sync():
+    """Test complete arbitrate_past_for_escrow_sync flow: escrow → fulfillment → arbitration → payment collection"""
     # Setup test environment
     env = EnvTestManager()
     
@@ -52,7 +52,7 @@ async def test_arbitrate_past_for_escrow():
     # Make fulfillment obligation
     string_client = env.bob_client.string_obligation
     obligation_data = StringObligationData(item="good")
-    fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
+    fulfillment_uid = await string_client.do_obligation("good", escrow_uid)
     
     # Setup escrow parameters for arbitration
     escrow_filter = AttestationFilter(
@@ -86,9 +86,9 @@ async def test_arbitrate_past_for_escrow():
         print(f"Decision function called with obligation: '{obligation_str}' and oracle: {demand_data.oracle}")
         return obligation_str == "good"
     
-    # Call arbitrate_past_for_escrow
+    # Call arbitrate_past_for_escrow_sync
     oracle_client = env.bob_client.oracle
-    result = await oracle_client.arbitrate_past_for_escrow(
+    result = await oracle_client.arbitrate_past_for_escrow_sync(
         escrow_params,
         fulfillment_params,
         decision_function,

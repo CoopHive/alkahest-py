@@ -39,24 +39,20 @@ impl StringObligationClient {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let uid: FixedBytes<32> = uid.parse().map_err(map_parse_to_pyerr)?;
             let obligation = inner.get_obligation(uid).await.map_err(map_eyre_to_pyerr)?;
-            Ok(PyDecodedAttestation::<PyStringObligationData>::from(obligation))
+            Ok(PyDecodedAttestation::<PyStringObligationData>::from(
+                obligation,
+            ))
         })
     }
 
     pub fn do_obligation<'py>(
         &self,
         py: pyo3::Python<'py>,
-        obligation_data: PyStringObligationData,
+        item: String,
         ref_uid: Option<String>,
     ) -> PyResult<pyo3::Bound<'py, pyo3::PyAny>> {
         let inner = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            use alkahest_rs::contracts::StringObligation;
-
-            let data = StringObligation::ObligationData {
-                item: obligation_data.item.clone(),
-            };
-
             let ref_uid = if let Some(ref_uid_str) = ref_uid {
                 Some(ref_uid_str.parse().map_err(map_parse_to_pyerr)?)
             } else {
@@ -64,14 +60,14 @@ impl StringObligationClient {
             };
 
             let receipt = inner
-                .do_obligation(data, ref_uid)
+                .do_obligation(item, ref_uid)
                 .await
                 .map_err(map_eyre_to_pyerr)?;
 
             // Extract the attestation UID from the receipt instead of returning transaction hash
-            use alkahest_rs::AlkahestClient;
+            use alkahest_rs::DefaultAlkahestClient;
             let attested_event =
-                AlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
+                DefaultAlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
             Ok(format!(
                 "0x{}",
                 alloy::hex::encode(attested_event.uid.as_slice())
@@ -103,9 +99,9 @@ impl StringObligationClient {
                 .map_err(map_eyre_to_pyerr)?;
 
             // Extract the attestation UID from the receipt instead of returning transaction hash
-            use alkahest_rs::AlkahestClient;
+            use alkahest_rs::DefaultAlkahestClient;
             let attested_event =
-                AlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
+                DefaultAlkahestClient::get_attested_event(receipt).map_err(map_eyre_to_pyerr)?;
             Ok(format!(
                 "0x{}",
                 alloy::hex::encode(attested_event.uid.as_slice())
@@ -188,9 +184,7 @@ impl PyStringObligationData {
     }
 }
 
-impl From<alkahest_rs::contracts::StringObligation::ObligationData>
-    for PyStringObligationData
-{
+impl From<alkahest_rs::contracts::StringObligation::ObligationData> for PyStringObligationData {
     fn from(data: alkahest_rs::contracts::StringObligation::ObligationData) -> Self {
         Self { item: data.item }
     }

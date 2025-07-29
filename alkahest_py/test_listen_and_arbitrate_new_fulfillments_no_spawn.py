@@ -60,7 +60,9 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
     
     options = ArbitrateOptions(
         require_oracle=True,
-        skip_arbitrated=False
+        skip_arbitrated=False,
+        require_request=False,
+        only_new=True
     )
     
     # Decision function that approves "good" obligations
@@ -88,7 +90,7 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
     async def run_listener():
         nonlocal listen_result, listen_error
         try:
-            listen_result = await oracle_client.listen_and_arbitrate_new_fulfillments_no_spawn(
+            listen_result = await oracle_client.listen_and_arbitrate_no_spawn(
                 fulfillment_params,
                 decision_function,
                 callback_function,
@@ -103,10 +105,8 @@ async def test_listen_and_arbitrate_new_fulfillments_no_spawn():
         nonlocal fulfillment_uid, collection_success
         try:
             
-            obligation_data = StringObligationData(item="good")
-            
             # Make the fulfillment obligation
-            fulfillment_uid = await string_client.do_obligation(obligation_data, escrow_uid)
+            fulfillment_uid = await string_client.do_obligation("good", escrow_uid)
             assert fulfillment_uid is not None, "Fulfillment UID should not be None"
             
             

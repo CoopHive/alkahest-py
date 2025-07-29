@@ -1,4 +1,4 @@
-use crate::{types::PyAddressConfig, PyAlkahestClient};
+use crate::{types::PyDefaultExtensionConfig, PyAlkahestClient};
 use alkahest_rs::{
     types::WalletProvider,
     utils::{setup_test_environment, MockAddresses, TestContext},
@@ -77,7 +77,7 @@ pub struct EnvTestManager {
     #[pyo3(get)]
     pub bob: String,
     #[pyo3(get)]
-    pub addresses: PyAddressConfig,
+    pub addresses: PyDefaultExtensionConfig,
     #[pyo3(get)]
     pub mock_addresses: PyMockAddresses,
     #[pyo3(get)]
@@ -103,7 +103,7 @@ impl EnvTestManager {
             god: ctx.god.address().to_string(),
             alice: ctx.alice.address().to_string(),
             bob: ctx.bob.address().to_string(),
-            addresses: PyAddressConfig::from(&ctx.addresses),
+            addresses: PyDefaultExtensionConfig::from(&ctx.addresses),
             mock_addresses: PyMockAddresses::from(&ctx.mock_addresses),
             alice_client: PyAlkahestClient::from_client(ctx.alice_client.clone()),
             bob_client: PyAlkahestClient::from_client(ctx.bob_client.clone()),

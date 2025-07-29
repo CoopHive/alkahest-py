@@ -1,16 +1,15 @@
 use crate::{utils::PyWalletProvider, PyAlkahestClient};
-use alkahest_rs::{fixtures::{MockERC1155, MockERC20Permit, MockERC721}, types::WalletProvider};
+use alkahest_rs::{
+    extensions::NoExtension,
+    fixtures::{MockERC1155, MockERC20Permit, MockERC721},
+    types::WalletProvider,
+};
 use alloy::primitives::{Address, U256};
 use pyo3::{pyclass, pymethods, PyResult};
 
 #[pyclass]
 pub struct PyMockERC20 {
     inner: MockERC20Permit::MockERC20PermitInstance<WalletProvider>,
-}
-impl PyAlkahestClient {
-    pub fn inner_provider(&self) -> &WalletProvider {
-        &self.inner.wallet_provider
-    }
 }
 
 #[pymethods]

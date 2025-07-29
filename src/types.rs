@@ -20,6 +20,12 @@ client_address_config!(Erc1155Addresses);
 client_address_config!(TokenBundleAddresses);
 
 #[derive(FromPyObject)]
+pub struct OracleAddresses {
+    pub eas: String,
+    pub trusted_oracle_arbiter: String,
+}
+
+#[derive(FromPyObject)]
 pub struct AttestationAddresses {
     pub eas: String,
     pub eas_schema_registry: String,
@@ -104,7 +110,7 @@ impl TryFrom<StringObligationAddresses>
 }
 
 #[derive(FromPyObject)]
-pub struct AddressConfig {
+pub struct DefaultExtensionConfig {
     pub erc20_addresses: Option<Erc20Addresses>,
     pub erc721_addresses: Option<Erc721Addresses>,
     pub erc1155_addresses: Option<Erc1155Addresses>,
@@ -177,10 +183,30 @@ impl TryFrom<AttestationAddresses> for alkahest_rs::clients::attestation::Attest
     }
 }
 
-impl TryFrom<AddressConfig> for alkahest_rs::AddressConfig {
+impl TryFrom<OracleAddresses> for alkahest_rs::clients::oracle::OracleAddresses {
     type Error = PyErr;
 
-    fn try_from(value: AddressConfig) -> PyResult<Self> {
+    fn try_from(value: OracleAddresses) -> PyResult<Self> {
+        macro_rules! parse_address {
+            ($name:ident) => {
+                value
+                    .$name
+                    .parse()
+                    .map_err(|_| PyValueError::new_err("invalid address"))?
+            };
+        }
+
+        Ok(Self {
+            eas: parse_address!(eas),
+            trusted_oracle_arbiter: parse_address!(trusted_oracle_arbiter),
+        })
+    }
+}
+
+impl TryFrom<DefaultExtensionConfig> for alkahest_rs::DefaultExtensionConfig {
+    type Error = PyErr;
+
+    fn try_from(value: DefaultExtensionConfig) -> PyResult<Self> {
         Ok(Self {
             erc20_addresses: value.erc20_addresses.and_then(|x| x.try_into().ok()),
             erc721_addresses: value.erc721_addresses.and_then(|x| x.try_into().ok()),
@@ -505,7 +531,7 @@ pub struct LogWithHash<T> {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyAddressConfig {
+pub struct PyDefaultExtensionConfig {
     #[pyo3(get)]
     pub erc20_addresses: Option<PyErc20Addresses>,
     #[pyo3(get)]
@@ -522,8 +548,8 @@ pub struct PyAddressConfig {
     pub string_obligation_addresses: Option<PyStringObligationAddresses>,
 }
 
-impl From<&alkahest_rs::AddressConfig> for PyAddressConfig {
-    fn from(data: &alkahest_rs::AddressConfig) -> Self {
+impl From<&alkahest_rs::DefaultExtensionConfig> for PyDefaultExtensionConfig {
+    fn from(data: &alkahest_rs::DefaultExtensionConfig) -> Self {
         Self {
             erc20_addresses: data.erc20_addresses.as_ref().map(PyErc20Addresses::from),
             erc721_addresses: data.erc721_addresses.as_ref().map(PyErc721Addresses::from),
@@ -564,6 +590,24 @@ macro_rules! py_address_struct {
             pub escrow_obligation: String,
             #[pyo3(get)]
             pub payment_obligation: String,
+        }
+
+        #[pymethods]
+        impl $name {
+            #[new]
+            pub fn new(
+                eas: String,
+                barter_utils: String,
+                escrow_obligation: String,
+                payment_obligation: String,
+            ) -> Self {
+                Self {
+                    eas,
+                    barter_utils,
+                    escrow_obligation,
+                    payment_obligation,
+                }
+            }
         }
 
         impl From<&$src> for $name {
@@ -610,6 +654,27 @@ pub struct PyAttestationAddresses {
     #[pyo3(get)]
     pub escrow_obligation_2: String,
 }
+
+#[pymethods]
+impl PyAttestationAddresses {
+    #[new]
+    pub fn new(
+        eas: String,
+        eas_schema_registry: String,
+        barter_utils: String,
+        escrow_obligation: String,
+        escrow_obligation_2: String,
+    ) -> Self {
+        Self {
+            eas,
+            eas_schema_registry,
+            barter_utils,
+            escrow_obligation,
+            escrow_obligation_2,
+        }
+    }
+}
+
 impl From<&alkahest_rs::clients::attestation::AttestationAddresses> for PyAttestationAddresses {
     fn from(data: &alkahest_rs::clients::attestation::AttestationAddresses) -> Self {
         Self {
@@ -672,6 +737,14 @@ pub struct PyStringObligationAddresses {
     pub eas: String,
     #[pyo3(get)]
     pub obligation: String,
+}
+
+#[pymethods]
+impl PyStringObligationAddresses {
+    #[new]
+    pub fn new(eas: String, obligation: String) -> Self {
+        Self { eas, obligation }
+    }
 }
 
 impl From<&alkahest_rs::clients::string_obligation::StringObligationAddresses>
